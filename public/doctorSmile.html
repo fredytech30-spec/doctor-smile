@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Doctor Smile · Médecin pour la Santé Financière des Entreprises</title>
+<meta name="description" content="Analysez la santé financière d'entreprise avec 95%+ de précision. ML Ensemble + LLM Explicable + SHAP.">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+<!-- Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<!-- Plotly (chargé en head car requis avant DOMContentLoaded) -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<!-- Styles principaux -->
+<link rel="stylesheet" href="css/main.css">
+
+<!-- Micro-styles inline (trop courts pour justifier un fichier) -->
+<style>
+.ico-xs{font-size:10px!important;}.ico-sm{font-size:12px!important;}
+.ico-md{font-size:14px!important;}.ico-lg{font-size:18px!important;}
+.ico-xl{font-size:22px!important;}.ico-2xl{font-size:26px!important;}
+.fa-solid,.fa-regular,.fa-brands{display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;}
+</style>
+</head>
+<body>
+
+
+<!-- CURSOR -->
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
+
+<!-- SCROLL BAR -->
+<div id="scroll-bar"></div>
+
+<!-- SMILE NETWORK CANVAS -->
+<canvas id="smile-canvas"></canvas>
+
+<!-- ORBS -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#features" onclick="closeMobile()">Fonctionnalités</a>
+  <a href="#pipeline" onclick="closeMobile()">Pipeline ML</a>
+  <a href="#intelligence" onclick="closeMobile()">Intelligence IA</a>
+  <a href="#temoignages" onclick="closeMobile()">Témoignages</a>
+  <a href="#tech" onclick="closeMobile()">Tech Stack</a>
+  <div style="display:flex;flex-direction:column;gap:12px;margin-top:28px;width:100%;max-width:320px;">
+    <a href="./auth.html" class="btn btn-ghost" style="padding:14px 40px;font-size:16px;text-align:center;justify-content:center;" onclick="closeMobile()">
+      <i class="fa-solid fa-user" style="font-size:15px;line-height:1;margin-right:8px;"></i> Connexion
+    </a>
+    <button onclick="closeMobile();DS_MODALS&&DS_MODALS.openDemo();" class="btn btn-gold" style="padding:14px 40px;font-size:16px;border:none;cursor:pointer;width:100%;">
+      <i class="fa-solid fa-stethoscope" style="font-size:16px;line-height:1;"></i> Démo gratuite
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════
+     NAVIGATION
+═══════════════════════════ -->
+<nav class="nav" id="nav">
+  <div class="nav-capsule" id="navCapsule">
+    <a href="#" class="nav-logo">
+      <div class="logo-3d-wrap">
+        <div class="cube-pulse-ring"></div>
+        <div class="logo-cube-3d">
+          <!-- front: medical cross -->
+          <div class="cube-face cf-front">
+            <div class="med-cross"></div>
+          </div>
+          <!-- back: heartbeat SVG -->
+          <div class="cube-face cf-back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+              <polyline points="2,12 6,12 8,4 10,20 14,12 16,16 18,12 22,12"/>
+            </svg>
+          </div>
+          <!-- right: stethoscope-ish -->
+          <div class="cube-face cf-right">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4.8 2.3A.3.3 0 1 0 5 2H4"/>
+              <path d="M4 2v6a6 6 0 0 0 12 0V2"/>
+              <path d="M16 2v6a6 6 0 0 1-6 6H6"/>
+              <circle cx="18" cy="17" r="3"/>
+              <path d="M18 14v1"/>
+            </svg>
+          </div>
+          <!-- left: shield-heart -->
+          <div class="cube-face cf-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M9.5 9.5a2.5 2.5 0 0 1 5 0c0 1.5-1.5 3-2.5 4.5-1-1.5-2.5-3-2.5-4.5z" fill="rgba(255,255,255,0.4)"/>
+            </svg>
+          </div>
+          <!-- top -->
+          <div class="cube-face cf-top">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2"/>
+              <path d="M12 8v4l3 3"/>
+            </svg>
+          </div>
+          <!-- bottom -->
+          <div class="cube-face cf-bottom">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="logo-name">Doctor<em>Smile</em></div>
+        <span class="logo-sub">Financial Health AI · v1.0</span>
+      </div>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="#features">Fonctionnalités</a></li>
+      <li><a href="#pipeline">Pipeline ML</a></li>
+      <li><a href="#intelligence">Intelligence IA</a></li>
+      <li><a href="#temoignages">Témoignages</a></li>
+      <li><a href="#tech">Tech Stack</a></li>
+    </ul>
+
+    <div class="nav-right">
+      <div class="live-badge">
+        <span class="live-dot"></span>
+        v1.0 Beta
+      </div>
+      <div class="theme-toggle" id="themeToggle" title="Toggle dark/light">
+        <div class="toggle-thumb" id="toggleThumb"><i class="fa-solid fa-moon" style="font-size:12px;line-height:1;"></i></div>
+      </div>
+      <a href="./auth.html" class="btn btn-ghost" style="padding:8px 18px;font-size:12px;">Connexion</a>
+      <a href="#contact" class="btn btn-gold" style="padding:8px 18px;font-size:12px;" onclick="event.preventDefault();DS_MODALS&&DS_MODALS.openDemo()">
+        <i class="fa-solid fa-stethoscope" style="font-size:14px;line-height:1;"></i> Démo gratuite
+      </a>
+      <button class="nav-toggle" id="navToggle" aria-label="Menu">
+        <div class="toggle-bar"></div>
+        <div class="toggle-bar"></div>
+        <div class="toggle-bar"></div>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════
+     HERO
+═══════════════════════════ -->
+<section class="hero" id="hero">
+  <div class="hero-grid-floor"></div>
+  <div class="container">
+    <div class="hero-inner">
+
+      <!-- LEFT -->
+      <div class="hero-left">
+        <div class="hero-eyebrow">
+          <div class="eyebrow-pill">
+            <i class="fa-solid fa-microchip" style="font-size:13px;line-height:1;"></i> ML Ensemble · LLM Explicable · SHAP
+          </div>
+          <span class="eyebrow-tag">Version 2025</span>
+        </div>
+
+        <h1 class="display-1 hero-title">
+          <span class="l1">Analysez</span>
+          <span class="l2">la santé.</span>
+          <span class="l3" id="typewriter-line">Avant la faillite.</span>
+        </h1>
+
+        <p class="hero-desc">
+          <strong>Doctor Smile</strong> est le médecin IA de vos entreprises — il pose le diagnostic financier
+          avec <strong>95%+ de précision</strong>, explique chaque symptôme et prescrit les bonnes décisions.
+          XGBoost · RandomForest · GPT-4 · SHAP — tout en un.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#contact" class="btn btn-gold" style="padding:14px 32px;font-size:15px;" onclick="event.preventDefault();DS_MODALS&&DS_MODALS.openSignup()">
+            <i class="fa-solid fa-stethoscope" style="font-size:16px;line-height:1;"></i> Consulter une entreprise
+          </a>
+          <a href="#features" class="btn btn-glass" style="padding:14px 28px;font-size:15px;" onclick="event.preventDefault();DS_MODALS&&DS_MODALS.openDemo()">
+            <i class="fa-solid fa-circle-play" style="font-size:16px;line-height:1;"></i> Voir la démo
+          </a>
+        </div>
+
+        <div class="social-proof">
+          <div class="avatars">
+            <div class="av av-a">A</div>
+            <div class="av av-b">T</div>
+            <div class="av av-c">S</div>
+            <div class="av av-d">M</div>
+          </div>
+          <div class="sp-text">
+            <strong>+120 analystes financiers</strong>
+            utilisent Doctor Smile en beta
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Dashboard Card -->
+      <div class="hero-visual">
+        <div class="dashboard-card" id="dashCard">
+          <div class="card-bar">
+            <div class="wdots"><span></span><span></span><span></span></div>
+            <div class="card-bar-title">Paysage de Risque ML — Vue 3D</div>
+            <div class="live-indicator"><span></span> Live</div>
+          </div>
+          <div id="hero-plot"></div>
+        </div>
+
+        <div class="float-chip fc-1">
+          <div class="chip-icon ci-gold"><i class="fa-solid fa-arrow-trend-down" style="font-size:18px;color:#FFD700;line-height:1;"></i></div>
+          <div>
+            <div class="chip-label">Score de risque</div>
+            <div class="chip-value" id="score-val">23.7 / 100</div>
+          </div>
+        </div>
+
+        <div class="float-chip fc-2">
+          <div class="chip-icon ci-ice"><i class="fa-solid fa-brain" style="font-size:18px;color:#7DD3FC;line-height:1;"></i></div>
+          <div>
+            <div class="chip-label">Précision modèle</div>
+            <div class="chip-value">95.8%</div>
+          </div>
+        </div>
+
+        <div class="float-chip fc-3">
+          <div class="chip-icon ci-green"><i class="fa-solid fa-shield-halved" style="font-size:18px;color:#10b981;line-height:1;"></i></div>
+          <div>
+            <div class="chip-label">Statut SHAP</div>
+            <div class="chip-value">Explicable ✓</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════
+     METRICS
+═══════════════════════════ -->
+<section class="metrics-band">
+  <div class="container">
+    <div class="metrics-row">
+      <div class="metric-box reveal">
+        <div class="metric-icon-ring mir-gold">
+          <i class="fa-solid fa-bullseye" style="font-size:22px;color:#FFD700;line-height:1;"></i>
+        </div>
+        <div class="metric-num" data-target="95" data-suffix="%+">0%</div>
+        <div class="metric-lbl">Précision prédictive</div>
+        <div class="metric-sub">XGBoost + RandomForest</div>
+      </div>
+      <div class="metric-box reveal d1">
+        <div class="metric-icon-ring mir-ice"><i class="fa-solid fa-bolt" style="font-size:22px;color:#7DD3FC;line-height:1;"></i></div>
+        <div class="metric-num" data-target="0.3" data-suffix="s">0s</div>
+        <div class="metric-lbl">Temps d'analyse</div>
+        <div class="metric-sub">Résultat en temps réel</div>
+      </div>
+      <div class="metric-box reveal d2">
+        <div class="metric-icon-ring mir-green"><i class="fa-solid fa-database" style="font-size:22px;color:#10b981;line-height:1;"></i></div>
+        <div class="metric-num" data-target="5" data-suffix="+">0</div>
+        <div class="metric-lbl">Sources de données</div>
+        <div class="metric-sub">BD · PDF · Excel · CSV · API</div>
+      </div>
+      <div class="metric-box reveal d3">
+        <div class="metric-icon-ring mir-violet"><i class="fa-solid fa-layer-group" style="font-size:22px;color:#8B5CF6;line-height:1;"></i></div>
+        <div class="metric-num" data-target="4" data-suffix="">0</div>
+        <div class="metric-lbl">Algorithmes ML</div>
+        <div class="metric-sub">XGBoost · RF · LightGBM · SHAP</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════
+     FEATURES
+═══════════════════════════ -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="feat-header reveal">
+      <div class="section-tag st-ice"><i class="fa-solid fa-wand-magic-sparkles" style="font-size:12px;line-height:1;"></i> Fonctionnalités</div>
+      <h2 class="display-2">Intelligence financière<br>de classe mondiale</h2>
+      <p>Tout ce dont un analyste financier a besoin pour prendre des décisions critiques basées sur des données — pas sur des intuitions.</p>
+    </div>
+
+    <div class="feat-wide reveal">
+      <div class="feat-wide-card">
+        <div class="fi fi-ice" style="margin-bottom:16px"><i class="fa-solid fa-wave-square" style="font-size:24px;color:#7DD3FC;line-height:1;"></i></div>
+        <h3 class="fc-title">Courbe ROC — Performance du modèle</h3>
+        <p class="fc-desc" style="margin-bottom:16px">AUC-ROC de <strong style="color:var(--gold)">0.97</strong> — le modèle discrimine parfaitement les entreprises saines des entreprises à risque.</p>
+        <div id="roc-plot" style="height:240px"></div>
+      </div>
+      <div class="feat-wide-card">
+        <div class="fi fi-gold" style="margin-bottom:16px"><i class="fa-solid fa-chart-scatter" style="font-size:24px;color:#FFD700;line-height:1;"></i></div>
+        <h3 class="fc-title">Distribution des scores — Portefeuille</h3>
+        <p class="fc-desc" style="margin-bottom:16px">Visualisation de <strong style="color:var(--ice)">148 entreprises analysées</strong> selon leur score de risque et leur ratio d'endettement.</p>
+        <div id="scatter-plot" style="height:240px"></div>
+      </div>
+    </div>
+
+    <div class="feat-grid">
+      <div class="feat-card gold-hover reveal">
+        <div class="fi fi-gold"><i class="fa-solid fa-brain" style="font-size:26px;color:#FFD700;line-height:1;"></i></div>
+        <h3 class="fc-title">ML Ensemble 95%+</h3>
+        <p class="fc-desc">XGBoost, RandomForest et LightGBM combinés. Cross-validation k-fold, SMOTE pour l'équilibre de classes, StandardScaler.</p>
+        <span class="fc-badge fcb-gold"><i class="fa-solid fa-arrow-trend-up" style="font-size:10px;line-height:1;"></i> AUC-ROC: 0.97</span>
+      </div>
+      <div class="feat-card reveal d1">
+        <div class="fi fi-ice"><i class="fa-solid fa-eye" style="font-size:26px;color:#7DD3FC;line-height:1;"></i></div>
+        <h3 class="fc-title">SHAP Explicable</h3>
+        <p class="fc-desc">Chaque prédiction est justifiée. Waterfall chart, Force Plot et Summary Chart révèlent exactement pourquoi un score a été attribué.</p>
+        <span class="fc-badge fcb-ice"><i class="fa-solid fa-circle-check" style="font-size:10px;line-height:1;"></i> Explainability certifiée</span>
+      </div>
+      <div class="feat-card reveal d2">
+        <div class="fi fi-green"><i class="fa-solid fa-comment-dots" style="font-size:26px;color:#10b981;line-height:1;"></i></div>
+        <h3 class="fc-title">LLM GPT-4 Intégré</h3>
+        <p class="fc-desc">Le LLM interprète les scores, explique les graphes en langage naturel et génère des recommandations actionnables via LangChain.</p>
+        <span class="fc-badge fcb-green"><i class="fa-solid fa-wand-magic-sparkles" style="font-size:10px;line-height:1;"></i> FinBERT + GPT-4</span>
+      </div>
+      <div class="feat-card reveal d1">
+        <div class="fi fi-violet"><i class="fa-solid fa-database" style="font-size:26px;color:#8B5CF6;line-height:1;"></i></div>
+        <h3 class="fc-title">Multi-Sources</h3>
+        <p class="fc-desc">Ingestion unifiée PostgreSQL, Excel, CSV, PDF et API externes. Un seul pipeline, toutes vos sources financières.</p>
+        <span class="fc-badge" style="background:rgba(139,92,246,0.08);color:var(--violet)"><i class="fa-solid fa-plug" style="font-size:10px;line-height:1;"></i> 5+ formats supportés</span>
+      </div>
+      <div class="feat-card gold-hover reveal d2">
+        <div class="fi fi-amber"><i class="fa-solid fa-chart-column" style="font-size:26px;color:#f59e0b;line-height:1;"></i></div>
+        <h3 class="fc-title">Dashboard Premium</h3>
+        <p class="fc-desc">Streamlit + Plotly + AgGrid — graphes interactifs, tables ultra-performantes, gauge animé, export PDF automatisé.</p>
+        <span class="fc-badge fcb-gold"><i class="fa-solid fa-desktop" style="font-size:10px;line-height:1;"></i> Interface 5 étoiles</span>
+      </div>
+      <div class="feat-card reveal d3">
+        <div class="fi fi-ruby"><i class="fa-solid fa-shield-halved" style="font-size:26px;color:#ef4444;line-height:1;"></i></div>
+        <h3 class="fc-title">Sécurité Enterprise</h3>
+        <p class="fc-desc">JWT + OAuth2, AES-256, TLS 1.3, RGPD, RBAC complet. Audit trail intégral. Compliance SOC2 en cours.</p>
+        <span class="fc-badge" style="background:rgba(239,68,68,0.08);color:var(--ruby)"><i class="fa-solid fa-lock" style="font-size:10px;line-height:1;"></i> RGPD · SOC2 ready</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════
+     PIPELINE ML
+═══════════════════════════ -->
+<section class="pipeline" id="pipeline">
+  <div class="container">
+    <div class="pipe-header reveal">
+      <div class="section-tag st-gold"><i class="fa-solid fa-code-branch" style="font-size:12px;line-height:1;"></i> Pipeline ML</div>
+      <h2 class="display-2">Du brut<br>à la prédiction</h2>
+      <p>Un pipeline ML complet en 9 étapes optimisées — de l'ingestion des données brutes jusqu'à l'explication SHAP de chaque prédiction.</p>
+    </div>
+
+    <div class="steps-grid">
+      <div class="step-card reveal">
+        <div class="step-num">01</div>
+        <div class="step-ico"><i class="fa-solid fa-upload" style="font-size:22px;color:#FFD700;line-height:1;"></i></div>
+        <h3 class="step-title">Ingestion & Nettoyage</h3>
+        <p class="step-desc">Chargement multi-sources. Imputation des valeurs manquantes, détection d'outliers par IQR, validation Pydantic.</p>
+        <span class="step-tag" style="background:rgba(255,215,0,0.08);color:var(--gold);border:1px solid rgba(255,215,0,0.18)"><i class="fa-solid fa-check" style="font-size:10px;line-height:1;"></i> Pandas · Sklearn · OpenPyXL</span>
+      </div>
+      <div class="step-card reveal d2">
+        <div class="step-num">02</div>
+        <div class="step-ico"><i class="fa-solid fa-microchip" style="font-size:22px;color:#FFD700;line-height:1;"></i></div>
+        <h3 class="step-title">Feature Engineering & Modélisation</h3>
+        <p class="step-desc">Calcul de 40+ ratios financiers. SMOTE, StandardScaler, SelectKBest. Entraînement XGBoost + RF + LightGBM.</p>
+        <span class="step-tag" style="background:rgba(125,211,252,0.08);color:var(--ice);border:1px solid rgba(125,211,252,0.18)"><i class="fa-solid fa-arrow-trend-up" style="font-size:10px;line-height:1;"></i> XGBoost · Sklearn · SMOTE</span>
+      </div>
+      <div class="step-card reveal d4">
+        <div class="step-num">03</div>
+        <div class="step-ico"><i class="fa-solid fa-chart-bar" style="font-size:22px;color:#FFD700;line-height:1;"></i></div>
+        <h3 class="step-title">Prédiction & Explicabilité</h3>
+        <p class="step-desc">Score 0-100, probabilité de faillite, SHAP values complètes. LLM génère le rapport narratif automatiquement.</p>
+        <span class="step-tag" style="background:rgba(16,185,129,0.08);color:var(--emerald);border:1px solid rgba(16,185,129,0.18)"><i class="fa-solid fa-wand-magic-sparkles" style="font-size:10px;line-height:1;"></i> SHAP · GPT-4 · LangChain</span>
+      </div>
+    </div>
+
+    <!-- ML Node Pipeline -->
+    <div class="ml-row-wrap reveal">
+      <div class="ml-row-title">Pipeline ML Complet — 9 Étapes</div>
+      <div class="ml-row">
+        <div class="ml-node"><div class="ml-circle"><i class="fa-solid fa-folder-open" style="font-size:18px;color:#7DD3FC;line-height:1;"></i></div><div class="ml-label">Ingestion<br>Data</div></div>
+        <div class="ml-arrow">→</div>
+        <div class="ml-node"><div class="ml-circle"><i class="fa-solid fa-filter" style="font-size:18px;color:#7DD3FC;line-height:1;"></i></div><div class="ml-label">Nettoyage<br>& Valid.</div></div>
+        <div class="ml-arrow">→</div>
+        <div class="ml-node"><div class="ml-circle"><i class="fa-solid fa-flask" style="font-size:18px;color:#7DD3FC;line-height:1;"></i></div><div class="ml-label">Feature<br>Engin.</div></div>
+        <div class="ml-arrow">→</div>
+        <div class="ml-node"><div class="ml-circle"><i class="fa-solid fa-scale-balanced" style="font-size:18px;color:#7DD3FC;line-height:1;"></i></div><div class="ml-label">SMOTE<br>Balance</div></div>
+        <div class="ml-arrow">→</div>
+        <div class="ml-node"><div class="ml-circle"><i class="fa-solid fa-ruler" style="font-size:18px;color:#7DD3FC;line-height:1;"></i></div><div class="ml-label">Scaling<br>Norm.</div></div>
+        <div class="ml-arrow">→</div>
+        <div class="ml-node"><div class="ml-circle"><i class="fa-solid fa-network-wired" style="font-size:18px;color:#7DD3FC;line-height:1;"></i></div><div class="ml-label">Train<br>XGB+RF</div></div>
+        <div class="ml-arrow">→</div>
+        <div class="ml-node"><div class="ml-circle"><i class="fa-solid fa-code-commit" style="font-size:18px;color:#7DD3FC;line-height:1;"></i></div><div class="ml-label">Cross<br>Val. k-fold</div></div>
+        <div class="ml-arrow">→</div>
+        <div class="ml-node"><div class="ml-circle"><i class="fa-solid fa-magnifying-glass" style="font-size:18px;color:#7DD3FC;line-height:1;"></i></div><div class="ml-label">SHAP<br>Explain</div></div>
+        <div class="ml-arrow">→</div>
+        <div class="ml-node"><div class="ml-circle"><i class="fa-solid fa-robot" style="font-size:18px;color:#7DD3FC;line-height:1;"></i></div><div class="ml-label">LLM<br>Rapport</div></div>
+      </div>
+    </div>
+
+    <!-- 3D Scatter -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;" class="reveal">
+      <div style="font-size:13px;color:var(--muted-2);margin-bottom:12px;display:flex;align-items:center;gap:8px;font-family:var(--font-display);font-weight:600;">
+        <i class="fa-solid fa-cube" style="font-size:14px;color:#7DD3FC;line-height:1;"></i> Espace de features 3D — Current Ratio · Debt/Equity · ROA par classe de risque
+      </div>
+      <div id="scatter3d-plot" style="height:360px"></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════
+     LLM INTELLIGENCE
+═══════════════════════════ -->
+<section class="llm-sec" id="intelligence">
+  <div class="container">
+    <div class="llm-layout">
+
+      <div class="llm-content reveal-l">
+        <div class="section-tag st-ice"><i class="fa-solid fa-brain" style="font-size:12px;line-height:1;"></i> Intelligence IA</div>
+        <h2 class="display-2">Le LLM qui<br><span class="grad-text">explique tout.</span></h2>
+        <p>GPT-4 ne fait pas la prédiction — il l'interprète. Il reçoit le score, les SHAP values et génère une analyse narrative lisible par n'importe quel décideur financier.</p>
+
+        <div class="llm-feats">
+          <div class="llm-feat">
+            <div class="lf-ico"><i class="fa-solid fa-file-lines" style="font-size:18px;color:#7DD3FC;line-height:1;"></i></div>
+            <div class="lf-text">
+              <h4>Analyse narrative automatique</h4>
+              <p>Score + SHAP values → rapport détaillé sur l'état de santé financière en langage naturel.</p>
+            </div>
+          </div>
+          <div class="llm-feat">
+            <div class="lf-ico"><i class="fa-solid fa-chart-pie" style="font-size:18px;color:#7DD3FC;line-height:1;"></i></div>
+            <div class="lf-text">
+              <h4>Interprétation des graphes</h4>
+              <p>Pour chaque graphe SHAP, ROC ou distribution, le LLM fournit une explication contextuelle claire.</p>
+            </div>
+          </div>
+          <div class="llm-feat">
+            <div class="lf-ico"><i class="fa-solid fa-list-check" style="font-size:18px;color:#7DD3FC;line-height:1;"></i></div>
+            <div class="lf-text">
+              <h4>3 à 5 recommandations priorisées</h4>
+              <p>Actions concrètes classées par impact et faisabilité, basées sur l'analyse complète du dossier.</p>
+            </div>
+          </div>
+          <div class="llm-feat">
+            <div class="lf-ico"><i class="fa-solid fa-comment" style="font-size:18px;color:#7DD3FC;line-height:1;"></i></div>
+            <div class="lf-text">
+              <h4>Chat Q&A contextuel</h4>
+              <p>Posez n'importe quelle question sur vos résultats. Le LLM répond avec le contexte complet du scoring.</p>
+            </div>
+          </div>
+        </div>
+
+        <a href="#contact" class="btn btn-gold">
+          <i class="fa-solid fa-wand-magic-sparkles" style="font-size:16px;line-height:1;"></i> Tester l'analyse LLM
+        </a>
+      </div>
+
+      <div class="llm-visual reveal-r">
+        <div class="chat-win">
+          <div class="chat-hdr">
+            <div class="chat-av">AI</div>
+            <div class="chat-info">
+              <h4>Doctor Smile AI — GPT-4 Turbo</h4>
+              <p>Analyse · Interprétation · Recommandations</p>
+            </div>
+            <div class="chat-status">
+              <span style="width:5px;height:5px;border-radius:50%;background:var(--emerald);display:inline-block;animation:livePulse 1.5s infinite"></span>
+              En ligne
+            </div>
+          </div>
+          <div class="chat-msgs">
+            <div class="msg">
+              <div class="msg-av ma-usr">T</div>
+              <div class="msg-bbl mb-usr">Analyse Tech Solutions SAS — SIREN 812 345 678</div>
+            </div>
+            <div class="msg">
+              <div class="msg-av ma-ai">AI</div>
+              <div class="msg-bbl mb-ai">
+                Score de risque : <strong>23.7/100</strong> — <span class="risk-low">RISQUE FAIBLE ✓</span><br><br>
+                Les principaux facteurs positifs sont un ratio de liquidité <strong>current ratio de 2.3</strong> et un ROA de <strong>12%</strong> supérieur à la médiane sectorielle. Le levier financier debt/equity de <strong>0.45</strong> reste conservateur.
+              </div>
+            </div>
+            <div class="msg user">
+              <div class="msg-av ma-usr">T</div>
+              <div class="msg-bbl mb-usr">Quels sont les points de vigilance ?</div>
+            </div>
+            <div class="msg">
+              <div class="msg-av ma-ai">AI</div>
+              <div class="msg-bbl mb-ai">
+                1. La trésorerie nette a baissé de <span class="risk-med">18% sur 6 mois</span> — surveiller la génération de cash-flow.<br>
+                2. Concentration client (top 3 = 67% du CA) : risque opérationnel non capturé par les ratios.<br>
+                3. Recommandation : <strong>maintenir le monitoring trimestriel</strong>. Seuil d'alerte : score &gt; 45.
+              </div>
+            </div>
+          </div>
+          <div class="chat-input-bar">
+            <input class="chat-inp" type="text" placeholder="Posez une question sur l'analyse..." readonly id="chatInput">
+            <button class="chat-send-btn"><i class="fa-solid fa-paper-plane" style="font-size:14px;line-height:1;"></i></button>
+          </div>
+        </div>
+
+        <div class="shap-wrap">
+          <div style="font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--muted-2);margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+            <i class="fa-solid fa-chart-bar fa-rotate-90" style="font-size:14px;color:#7DD3FC;line-height:1;"></i> SHAP Waterfall — Contribution des features au score
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:12px">🔵 Augmente le risque · 🟡 Réduit le risque</div>
+          <div id="shap-plot"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════
+     TESTIMONIALS
+═══════════════════════════ -->
+<section class="testi-sec" id="temoignages">
+  <div class="container">
+    <div class="testi-header reveal">
+      <div class="section-tag st-green"><i class="fa-solid fa-users" style="font-size:12px;line-height:1;"></i> Témoignages</div>
+      <h2 class="display-2">Ce que disent<br>les analystes</h2>
+      <p>+120 professionnels de la finance font confiance à FinScore Pro pour leurs décisions critiques.</p>
+    </div>
+
+    <!-- Infinite marquee -->
+    <div class="marquee-wrap">
+      <div class="marquee-track" id="marqueeTrack">
+        <!-- Cards duplicated for seamless loop -->
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">FinScore Pro a réduit notre temps d'analyse de due diligence de <em>3 heures à 12 minutes</em>. Le rapport LLM est directement présentable au comité de crédit.</p>
+          <div class="testi-author">
+            <div class="testi-av" style="background:#0a1020;box-shadow:0 0 0 2px rgba(125,211,252,0.3),0 0 0 5px rgba(125,211,252,0.08);">
+              <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face" alt="Alexandre Morin" onerror="this.parentNode.innerHTML='A';this.parentNode.style.background='linear-gradient(135deg,#7DD3FC,#38BDF8)';this.parentNode.style.color='#020408';">
+            </div>
+            <div class="testi-info"><h4>Alexandre Morin</h4><p>Directeur des Risques · BNP Paribas</p></div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">L'explicabilité SHAP est un game-changer. On peut enfin <em>justifier nos décisions de refus</em> avec des données concrètes et un audit trail complet.</p>
+          <div class="testi-author">
+            <div class="testi-av" style="background:#0a1020;box-shadow:0 0 0 2px rgba(255,215,0,0.35),0 0 0 5px rgba(255,215,0,0.08);">
+              <img src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&h=100&fit=crop&crop=face" alt="Sophie Beauchamp" onerror="this.parentNode.innerHTML='S';this.parentNode.style.background='linear-gradient(135deg,#FFD700,#F59E0B)';this.parentNode.style.color='#020408';">
+            </div>
+            <div class="testi-info"><h4>Sophie Beauchamp</h4><p>Head of Credit Risk · Société Générale CIB</p></div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">Intégration en 48h via l'API FastAPI. Notre équipe data a branché Doctor Smile sur notre entrepôt PostgreSQL sans friction. <em>ROI visible dès le premier mois.</em></p>
+          <div class="testi-author">
+            <div class="testi-av" style="background:#0a1020;box-shadow:0 0 0 2px rgba(16,185,129,0.35),0 0 0 5px rgba(16,185,129,0.08);">
+              <img src="https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?w=100&h=100&fit=crop&crop=face" alt="Marc Delacroix" onerror="this.parentNode.innerHTML='M';this.parentNode.style.background='linear-gradient(135deg,#10b981,#059669)';this.parentNode.style.color='#fff';">
+            </div>
+            <div class="testi-info"><h4>Marc Delacroix</h4><p>CTO · Arkéa Capital</p></div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">Le dashboard Streamlit est <em>exceptionnel</em>. On l'a présenté au board la semaine suivant l'intégration. Wow effect garanti.</p>
+          <div class="testi-author">
+            <div class="testi-av" style="background:#0a1020;box-shadow:0 0 0 2px rgba(139,92,246,0.35),0 0 0 5px rgba(139,92,246,0.08);">
+              <img src="https://images.unsplash.com/photo-1589156280159-27698a70f29e?w=100&h=100&fit=crop&crop=face" alt="Claire Dupuis" onerror="this.parentNode.innerHTML='C';this.parentNode.style.background='linear-gradient(135deg,#8B5CF6,#6D28D9)';this.parentNode.style.color='#fff';">
+            </div>
+            <div class="testi-info"><h4>Claire Dupuis</h4><p>Analyste Senior · AXA Investment Managers</p></div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">Les scores SHAP nous ont permis de <em>réduire les défauts de 34%</em> en six mois. C'est de loin le meilleur outil de scoring qu'on ait eu.</p>
+          <div class="testi-author">
+            <div class="testi-av" style="background:#0a1020;box-shadow:0 0 0 2px rgba(245,158,11,0.35),0 0 0 5px rgba(245,158,11,0.08);">
+              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face" alt="Romain Lacroix" onerror="this.parentNode.innerHTML='R';this.parentNode.style.background='linear-gradient(135deg,#f59e0b,#d97706)';this.parentNode.style.color='#020408';">
+            </div>
+            <div class="testi-info"><h4>Romain Lacroix</h4><p>VP Risk Management · Natixis CIB</p></div>
+          </div>
+        </div>
+        <!-- Duplicate for seamless loop -->
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">FinScore Pro a réduit notre temps d'analyse de due diligence de <em>3 heures à 12 minutes</em>. Le rapport LLM est directement présentable au comité de crédit.</p>
+          <div class="testi-author">
+            <div class="testi-av" style="background:#0a1020;box-shadow:0 0 0 2px rgba(125,211,252,0.3),0 0 0 5px rgba(125,211,252,0.08);">
+              <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face" alt="Alexandre Morin" onerror="this.parentNode.innerHTML='A';">
+            </div>
+            <div class="testi-info"><h4>Alexandre Morin</h4><p>Directeur des Risques · BNP Paribas</p></div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">L'explicabilité SHAP est un game-changer. On peut enfin <em>justifier nos décisions de refus</em> avec des données concrètes et un audit trail complet.</p>
+          <div class="testi-author">
+            <div class="testi-av" style="background:#0a1020;box-shadow:0 0 0 2px rgba(255,215,0,0.35),0 0 0 5px rgba(255,215,0,0.08);">
+              <img src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&h=100&fit=crop&crop=face" alt="Sophie Beauchamp" onerror="this.parentNode.innerHTML='S';">
+            </div>
+            <div class="testi-info"><h4>Sophie Beauchamp</h4><p>Head of Credit Risk · Société Générale CIB</p></div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">Intégration en 48h via l'API FastAPI. Notre équipe data a branché Doctor Smile sur notre entrepôt PostgreSQL sans friction. <em>ROI visible dès le premier mois.</em></p>
+          <div class="testi-author">
+            <div class="testi-av" style="background:#0a1020;box-shadow:0 0 0 2px rgba(16,185,129,0.35),0 0 0 5px rgba(16,185,129,0.08);">
+              <img src="https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?w=100&h=100&fit=crop&crop=face" alt="Marc Delacroix" onerror="this.parentNode.innerHTML='M';">
+            </div>
+            <div class="testi-info"><h4>Marc Delacroix</h4><p>CTO · Arkéa Capital</p></div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">Le dashboard Streamlit est <em>exceptionnel</em>. On l'a présenté au board la semaine suivant l'intégration. Wow effect garanti.</p>
+          <div class="testi-author">
+            <div class="testi-av" style="background:#0a1020;box-shadow:0 0 0 2px rgba(139,92,246,0.35),0 0 0 5px rgba(139,92,246,0.08);">
+              <img src="https://images.unsplash.com/photo-1589156280159-27698a70f29e?w=100&h=100&fit=crop&crop=face" alt="Claire Dupuis" onerror="this.parentNode.innerHTML='C';">
+            </div>
+            <div class="testi-info"><h4>Claire Dupuis</h4><p>Analyste Senior · AXA Investment Managers</p></div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">Les scores SHAP nous ont permis de <em>réduire les défauts de 34%</em> en six mois. C'est de loin le meilleur outil de scoring qu'on ait eu.</p>
+          <div class="testi-author">
+            <div class="testi-av" style="background:#0a1020;box-shadow:0 0 0 2px rgba(245,158,11,0.35),0 0 0 5px rgba(245,158,11,0.08);">
+              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face" alt="Romain Lacroix" onerror="this.parentNode.innerHTML='R';">
+            </div>
+            <div class="testi-info"><h4>Romain Lacroix</h4><p>VP Risk Management · Natixis CIB</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="logos-row reveal">
+      <div class="logo-item">BNP Paribas</div>
+      <div class="logo-item">Société Générale</div>
+      <div class="logo-item">Arkéa Capital</div>
+      <div class="logo-item">Crédit Mutuel</div>
+      <div class="logo-item">AXA Investment</div>
+      <div class="logo-item">Natixis</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════
+     TECH STACK
+═══════════════════════════ -->
+<section class="tech-sec" id="tech">
+  <div class="container">
+    <div class="tech-header reveal">
+      <div class="section-tag st-gold"><i class="fa-solid fa-code" style="font-size:12px;line-height:1;"></i> Tech Stack</div>
+      <h2 class="display-2">Technologies de pointe,<br>chaque choix justifié.</h2>
+    </div>
+
+    <div class="tech-grid">
+      <div class="tech-cat reveal">
+        <div class="tc-hdr"><div class="tc-dot" style="background:var(--gold)"></div><span class="tc-title">Backend & API</span></div>
+        <div class="tc-tags">
+          <span class="tc-tag">FastAPI</span><span class="tc-tag">Uvicorn ASGI</span>
+          <span class="tc-tag">Pydantic v2</span><span class="tc-tag">SQLAlchemy 2.0</span>
+          <span class="tc-tag">Redis Cache</span><span class="tc-tag">WebSocket</span>
+        </div>
+      </div>
+      <div class="tech-cat reveal d1">
+        <div class="tc-hdr"><div class="tc-dot" style="background:var(--ice)"></div><span class="tc-title">Machine Learning</span></div>
+        <div class="tc-tags">
+          <span class="tc-tag">XGBoost 2.0</span><span class="tc-tag">RandomForest</span>
+          <span class="tc-tag">LightGBM</span><span class="tc-tag">Scikit-learn</span>
+          <span class="tc-tag">SHAP</span><span class="tc-tag">SMOTE</span>
+        </div>
+      </div>
+      <div class="tech-cat reveal d2">
+        <div class="tc-hdr"><div class="tc-dot" style="background:var(--emerald)"></div><span class="tc-title">Frontend & Viz</span></div>
+        <div class="tc-tags">
+          <span class="tc-tag">Streamlit</span><span class="tc-tag">Plotly</span>
+          <span class="tc-tag">AgGrid</span><span class="tc-tag">streamlit-shui</span>
+          <span class="tc-tag">st-extras</span><span class="tc-tag">ReportLab</span>
+        </div>
+      </div>
+      <div class="tech-cat reveal d3">
+        <div class="tc-hdr"><div class="tc-dot" style="background:var(--violet)"></div><span class="tc-title">IA & LLM</span></div>
+        <div class="tc-tags">
+          <span class="tc-tag">GPT-4 Turbo</span><span class="tc-tag">LangChain</span>
+          <span class="tc-tag">FinBERT</span><span class="tc-tag">OpenAI API</span>
+          <span class="tc-tag">Embeddings</span><span class="tc-tag">RAG</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;" class="reveal">
+      <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--muted-2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:28px;display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-layer-group" style="font-size:16px;color:#7DD3FC;line-height:1;"></i> Architecture Clean — 5 Couches
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <!-- Couche 1 -->
+        <div style="display:flex;align-items:center;gap:14px;background:linear-gradient(90deg,rgba(125,211,252,0.08),rgba(125,211,252,0.03));border:1px solid rgba(125,211,252,0.18);border-radius:14px;padding:14px 20px;transition:all 0.3s;position:relative;overflow:hidden;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(125,211,252,0.12);border:1px solid rgba(125,211,252,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fa-solid fa-desktop" style="font-size:18px;color:#7DD3FC;line-height:1;"></i>
+          </div>
+          <div style="flex:1;">
+            <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:#7DD3FC;letter-spacing:-0.2px;">Couche 1 — Frontend & Visualisation</div>
+            <div style="font-size:12px;color:var(--muted-2);margin-top:3px;">Streamlit · Plotly · AgGrid · ReportLab · Export PDF</div>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:#7DD3FC;background:rgba(125,211,252,0.08);border:1px solid rgba(125,211,252,0.2);padding:4px 10px;border-radius:100px;white-space:nowrap;">UI / UX</div>
+        </div>
+        <!-- Flèche -->
+        <div style="text-align:center;color:rgba(125,211,252,0.35);font-size:18px;line-height:1;">↓</div>
+        <!-- Couche 2 -->
+        <div style="display:flex;align-items:center;gap:14px;background:linear-gradient(90deg,rgba(56,189,248,0.08),rgba(56,189,248,0.03));border:1px solid rgba(56,189,248,0.18);border-radius:14px;padding:14px 20px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fa-solid fa-server" style="font-size:18px;color:#38BDF8;line-height:1;"></i>
+          </div>
+          <div style="flex:1;">
+            <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:#38BDF8;letter-spacing:-0.2px;">Couche 2 — Backend & API REST</div>
+            <div style="font-size:12px;color:var(--muted-2);margin-top:3px;">FastAPI · Uvicorn ASGI · Pydantic v2 · JWT · Redis · WebSocket</div>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:#38BDF8;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);padding:4px 10px;border-radius:100px;white-space:nowrap;">API</div>
+        </div>
+        <!-- Flèche -->
+        <div style="text-align:center;color:rgba(255,215,0,0.35);font-size:18px;line-height:1;">↓</div>
+        <!-- Couche 3 -->
+        <div style="display:flex;align-items:center;gap:14px;background:linear-gradient(90deg,rgba(255,215,0,0.08),rgba(255,215,0,0.03));border:1px solid rgba(255,215,0,0.18);border-radius:14px;padding:14px 20px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fa-solid fa-brain" style="font-size:18px;color:#FFD700;line-height:1;"></i>
+          </div>
+          <div style="flex:1;">
+            <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:#FFD700;letter-spacing:-0.2px;">Couche 3 — ML Engine</div>
+            <div style="font-size:12px;color:var(--muted-2);margin-top:3px;">XGBoost · RandomForest · LightGBM · SHAP · SMOTE · Sklearn</div>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:#FFD700;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);padding:4px 10px;border-radius:100px;white-space:nowrap;">ML 95%+</div>
+        </div>
+        <!-- Flèche -->
+        <div style="text-align:center;color:rgba(139,92,246,0.35);font-size:18px;line-height:1;">↓</div>
+        <!-- Couche 4 -->
+        <div style="display:flex;align-items:center;gap:14px;background:linear-gradient(90deg,rgba(139,92,246,0.08),rgba(139,92,246,0.03));border:1px solid rgba(139,92,246,0.18);border-radius:14px;padding:14px 20px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fa-solid fa-wand-magic-sparkles" style="font-size:18px;color:#8B5CF6;line-height:1;"></i>
+          </div>
+          <div style="flex:1;">
+            <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:#8B5CF6;letter-spacing:-0.2px;">Couche 4 — LLM & Intelligence IA</div>
+            <div style="font-size:12px;color:var(--muted-2);margin-top:3px;">GPT-4 Turbo · LangChain · FinBERT · RAG · Embeddings · OpenAI API</div>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:#8B5CF6;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);padding:4px 10px;border-radius:100px;white-space:nowrap;">LLM</div>
+        </div>
+        <!-- Flèche -->
+        <div style="text-align:center;color:rgba(16,185,129,0.35);font-size:18px;line-height:1;">↓</div>
+        <!-- Couche 5 -->
+        <div style="display:flex;align-items:center;gap:14px;background:linear-gradient(90deg,rgba(16,185,129,0.08),rgba(16,185,129,0.03));border:1px solid rgba(16,185,129,0.18);border-radius:14px;padding:14px 20px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fa-solid fa-database" style="font-size:18px;color:#10b981;line-height:1;"></i>
+          </div>
+          <div style="flex:1;">
+            <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:#10b981;letter-spacing:-0.2px;">Couche 5 — Data Store & Persistence</div>
+            <div style="font-size:12px;color:var(--muted-2);margin-top:3px;">PostgreSQL · SQLAlchemy 2.0 · Redis Cache · Excel/CSV/PDF · API externes</div>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:#10b981;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);padding:4px 10px;border-radius:100px;white-space:nowrap;">DATA</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════
+     CTA
+═══════════════════════════ -->
+<section class="cta-sec" id="contact">
+  <div class="container">
+    <div class="cta-inner reveal animated-border">
+      <div class="section-tag st-ice" style="margin-bottom:28px"><i class="fa-solid fa-rocket" style="font-size:12px;line-height:1;"></i> Prêt à commencer ?</div>
+      <h2 class="display-2">
+        Transformez vos données<br>
+        <span class="grad-text">en intelligence financière.</span>
+      </h2>
+      <p>Déployez Doctor Smile en 10 semaines. Architecture clean, ML 95%+ précision et dashboard premium — ou planifiez une démo personnalisée avec notre équipe.</p>
+      <div class="cta-btns">
+        <a href="#" class="btn btn-gold" style="padding:16px 40px;font-size:16px;" onclick="event.preventDefault();DS_MODALS&&DS_MODALS.openSignup()">
+          <i class="fa-solid fa-rocket" style="font-size:18px;line-height:1;"></i> Démarrer gratuitement
+        </a>
+        <a href="#" class="btn btn-glass" style="padding:16px 36px;font-size:16px;" onclick="event.preventDefault();DS_MODALS&&DS_MODALS.openDemo()">
+          <i class="fa-solid fa-calendar" style="font-size:18px;line-height:1;"></i> Réserver une démo
+        </a>
+      </div>
+      <div class="cta-note">
+        <span><i class="fa-solid fa-shield-halved" style="font-size:13px;color:#10b981;line-height:1;"></i> RGPD conforme</span>
+        <span><i class="fa-solid fa-lock" style="font-size:13px;color:#10b981;line-height:1;"></i> AES-256 chiffré</span>
+        <span><i class="fa-solid fa-clock" style="font-size:13px;color:#10b981;line-height:1;"></i> 14 jours gratuits</span>
+        <span><i class="fa-solid fa-circle-xmark" style="font-size:13px;color:#10b981;line-height:1;"></i> Sans carte bancaire</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     PRICING
+════════════════════════════════════════ -->
+<section class="pricing-section" id="pricing">
+  <div class="container" style="text-align:center;">
+    <div class="pricing-tag">
+      <span class="pricing-tag-dot"></span>
+      Tarifs transparents
+    </div>
+    <h2 class="pricing-title">Choisissez votre <span>niveau d'intelligence</span></h2>
+    <p class="pricing-sub">Sans carte bancaire · 14 jours gratuits · Résiliable à tout moment</p>
+
+    <!-- Toggle mensuel/annuel -->
+    <div class="pricing-toggle" style="display:inline-flex;">
+      <span>Mensuel</span>
+      <div class="toggle-pill on" id="billingToggle" onclick="toggleBilling()">
+        <div class="toggle-knob"></div>
+      </div>
+      <span>Annuel</span>
+      <span class="toggle-save">−20%</span>
+    </div>
+
+    <!-- CARDS -->
+    <div class="pricing-grid">
+
+      <!-- ── STANDARD ── -->
+      <div class="p-card standard">
+        <div class="p-card-inner">
+          <div class="p-orb"></div>
+          <div class="p-label">
+            <i class="fa-solid fa-seedling" style="font-size:10px;"></i>
+            Standard
+          </div>
+          <div class="p-name">Démarrer</div>
+          <div class="p-tagline">Analysez la santé financière de votre entreprise avec notre moteur RF + XGBoost.</div>
+          <div class="p-price">
+            <span class="p-price-num" data-monthly="49" data-annual="39">39</span>
+            <span class="p-price-per">€ / mois</span>
+            <div class="p-price-annual">Soit 468€/an — économisez 120€</div>
+          </div>
+          <div class="p-divider"></div>
+          <ul class="p-features">
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Score Doctor Smile <strong>0 – 100</strong> en temps réel</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Moteur ML <strong>RF + XGBoost</strong> · AUC ~0.85</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Rapport <strong>SHAP</strong> · Top 5 features explicatives</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Export <strong>PDF</strong> du rapport complet</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Historique <strong>12 mois</strong> d'analyses</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Import <strong>Excel · CSV</strong></div></li>
+            <li class="p-feature muted"><span class="p-check"><i class="fa-solid fa-circle-xmark"></i></span><div>Simulateur What-If</div></li>
+            <li class="p-feature muted"><span class="p-check"><i class="fa-solid fa-circle-xmark"></i></span><div>Chat LLM interactif</div></li>
+            <li class="p-feature muted"><span class="p-check"><i class="fa-solid fa-circle-xmark"></i></span><div>Graphes générés par IA</div></li>
+          </ul>
+          <button class="p-btn" onclick="DS_MODALS&&DS_MODALS.openSignup('standard')">
+            <i class="fa-solid fa-rocket" style="font-size:13px;"></i>
+            Essai gratuit 14 jours
+          </button>
+        </div>
+      </div>
+
+      <!-- ── PREMIUM ── -->
+      <div class="p-card premium">
+        <div class="p-card-inner">
+          <div class="p-orb"></div>
+          <div class="p-popular">
+            <i class="fa-solid fa-star" style="font-size:9px;"></i>
+            Le plus populaire
+          </div>
+          <div class="p-label">
+            <i class="fa-solid fa-bolt" style="font-size:10px;"></i>
+            Premium
+          </div>
+          <div class="p-name">Accélérer</div>
+          <div class="p-tagline">Triple moteur ML + Simulateur What-If + Chat IA financier pour piloter vos décisions.</div>
+          <div class="p-price">
+            <span class="p-price-num" data-monthly="99" data-annual="79">79</span>
+            <span class="p-price-per">€ / mois</span>
+            <div class="p-price-annual">Soit 948€/an — économisez 240€</div>
+          </div>
+          <div class="p-divider" style="background:rgba(255,215,0,0.15);"></div>
+          <ul class="p-features">
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div><strong>Tout Standard</strong> inclus</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Moteur ML <strong>RF + XGBoost + LightGBM</strong> · AUC ~0.92</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Simulateur <strong>What-If</strong> · Impact score en temps réel</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div><strong>Chat LLM</strong> · Questions sur votre analyse</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Graphes <strong>générés par IA</strong> sur demande</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Radar <strong>6 dimensions</strong> vs secteur</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Recommandations <strong>actionnables GPT-4</strong></div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Historique <strong>3 ans</strong> · Comparaisons multi-périodes</div></li>
+            <li class="p-feature muted"><span class="p-check"><i class="fa-solid fa-circle-xmark"></i></span><div>Stacking 4 modèles + Meta-learner</div></li>
+          </ul>
+          <button class="p-btn" onclick="DS_MODALS&&DS_MODALS.openSignup('premium')">
+            <i class="fa-solid fa-wand-magic-sparkles" style="font-size:13px;"></i>
+            Commencer avec Premium
+          </button>
+        </div>
+      </div>
+
+      <!-- ── EXTRA ── -->
+      <div class="p-card extra">
+        <div class="p-card-inner">
+          <div class="p-orb"></div>
+          <div class="p-label">
+            <i class="fa-solid fa-brain" style="font-size:10px;"></i>
+            Extra
+          </div>
+          <div class="p-name">Dominer</div>
+          <div class="p-tagline">Architecture de stacking maximale · 4 modèles · Meta-learner · Chat IA illimité.</div>
+          <div class="p-price">
+            <span class="p-price-num" data-monthly="199" data-annual="159">159</span>
+            <span class="p-price-per">€ / mois</span>
+            <div class="p-price-annual">Soit 1908€/an — économisez 480€</div>
+          </div>
+          <div class="p-divider" style="background:rgba(139,92,246,0.2);"></div>
+          <ul class="p-features">
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div><strong>Tout Premium</strong> inclus</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Stacking <strong>RF + XGBoost + LightGBM + CatBoost</strong></div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div><strong>Meta-learner logistique</strong> · AUC ~0.97</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Chat LLM <strong>illimité</strong> · Mémoire conversation</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Graphes IA <strong>illimités</strong> · Modification en live</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Calibration <strong>Isotonic Regression</strong> avancée</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div><strong>Isolation Forest</strong> · Détection anomalies</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>API <strong>REST</strong> accès programmatique</div></li>
+            <li class="p-feature"><span class="p-check"><i class="fa-solid fa-circle-check"></i></span><div>Support <strong>prioritaire</strong> · SLA 4h</div></li>
+          </ul>
+          <button class="p-btn" onclick="DS_MODALS&&DS_MODALS.openSignup('extra')">
+            <i class="fa-solid fa-crown" style="font-size:13px;"></i>
+            Accéder à Extra
+          </button>
+        </div>
+      </div>
+
+    </div><!-- end pricing-grid -->
+
+    <!-- Enterprise -->
+    <div class="p-enterprise">
+      <p style="font-size:15px;color:var(--muted-2);">
+        <i class="fa-solid fa-building" style="margin-right:8px;color:var(--gold);"></i>
+        Vous gérez un portefeuille d'entreprises ou une équipe d'analystes ?
+      </p>
+      <p>Offre <strong style="color:var(--white);">Enterprise</strong> sur devis · Volume · Multi-utilisateurs · Déploiement on-premise · Support dédié</p>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
+        <button class="btn-primary" style="font-size:13px;padding:12px 28px;">
+          <i class="fa-solid fa-phone" style="font-size:13px;"></i>
+          Parler à un expert
+        </button>
+        <button class="btn-secondary" style="font-size:13px;padding:12px 28px;">
+          <i class="fa-solid fa-file-lines" style="font-size:13px;"></i>
+          Voir la documentation API
+        </button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+
+<!-- ═══════════════════════════
+     FOOTER
+═══════════════════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="#" class="nav-logo" style="display:inline-flex;text-decoration:none;margin-bottom:16px;align-items:center;">
+          <!-- Mini 3D cube footer version -->
+          <div style="width:36px;height:36px;perspective:140px;position:relative;flex-shrink:0;">
+            <div style="width:32px;height:32px;transform-style:preserve-3d;animation:spinCube 8s linear infinite;position:relative;margin:2px;">
+              <div style="position:absolute;width:32px;height:32px;transform:translateZ(16px);background:linear-gradient(135deg,rgba(255,215,0,0.9),rgba(255,193,7,0.95));display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.2);">
+                <div style="position:relative;width:16px;height:16px;"><div style="position:absolute;width:4px;height:14px;top:1px;left:6px;background:#fff;border-radius:1px;"></div><div style="position:absolute;width:14px;height:4px;top:6px;left:1px;background:#fff;border-radius:1px;"></div></div>
+              </div>
+              <div style="position:absolute;width:32px;height:32px;transform:rotateY(180deg) translateZ(16px);background:linear-gradient(135deg,rgba(125,211,252,0.9),rgba(56,189,248,0.95));display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.2);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><polyline points="2,12 6,12 8,4 10,20 14,12 16,16 18,12 22,12"/></svg>
+              </div>
+              <div style="position:absolute;width:32px;height:32px;transform:rotateY(90deg) translateZ(16px);background:linear-gradient(135deg,rgba(16,185,129,0.9),rgba(5,150,105,0.95));border:1px solid rgba(255,255,255,0.2);"></div>
+              <div style="position:absolute;width:32px;height:32px;transform:rotateY(-90deg) translateZ(16px);background:linear-gradient(135deg,rgba(139,92,246,0.9),rgba(109,40,217,0.95));border:1px solid rgba(255,255,255,0.2);"></div>
+              <div style="position:absolute;width:32px;height:32px;transform:rotateX(90deg) translateZ(16px);background:rgba(255,215,0,0.6);border:1px solid rgba(255,255,255,0.1);"></div>
+              <div style="position:absolute;width:32px;height:32px;transform:rotateX(-90deg) translateZ(16px);background:rgba(125,211,252,0.5);border:1px solid rgba(255,255,255,0.1);"></div>
+            </div>
+          </div>
+          <div style="margin-left:12px">
+            <div class="logo-name">Doctor<em>Smile</em></div>
+            <span class="logo-sub">Financial Health AI</span>
+          </div>
+        </a>
+        <p>Intelligence décisionnelle pour analystes financiers. Médecin IA pour la santé financière des entreprises. ML Ensemble + LLM Explicable + SHAP.</p>
+        <div class="footer-socials">
+          <a href="#" class="soc-btn" title="LinkedIn">in</a>
+          <a href="#" class="soc-btn" title="GitHub">⌥</a>
+          <a href="#" class="soc-btn" title="Twitter/X">𝕏</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Produit</h4>
+        <ul>
+          <li><a href="#features">Fonctionnalités</a></li>
+          <li><a href="#pipeline">Pipeline ML</a></li>
+          <li><a href="#intelligence">Intelligence IA</a></li>
+          <li><a href="#tech">Tech Stack</a></li>
+          <li><a href="#">Changelog</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Ressources</h4>
+        <ul>
+          <li><a href="#">Documentation API</a></li>
+          <li><a href="#">Guide déploiement</a></li>
+          <li><a href="#">Exemples SHAP</a></li>
+          <li><a href="#">Notebooks ML</a></li>
+          <li><a href="#">Blog technique</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Légal</h4>
+        <ul>
+          <li><a href="#">Politique de confidentialité</a></li>
+          <li><a href="#">CGU</a></li>
+          <li><a href="#">RGPD</a></li>
+          <li><a href="#">Mentions légales</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 <span style="color:var(--gold)">Doctor Smile</span> · v1.0 Beta · Confidentiel · Tous droits réservés</span>
+      <div class="sec-badges">
+        <span class="sec-badge"><i class="fa-solid fa-shield" style="font-size:12px;color:#10b981;line-height:1;"></i> RGPD ✓</span>
+        <span class="sec-badge"><i class="fa-solid fa-lock" style="font-size:12px;color:#10b981;line-height:1;"></i> AES-256</span>
+        <span class="sec-badge"><i class="fa-solid fa-circle-check" style="font-size:12px;color:#10b981;line-height:1;"></i> SOC2 Ready</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════════════════
+     JAVASCRIPT
+═══════════════════════════ -->
+
+
+
+<!-- ════════════════════════════════════════════════════════
+     SCRIPTS — dans l'ordre de dépendances
+════════════════════════════════════════════════════════ -->
+
+<!-- 1. Canvas animé (indépendant) -->
+<script src="js/background.js"></script>
+
+<!-- 2. UI : cursor, scroll, nav, hamburger, theme, animations, billing -->
+<script src="js/ui.js"></script>
+
+<!-- 3. Graphes Plotly (lazy via IntersectionObserver) -->
+<script src="js/charts.js"></script>
+
+<!-- 4. Modaux CTA : Démarrer gratuitement + Réserver une démo -->
+<script src="js/demo.js"></script>
+
+</body>
+</html>

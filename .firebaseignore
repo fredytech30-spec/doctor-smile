@@ -1,0 +1,13 @@
+ORMDjango(OBJET RELATIONNAL MAPPING) Est une technique une technique de programmation qui donne l'ulusion de travailler avec une BD en OO
+
+
+ils permet de lister tout les objets dans un endroit prevu a cette effet .
+D'autre part il est une couche d'abstraction qui exploite la BD ce qui fait que le dev ne se soucit plus du SGBDR que le projet utilise.
+Un modele est donc une table de donnees.On lui donne n nom ,des champs types et un comportement
+
+CREATION D'UN MODELE
+Un modele est donc une simple classe python qui herite de models.Models,les champs sont definis dans la classe , on leur donne un nom et un type.
+
+
+impoter d'abord 
+from django.db import models
