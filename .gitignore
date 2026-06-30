@@ -37,3 +37,11 @@ serviceAccountKey.json
 *.bak
 *.tmp
 repair_dashboard.py
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
