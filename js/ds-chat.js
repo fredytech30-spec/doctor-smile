@@ -5,6 +5,44 @@
 //  Dépend de : ds-core.js, firebase-firestore.js
 // ════════════════════════════════════════════════════════════════
 
+const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
+
+// ════════ SYNTHÈSE VOCALE (TTS) ══════════════════════════════
+const TTS_SETTINGS = {
+  voice_name: 'Microsoft Denise Online (Natural) - French (France)', 
+  lang: 'fr-FR',
+  rate: 1.05,
+  pitch: 1.0,
+  volume: 1.0,
+  enabled: true
+};
+
+function _speak(text) {
+  if (!TTS_SETTINGS.enabled || !window.speechSynthesis) return;
+  const cleanText = text.replace(/<[^>]+>/g, '').replace(/[\*\#\_]/g, '').trim();
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+  utterance.lang = TTS_SETTINGS.lang;
+  utterance.rate = TTS_SETTINGS.rate;
+  utterance.pitch = TTS_SETTINGS.pitch;
+  utterance.volume = TTS_SETTINGS.volume;
+
+  const voices = window.speechSynthesis.getVoices();
+  const bestVoice = voices.find(v => v.name.includes('Natural') && v.lang.startsWith('fr')) 
+                 || voices.find(v => v.lang.startsWith('fr'))
+                 || voices[0];
+  if (bestVoice) utterance.voice = bestVoice;
+  window.speechSynthesis.speak(utterance);
+}
+
+// ── Fonction pour configurer la voix ──
+window.DS_CHAT_VOICE = {
+  setRate:   (v) => { TTS_SETTINGS.rate = v; },
+  setPitch:  (v) => { TTS_SETTINGS.pitch = v; },
+  setVolume: (v) => { TTS_SETTINGS.volume = v; },
+  getSettings: () => ({...TTS_SETTINGS})
+};
+
 // ═══════════════════════════════════════════════════════════════
 //  ICÔNE ANIMÉE — Doctor Smile Face (SVG pur, zéro dépendance)
 // ═══════════════════════════════════════════════════════════════
@@ -20,7 +58,7 @@
 @keyframes dsf-blink{0%,88%,100%{transform:scaleY(1)}93%{transform:scaleY(.06)}}
 @keyframes dsf-star{0%,100%{opacity:0;transform:scale(.4) rotate(0)}50%{opacity:1;transform:scale(1.3) rotate(45deg)}}
 @keyframes dsf-ring{from{transform:rotate(0)}to{transform:rotate(360deg)}}
-@keyframes dsf-glow-smile{0%,100%{filter:drop-shadow(0 0 2px #7DD3FC)}50%{filter:drop-shadow(0 0 7px #7DD3FC) drop-shadow(0 0 14px rgba(125,211,252,.5))}}
+@keyframes dsf-glow-smile{0%,100%{filter:drop-shadow(0 0 2px var(--cyan))}50%{filter:drop-shadow(0 0 7px var(--cyan)) drop-shadow(0 0 14px var(--cyan-glow))}}
 .dsf-float{animation:dsf-float 3.6s ease-in-out infinite}
 .dsf-halo{animation:dsf-halo 2.4s ease-in-out infinite}
 .dsf-blink{animation:dsf-blink 5s ease-in-out infinite}
@@ -46,10 +84,10 @@
   padding:3px 9px;border-radius:6px;
   font-family:'Syne',sans-serif;font-size:7.5px;font-weight:800;
   letter-spacing:.06em;text-transform:uppercase;
-  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
-  color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s;
+  cursor:pointer;background:var(--surface-3);border:1px solid var(--border);
+  color:var(--text-2);transition:all 0.15s;
 }
-.msg-act-btn:hover{background:rgba(125,211,252,.1);border-color:rgba(125,211,252,.3);color:#7DD3FC;}
+.msg-act-btn:hover{background:var(--violet-bg);color:var(--text);transform:translateY(-1px);}
 .msg-act-btn i{font-size:9px;}
 
 /* ── Suggestions ── */
@@ -61,24 +99,24 @@
   display:flex;align-items:center;gap:6px;
   padding:7px 13px;border-radius:20px;
   font-family:'Syne',sans-serif;font-size:9px;font-weight:700;
-  background:rgba(125,211,252,.06);
-  border:1px solid rgba(125,211,252,.18);
-  color:#7DD3FC;cursor:pointer;
+  background:var(--cyan-hover);
+  border:1px solid var(--cyan-border);
+  color:var(--cyan);cursor:pointer;
   transition:all .2s cubic-bezier(.34,1.56,.64,1);
   white-space:nowrap;
 }
 .chat-sug-btn:hover{
-  background:rgba(125,211,252,.14);
-  border-color:rgba(125,211,252,.4);
+  background:var(--cyan-glow);
+  border-color:var(--cyan-2);
   transform:translateY(-1px);
-  box-shadow:0 4px 12px rgba(125,211,252,.12);
+  box-shadow:0 4px 12px var(--cyan-glow);
 }
 .chat-sug-btn i{font-size:10px;opacity:.7;}
 
 /* ── Streaming cursor ── */
 .stream-cursor{
   display:inline-block;width:2px;height:1em;
-  background:#7DD3FC;margin-left:2px;vertical-align:text-bottom;
+  background:var(--cyan);margin-left:2px;vertical-align:text-bottom;
   animation:blink-cur .6s step-end infinite;
 }
 @keyframes blink-cur{0%,100%{opacity:1}50%{opacity:0}}
@@ -89,14 +127,14 @@
   padding:7px 16px;border-radius:9px;
   font-family:'Syne',sans-serif;font-size:9px;font-weight:800;
   letter-spacing:.08em;text-transform:uppercase;
-  background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);
-  color:#ef4444;cursor:pointer;
+  background:var(--error-bg);border:1px solid var(--error-border);
+  color:var(--error);cursor:pointer;
   transition:all .2s cubic-bezier(.34,1.56,.64,1);
   margin:6px auto 0;
 }
 .chat-stop-btn:hover{
-  background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.55);
-  transform:scale(1.04);box-shadow:0 4px 16px rgba(239,68,68,.18);
+  background:var(--error-bg);border-color:var(--error);
+  transform:scale(1.04);box-shadow:0 4px 16px var(--error-bg);
 }
 .chat-stop-btn:active{transform:scale(.97);}
 .chat-stop-btn.visible{display:flex;}
@@ -109,30 +147,30 @@
 .msg-edit-ta{
   width:100%;min-height:60px;max-height:180px;
   padding:9px 12px;border-radius:9px;resize:vertical;
-  background:rgba(255,255,255,.05);border:1px solid rgba(125,211,252,.25);
-  color:#fff;font-family:'Instrument Sans',sans-serif;font-size:11px;
+  background:var(--surface-2);border:1px solid var(--cyan-border);
+  color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:11px;
   outline:none;line-height:1.55;box-sizing:border-box;
   transition:border-color .15s;
 }
-.msg-edit-ta:focus{border-color:rgba(125,211,252,.5);}
+.msg-edit-ta:focus{border-color:var(--cyan);}
 .msg-edit-actions{display:flex;gap:6px;justify-content:flex-end;}
 .msg-edit-ok{
   padding:5px 14px;border-radius:7px;font-family:'Syne',sans-serif;
   font-size:8px;font-weight:800;letter-spacing:.06em;cursor:pointer;
-  background:rgba(125,211,252,.12);border:1px solid rgba(125,211,252,.35);
-  color:#7DD3FC;transition:all .15s;
+  background:var(--cyan-hover);border:1px solid var(--cyan-border);
+  color:var(--cyan);transition:all .15s;
 }
-.msg-edit-ok:hover{background:rgba(125,211,252,.22);}
+.msg-edit-ok:hover{background:var(--cyan-glow);}
 .msg-edit-cancel{
   padding:5px 12px;border-radius:7px;font-family:'Syne',sans-serif;
   font-size:8px;font-weight:800;letter-spacing:.06em;cursor:pointer;
-  background:transparent;border:1px solid rgba(255,255,255,.1);
-  color:rgba(255,255,255,.35);transition:all .15s;
+  background:transparent;border:1px solid var(--border);
+  color:var(--text-hint);transition:all .15s;
 }
-.msg-edit-cancel:hover{border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.6);}
+.msg-edit-cancel:hover{border-color:var(--text-2);color:var(--text-2);}
 /* Indicateur message édité */
 .msg-edited-badge{
-  font-size:7px;color:rgba(255,255,255,.2);
+  font-size:7px;color:var(--text-hint);
   font-family:'Syne',sans-serif;font-style:italic;
   margin-top:3px;display:inline-block;
 }
@@ -141,46 +179,46 @@
 @keyframes md-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 @keyframes md-slide{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
 @keyframes md-pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
-.msg.ai .md-p{margin:0 0 11px;line-height:1.82;font-size:11.5px;color:rgba(255,255,255,.8);animation:md-in .35s ease both;}
+.msg.ai .md-p{margin:0 0 11px;line-height:1.82;font-size:11.5px;color:var(--text-2);animation:md-in .35s ease both;}
 .msg.ai .md-p:last-child{margin-bottom:0;}
-.msg.ai .md-h2{display:flex;align-items:center;gap:8px;font-family:'Syne',sans-serif;font-size:10px;font-weight:900;color:#fff;margin:16px 0 8px;letter-spacing:.1em;text-transform:uppercase;animation:md-slide .3s ease both;}
-.msg.ai .md-h2::before{content:'';flex-shrink:0;display:block;width:3px;height:13px;background:linear-gradient(180deg,#7DD3FC,rgba(125,211,252,.2));border-radius:2px;}
-.msg.ai .md-h3{font-family:'Syne',sans-serif;font-size:10.5px;font-weight:800;color:rgba(125,211,252,.9);margin:10px 0 5px;animation:md-slide .3s ease both;}
+.msg.ai .md-h2{display:flex;align-items:center;gap:8px;font-family:'Syne',sans-serif;font-size:10px;font-weight:900;color:var(--text);margin:16px 0 8px;letter-spacing:.1em;text-transform:uppercase;animation:md-slide .3s ease both;}
+.msg.ai .md-h2::before{content:'';flex-shrink:0;display:block;width:3px;height:13px;background:linear-gradient(180deg,var(--cyan),var(--cyan-glow));border-radius:2px;}
+.msg.ai .md-h3{font-family:'Syne',sans-serif;font-size:10.5px;font-weight:800;color:var(--violet-3);margin:10px 0 5px;animation:md-slide .3s ease both;}
 .msg.ai .md-ul,.msg.ai .md-ol{margin:6px 0 12px;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px;}
-.msg.ai .md-li{display:flex;align-items:flex-start;gap:9px;padding:8px 12px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);font-size:11px;color:rgba(255,255,255,.78);line-height:1.68;animation:md-in .32s ease both;transition:background .18s,border-color .18s;}
-.msg.ai .md-li:hover{background:rgba(125,211,252,.05);border-color:rgba(125,211,252,.14);}
-.msg.ai .md-ul .md-li::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:6px;background:linear-gradient(135deg,#7DD3FC,rgba(125,211,252,.35));}
+.msg.ai .md-li{display:flex;align-items:flex-start;gap:9px;padding:8px 12px;border-radius:9px;background:var(--glass);border:1px solid var(--border);font-size:11px;color:var(--text-2);line-height:1.68;animation:md-in .32s ease both;transition:background .18s,border-color .18s;}
+.msg.ai .md-li:hover{background:var(--cyan-hover);border-color:var(--cyan-border);}
+.msg.ai .md-ul .md-li::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:6px;background:linear-gradient(135deg,var(--cyan),var(--cyan-glow));}
 .msg.ai .md-ol{counter-reset:li-c;}.msg.ai .md-ol .md-li{counter-increment:li-c;}
-.msg.ai .md-ol .md-li::before{content:counter(li-c);width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(125,211,252,.12);border:1px solid rgba(125,211,252,.22);color:#7DD3FC;font-family:'Syne',sans-serif;font-size:9px;font-weight:900;}
+.msg.ai .md-ol .md-li::before{content:counter(li-c);width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--cyan-hover);border:1px solid var(--cyan-border);color:var(--cyan);font-family:'Syne',sans-serif;font-size:9px;font-weight:900;}
 .msg.ai .md-alert{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;border-radius:10px;margin:7px 0;font-size:11px;line-height:1.68;animation:md-pop .35s ease both;}
-.msg.ai .md-alert-danger{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:rgba(255,185,185,.88);}
-.msg.ai .md-alert-success{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);color:rgba(165,240,205,.88);}
-.msg.ai .md-alert-info{background:rgba(125,211,252,.07);border:1px solid rgba(125,211,252,.18);color:rgba(185,225,255,.88);}
+.msg.ai .md-alert-danger{background:var(--error-bg);border:1px solid var(--error-border);color:var(--color-error);}
+.msg.ai .md-alert-success{background:var(--success-bg);border:1px solid var(--success-border);color:var(--color-success);}
+.msg.ai .md-alert-info{background:var(--cyan-hover);border:1px solid var(--cyan-border);color:var(--cyan);}
 .msg.ai .md-alert-icon{font-size:14px;flex-shrink:0;margin-top:1px;}
 .msg.ai .md-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:100px;font-size:9px;font-family:'Syne',sans-serif;font-weight:800;letter-spacing:.06em;vertical-align:middle;margin:0 2px;}
-.msg.ai .md-pill-red{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#ef4444;}
-.msg.ai .md-pill-amber{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);color:#f59e0b;}
-.msg.ai .md-pill-green{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);color:#10b981;}
-.msg.ai .md-pill-blue{background:rgba(125,211,252,.10);border:1px solid rgba(125,211,252,.22);color:#7DD3FC;}
-.msg.ai .md-hr{border:none;margin:12px 0;height:1px;background:linear-gradient(90deg,transparent,rgba(125,211,252,.18),transparent);}
-.msg.ai .md-code{font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(125,211,252,.08);border:1px solid rgba(125,211,252,.14);padding:1px 6px;border-radius:5px;color:#7DD3FC;}
-.msg.ai .md-pre{background:rgba(2,4,11,.92);border:1px solid rgba(125,211,252,.12);border-radius:10px;padding:14px 16px;margin:8px 0;overflow-x:auto;animation:md-in .4s ease both;}
-.msg.ai .md-pre code{background:none;padding:0;color:rgba(255,255,255,.82);font-size:10px;line-height:1.72;}
+.msg.ai .md-pill-red{background:var(--error-bg);border:1px solid var(--error-border);color:var(--color-error);}
+.msg.ai .md-pill-amber{background:var(--amber-hover);border:1px solid var(--amber-border);color:var(--amber);}
+.msg.ai .md-pill-green{background:var(--success-bg);border:1px solid var(--success-border);color:var(--color-success);}
+.msg.ai .md-pill-blue{background:var(--cyan-hover);border:1px solid var(--cyan-border);color:var(--cyan);}
+.msg.ai .md-hr{border:none;margin:12px 0;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);}
+.msg.ai .md-code{font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--cyan-hover);border:1px solid var(--cyan-border);padding:1px 6px;border-radius:5px;color:var(--cyan);}
+.msg.ai .md-pre{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin:8px 0;overflow-x:auto;animation:md-in .4s ease both;}
+.msg.ai .md-pre code{background:none;padding:0;color:var(--text-2);font-size:10px;line-height:1.72;}
 .msg.ai .md-table{width:100%;border-collapse:separate;border-spacing:0;font-size:10px;margin:8px 0;border-radius:10px;overflow:hidden;}
-.msg.ai .md-table th{padding:8px 12px;background:rgba(125,211,252,.1);color:#7DD3FC;font-family:'Syne',sans-serif;font-weight:800;font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;text-align:left;}
-.msg.ai .md-table td{padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:rgba(255,255,255,.75);}
-.msg.ai .md-table tr:last-child td{border-bottom:none;}.msg.ai .md-table tr:hover td{background:rgba(255,255,255,.03);}
+.msg.ai .md-table th{padding:8px 12px;background:var(--cyan-hover);color:var(--cyan);font-family:'Syne',sans-serif;font-weight:800;font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;text-align:left;}
+.msg.ai .md-table td{padding:7px 12px;border-bottom:1px solid var(--border);color:var(--text-2);}
+.msg.ai .md-table tr:last-child td{border-bottom:none;}.msg.ai .md-table tr:hover td{background:var(--glass);}
 .msg.ai .md-d0{animation-delay:.00s}.msg.ai .md-d1{animation-delay:.07s}.msg.ai .md-d2{animation-delay:.14s}.msg.ai .md-d3{animation-delay:.21s}.msg.ai .md-d4{animation-delay:.28s}.msg.ai .md-d5{animation-delay:.35s}.msg.ai .md-d6{animation-delay:.42s}.msg.ai .md-d7{animation-delay:.49s}
 
 /* ── Footer compteur ── */
 .chat-footer-info{
   padding:4px 14px 6px;
-  font-size:8px;color:rgba(255,255,255,.2);
+  font-size:8px;color:var(--text-hint);
   display:flex;justify-content:space-between;align-items:center;
   font-family:'Syne',sans-serif;letter-spacing:.06em;
-  border-top:1px solid rgba(255,255,255,.04);
+  border-top:1px solid var(--border);
 }
-.chat-footer-quota{color:rgba(125,211,252,.4);}
+.chat-footer-quota{color:var(--cyan);opacity:0.4;}
   `;
   document.head.appendChild(s);
 })();
@@ -193,47 +231,47 @@ function _buildDsIcon(px = 42) {
   wrap.style.height = px + 'px';
   wrap.innerHTML = `
   <svg width="${px}" height="${px}" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;">
-    <circle class="dsf-halo" cx="22" cy="22" r="20" fill="rgba(125,211,252,.06)" stroke="rgba(125,211,252,.22)" stroke-width="1"/>
+    <circle class="dsf-halo" cx="22" cy="22" r="20" fill="var(--cyan-hover)" stroke="var(--cyan-border)" stroke-width="1" style="opacity:0.3;"/>
     <circle class="dsf-ring" cx="22" cy="22" r="18" fill="none" stroke="url(#dsf-grad-ring)" stroke-width="1.5" stroke-dasharray="28 84" stroke-linecap="round"/>
-    <g class="dsf-orb" style="transform-origin:22px 22px"><circle cx="22" cy="4" r="2.2" fill="#7DD3FC" style="filter:drop-shadow(0 0 4px #7DD3FC)"/></g>
-    <g class="dsf-orb-2" style="transform-origin:22px 22px"><circle cx="22" cy="6" r="1.5" fill="#FFD700" style="filter:drop-shadow(0 0 3px #FFD700)"/></g>
+    <g class="dsf-orb" style="transform-origin:22px 22px"><circle cx="22" cy="4" r="2.2" fill="var(--cyan)" style="filter:drop-shadow(0 0 4px var(--cyan))"/></g>
+    <g class="dsf-orb-2" style="transform-origin:22px 22px"><circle cx="22" cy="6" r="1.5" fill="var(--amber)" style="filter:drop-shadow(0 0 3px var(--amber))"/></g>
     <g class="dsf-float">
-      <circle cx="22" cy="22" r="14" fill="url(#dsf-grad-face)" stroke="rgba(125,211,252,.45)" stroke-width="1.5" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,.4))"/>
+      <circle cx="22" cy="22" r="14" fill="url(#dsf-grad-face)" stroke="var(--cyan-border)" stroke-width="1.5" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,.4))"/>
       <ellipse cx="17.5" cy="16.5" rx="4" ry="2.5" fill="rgba(255,255,255,.13)" transform="rotate(-25,17.5,16.5)"/>
-      <path d="M14,14.5 Q16.5,13 19,14" stroke="rgba(125,211,252,.55)" stroke-width="1.2" stroke-linecap="round"/>
-      <path d="M25,14 Q27.5,13 30,14.5" stroke="rgba(125,211,252,.55)" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M14,14.5 Q16.5,13 19,14" stroke="var(--cyan-border)" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M25,14 Q27.5,13 30,14.5" stroke="var(--cyan-border)" stroke-width="1.2" stroke-linecap="round"/>
       <g class="dsf-blink" style="transform-origin:17px 20px">
-        <ellipse cx="17" cy="20" rx="2.5" ry="2.8" fill="url(#dsf-grad-eye)" style="filter:drop-shadow(0 0 5px rgba(125,211,252,.8))"/>
+        <ellipse cx="17" cy="20" rx="2.5" ry="2.8" fill="url(#dsf-grad-eye)" style="filter:drop-shadow(0 0 5px var(--cyan-glow))"/>
         <circle cx="17.9" cy="19.1" r="0.9" fill="rgba(255,255,255,.9)"/>
       </g>
       <g class="dsf-blink" style="transform-origin:27px 20px;animation-delay:.15s">
-        <ellipse cx="27" cy="20" rx="2.5" ry="2.8" fill="url(#dsf-grad-eye)" style="filter:drop-shadow(0 0 5px rgba(125,211,252,.8))"/>
+        <ellipse cx="27" cy="20" rx="2.5" ry="2.8" fill="url(#dsf-grad-eye)" style="filter:drop-shadow(0 0 5px var(--cyan-glow))"/>
         <circle cx="27.9" cy="19.1" r="0.9" fill="rgba(255,255,255,.9)"/>
       </g>
       <ellipse cx="13.5" cy="25" rx="3" ry="1.8" fill="rgba(255,160,160,.18)"/>
       <ellipse cx="30.5" cy="25" rx="3" ry="1.8" fill="rgba(255,160,160,.18)"/>
-      <path class="dsf-smile" d="M14,26 Q22,33 30,26" stroke="#7DD3FC" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+      <path class="dsf-smile" d="M14,26 Q22,33 30,26" stroke="var(--cyan)" stroke-width="2.2" stroke-linecap="round" fill="none"/>
       <path d="M16.5,27.5 Q22,31.5 27.5,27.5" stroke="rgba(255,255,255,.18)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
     </g>
-    <g class="dsf-star-1" style="transform-origin:6px 8px"><path d="M6,5 L6.8,7.2 L9,8 L6.8,8.8 L6,11 L5.2,8.8 L3,8 L5.2,7.2 Z" fill="#FFD700" opacity=".9"/></g>
-    <g class="dsf-star-2" style="transform-origin:38px 10px"><path d="M38,7 L38.6,8.8 L40.4,9.4 L38.6,10 L38,11.8 L37.4,10 L35.6,9.4 L37.4,8.8 Z" fill="#7DD3FC" opacity=".9"/></g>
-    <g class="dsf-star-3" style="transform-origin:5px 36px"><circle cx="5" cy="36" r="1.8" fill="#a78bfa" opacity=".85"/></g>
-    <g class="dsf-star-4" style="transform-origin:40px 34px"><path d="M40,31 L40.5,33 L42.5,33.5 L40.5,34 L40,36 L39.5,34 L37.5,33.5 L39.5,33 Z" fill="#FFD700" opacity=".8"/></g>
+    <g class="dsf-star-1" style="transform-origin:6px 8px"><path d="M6,5 L6.8,7.2 L9,8 L6.8,8.8 L6,11 L5.2,8.8 L3,8 L5.2,7.2 Z" fill="var(--amber)" opacity=".9"/></g>
+    <g class="dsf-star-2" style="transform-origin:38px 10px"><path d="M38,7 L38.6,8.8 L40.4,9.4 L38.6,10 L38,11.8 L37.4,10 L35.6,9.4 L37.4,8.8 Z" fill="var(--cyan)" opacity=".9"/></g>
+    <g class="dsf-star-3" style="transform-origin:5px 36px"><circle cx="5" cy="36" r="1.8" fill="var(--violet-3)" opacity=".85"/></g>
+    <g class="dsf-star-4" style="transform-origin:40px 34px"><path d="M40,31 L40.5,33 L42.5,33.5 L40.5,34 L40,36 L39.5,34 L37.5,33.5 L39.5,33 Z" fill="var(--amber)" opacity=".8"/></g>
     <defs>
       <radialGradient id="dsf-grad-face" cx="40%" cy="35%" r="65%">
-        <stop offset="0%"   stop-color="#1a4a8a"/>
-        <stop offset="60%"  stop-color="#0d2550"/>
-        <stop offset="100%" stop-color="#060e1e"/>
+        <stop offset="0%"   stop-color="var(--surface-2)"/>
+        <stop offset="60%"  stop-color="var(--surface)"/>
+        <stop offset="100%" stop-color="var(--bg)"/>
       </radialGradient>
       <radialGradient id="dsf-grad-eye" cx="35%" cy="35%" r="65%">
-        <stop offset="0%"  stop-color="#a0e4ff"/>
-        <stop offset="100%" stop-color="#38bdf8"/>
+        <stop offset="0%"  stop-color="var(--cyan)"/>
+        <stop offset="100%" stop-color="var(--cyan-2)"/>
       </radialGradient>
       <linearGradient id="dsf-grad-ring" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%"   stop-color="#7DD3FC" stop-opacity=".9"/>
-        <stop offset="40%"  stop-color="#FFD700" stop-opacity=".7"/>
-        <stop offset="70%"  stop-color="#a78bfa" stop-opacity=".6"/>
-        <stop offset="100%" stop-color="#7DD3FC" stop-opacity=".9"/>
+        <stop offset="0%"   stop-color="var(--cyan)" stop-opacity=".9"/>
+        <stop offset="40%"  stop-color="var(--amber)" stop-opacity=".7"/>
+        <stop offset="70%"  stop-color="var(--violet-3)" stop-opacity=".6"/>
+        <stop offset="100%" stop-color="var(--cyan)" stop-opacity=".9"/>
       </linearGradient>
     </defs>
   </svg>`;
@@ -277,7 +315,7 @@ function _renderMarkdown(text) {
   const codes = [];
   s = s.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
     const ph = `\x00C${codes.length}\x00`;
-    const lb = lang?`<span style="font-size:8px;color:rgba(125,211,252,.4);font-family:'Syne',sans-serif;font-weight:800;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:8px;">${lang}</span>`:'';
+    const lb = lang?`<span style="font-size:8px;color:rgba(139,127,240,.4);font-family:'Syne',sans-serif;font-weight:800;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:8px;">${lang}</span>`:'';
     codes.push(`<pre class="md-pre">${lb}<code class="md-code">${escHtml(code.trim())}</code></pre>`);
     return ph;
   });
@@ -289,12 +327,12 @@ function _renderMarkdown(text) {
   s = s.replace(/^### (.+)$/gm, '<div class="md-h3">$1</div>');
   s = s.replace(/^# (.+)$/gm,   '<div class="md-h2">$1</div>');
 
-  s = s.replace(/^(?:🔴|⚠️)\s*(.+)$/gm,
-    '<div class="md-alert md-alert-danger"><span class="md-alert-icon">⚠</span><span>$1</span></div>');
-  s = s.replace(/^(?:✅|☑️)\s*(.+)$/gm,
-    '<div class="md-alert md-alert-success"><span class="md-alert-icon">✓</span><span>$1</span></div>');
-  s = s.replace(/^(?:💡|ℹ️|📌)\s*(.+)$/gm,
-    '<div class="md-alert md-alert-info"><span class="md-alert-icon">💡</span><span>$1</span></div>');
+  s = s.replace(/^(?:# ALERT-DANGER #|ALERT-DANGER)\s*(.+)$/gm,
+    '<div class="md-alert md-alert-danger"><i class="fa-solid fa-triangle-exclamation md-alert-icon"></i><span>$1</span></div>');
+  s = s.replace(/^(?:# ALERT-SUCCESS #|ALERT-SUCCESS)\s*(.+)$/gm,
+    '<div class="md-alert md-alert-success"><i class="fa-solid fa-circle-check md-alert-icon"></i><span>$1</span></div>');
+  s = s.replace(/^(?:# ALERT-INFO #|ALERT-INFO)\s*(.+)$/gm,
+    '<div class="md-alert md-alert-info"><i class="fa-solid fa-lightbulb md-alert-icon"></i><span>$1</span></div>');
 
   s = s.replace(/\bZone Critique\b/g,'<span class="md-pill md-pill-red">Zone Critique</span>');
   s = s.replace(/\bZone Risque\b/g,'<span class="md-pill md-pill-amber">Zone Risque</span>');
@@ -302,9 +340,9 @@ function _renderMarkdown(text) {
   s = s.replace(/\bZone Saine\b/g,'<span class="md-pill md-pill-green">Zone Saine</span>');
   s = s.replace(/\bDoctor Score™?\b/g,'<span class="md-pill md-pill-blue">Doctor Score™</span>');
 
-  s = s.replace(/\*\*([^*\n]+)\*\*/g,'<strong style="color:#fff;font-weight:800;">$1</strong>');
-  s = s.replace(/__([^_\n]+)__/g,'<strong style="color:#fff;font-weight:800;">$1</strong>');
-  s = s.replace(/\*([^*\n]+)\*/g,'<em style="color:rgba(255,255,255,.68);">$1</em>');
+  s = s.replace(/\*\*([^*\n]+)\*\*/g,'<strong style="color:var(--text);font-weight:800;">$1</strong>');
+  s = s.replace(/__([^_\n]+)__/g,'<strong style="color:var(--text);font-weight:800;">$1</strong>');
+  s = s.replace(/\*([^*\n]+)\*/g,'<em style="color:var(--text-2);">$1</em>');
   s = s.replace(/`([^`]+)`/g,'<code class="md-code">$1</code>');
   s = s.replace(/^[-*]{3,}$/gm,'<hr class="md-hr">');
 
@@ -357,6 +395,39 @@ window.DS_CHAT = {
   _searchQuery:    '',           // filtre recherche historique
   _activeAnalyseId: null,        // analyse affichée actuellement
 
+  // ════ COLLAPSIBLE CHAT HISTORY PANEL ═════════════════════════
+  toggleHistory(forceOpen) {
+    const panel = document.getElementById('chat-history-panel');
+    const toggleBtn = document.getElementById('chat-sidebar-toggle-btn');
+    if (!panel) return;
+
+    const currentlyCollapsed = panel.classList.contains('collapsed');
+    const shouldCollapse = forceOpen === true  ? false
+                         : forceOpen === false ? true
+                         : !currentlyCollapsed;
+
+    panel.classList.toggle('collapsed', shouldCollapse);
+    if (toggleBtn) {
+      toggleBtn.classList.toggle('is-collapsed', shouldCollapse);
+      toggleBtn.title = shouldCollapse ? "Afficher l'historique" : "Masquer l'historique";
+    }
+
+    try { localStorage.setItem('ds_chat_history_collapsed', shouldCollapse ? '1' : '0'); } catch(_) {}
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 340);
+  },
+
+  restoreHistoryState() {
+    try {
+      const pref = localStorage.getItem('ds_chat_history_collapsed');
+      if (pref === '1') {
+        const panel = document.getElementById('chat-history-panel');
+        const toggleBtn = document.getElementById('chat-sidebar-toggle-btn');
+        if (panel) panel.classList.add('collapsed');
+        if (toggleBtn) toggleBtn.classList.add('is-collapsed');
+      }
+    } catch(_) {}
+  },
+
   // ════ IMPORT FIREBASE CACHED ════════════════════════════════
   async _getFs() {
     if (this._fsModules) return this._fsModules;
@@ -391,25 +462,25 @@ window.DS_CHAT = {
     modal.id       = '_ncm';
     modal.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(2,4,11,.82);backdrop-filter:blur(14px);';
     modal.innerHTML = `
-      <div style="background:rgba(7,11,20,.99);border:1px solid rgba(125,211,252,.2);border-radius:18px;padding:28px;width:min(90vw,400px);box-shadow:0 32px 80px rgba(0,0,0,.7);">
+      <div style="background:var(--bg-elevated);border:1px solid var(--border-v);border-radius:18px;padding:28px;width:min(90vw,400px);box-shadow:var(--shadow-lg);">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-          <div style="width:36px;height:36px;border-radius:10px;background:rgba(125,211,252,.08);border:1px solid rgba(125,211,252,.18);display:flex;align-items:center;justify-content:center;font-size:14px;color:#7DD3FC;flex-shrink:0;"><i class="fa-solid fa-plus"></i></div>
-          <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:900;color:#fff;">Nouvelle conversation</div>
+          <div style="width:36px;height:36px;border-radius:10px;background:var(--cyan-hover);border:1px solid var(--cyan-border);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--cyan);flex-shrink:0;"><i class="fa-solid fa-plus"></i></div>
+          <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:900;color:var(--text);">Nouvelle conversation</div>
         </div>
         <div style="margin-bottom:16px;">
-          <label style="display:block;font-family:'Syne',sans-serif;font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:7px;">Nom</label>
-          <input id="_ncm_name" type="text" value="${defName}" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(125,211,252,.2);border-radius:10px;color:#fff;font-family:'Instrument Sans',sans-serif;font-size:12px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='rgba(125,211,252,.5)'" onblur="this.style.borderColor='rgba(125,211,252,.2)'"/>
+          <label style="display:block;font-family:'Syne',sans-serif;font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-hint);margin-bottom:7px;">Nom</label>
+          <input id="_ncm_name" type="text" value="${defName}" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:12px;outline:none;box-sizing:border-box;"/>
         </div>
         <div style="margin-bottom:24px;">
-          <label style="display:block;font-family:'Syne',sans-serif;font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:7px;">Analyse associée (optionnel)</label>
-          <select id="_ncm_analyse" style="width:100%;padding:10px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(255,255,255,.7);font-family:'Instrument Sans',sans-serif;font-size:11px;outline:none;appearance:none;cursor:pointer;box-sizing:border-box;">
+          <label style="display:block;font-family:'Syne',sans-serif;font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-hint);margin-bottom:7px;">Analyse associée (optionnel)</label>
+          <select id="_ncm_analyse" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;color:var(--text-2);font-family:'Instrument Sans',sans-serif;font-size:11px;outline:none;appearance:none;cursor:pointer;box-sizing:border-box;">
             <option value="">— Aucune analyse liée —</option>
             ${(window.S?.analyses||[]).map(a=>`<option value="${a.id}">${a.entreprise||'Sans nom'} · ${a.score||'—'}/100</option>`).join('')}
           </select>
         </div>
         <div style="display:flex;gap:10px;">
-          <button onclick="document.getElementById('_ncm').remove()" style="flex:1;padding:11px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);font-family:'Syne',sans-serif;font-size:9px;font-weight:800;cursor:pointer;">Annuler</button>
-          <button id="_ncm_ok" style="flex:2;padding:11px;border-radius:10px;background:linear-gradient(135deg,rgba(125,211,252,.2),rgba(125,211,252,.08));border:1px solid rgba(125,211,252,.35);color:#7DD3FC;font-family:'Syne',sans-serif;font-size:9px;font-weight:900;letter-spacing:.08em;cursor:pointer;"><i class="fa-solid fa-plus" style="margin-right:6px;"></i>Créer</button>
+          <button onclick="document.getElementById('_ncm').remove()" style="flex:1;padding:11px;border-radius:10px;background:transparent;border:1px solid var(--border);color:var(--text-hint);font-family:'Syne',sans-serif;font-size:9px;font-weight:800;cursor:pointer;">Annuler</button>
+          <button id="_ncm_ok" style="flex:2;padding:11px;border-radius:10px;background:var(--cyan-hover);border:1px solid var(--cyan-border);color:var(--cyan);font-family:'Syne',sans-serif;font-size:9px;font-weight:900;letter-spacing:.08em;cursor:pointer;"><i class="fa-solid fa-plus" style="margin-right:6px;"></i>Créer</button>
         </div>
       </div>`;
     document.body.appendChild(modal);
@@ -447,8 +518,11 @@ window.DS_CHAT = {
     if (msgs) { delete msgs.dataset.loadedFor; msgs.innerHTML = ''; }
 
     const greeting = S.currentAnalyse
-      ? 'Conversation <strong>' + escHtml(name) + '</strong> 👋 Analyse <strong>' + escHtml(S.currentAnalyse.entreprise||'liée') + '</strong> · Score ' + (S.currentAnalyse.score||'?') + '/100.'
-      : 'Conversation <strong>' + escHtml(name) + '</strong> 👋 Importez une analyse ou posez vos questions financières.';
+      ? 'Bonjour ' + (S.profile?.prenom || '') + ' ! Je suis votre <strong>Agent Autonome Doctor Smile</strong>. <i class="fa-solid fa-robot" style="color:var(--cyan);"></i> ' +
+        'J\'ai analysé les données de <strong>' + escHtml(S.currentAnalyse.entreprise||'votre entreprise') + '</strong>. ' +
+        'Mon diagnostic est prêt. Que souhaitez-vous approfondir ?'
+      : 'Bonjour ! Je suis votre <strong>Agent Financier</strong>. <i class="fa-solid fa-robot" style="color:var(--cyan);"></i> ' +
+        'Importez une analyse pour que je puisse devenir votre conseiller stratégique autonome.';
 
     this._appendMsg('chat-msgs-full', 'ai', greeting, new Date());
     if (S.currentAnalyse) this._injectSuggestions('chat-msgs-full', S.currentAnalyse);
@@ -493,11 +567,11 @@ window.DS_CHAT = {
     const nom  = analyse.entreprise ?? S.profile?.entreprise?.nom ?? 'votre entreprise';
     const top  = window.DS_RENDER?.normalizeShap(analyse.shapValues || analyse.shap || [])[0];
     const intro =
-      `Bonjour ${S.profile?.prenom ?? ''} 👋 ` +
+      `Bonjour ${S.profile?.prenom ?? ''} <i class="fa-solid fa-hand-wave" style="color:var(--amber);font-size:12px;"></i> ` +
       `Votre score de <strong>${analyse.score}/100</strong> pour <strong>${escHtml(nom)}</strong> ` +
       `indique une <strong>${ZC[zone]?.l ?? zone}</strong>.` +
       (top ? ` Le facteur principal est <strong>${top.n}</strong>.` : '') +
-      `<br><br><i class="fa-solid fa-heart-pulse" style="color:var(--p3-agent);margin-right:6px;"></i>Mon système <strong>Argent IA</strong> surveille activement vos flux en arrière-plan.` +
+      `<br><br><i class="fa-solid fa-heart-pulse" style="color:var(--violet-3);margin-right:6px;"></i>Mon système <strong>Agent IA</strong> surveille activement vos flux en arrière-plan.` +
       ` Je suis disponible pour approfondir n'importe quel aspect.`;
 
     this._appendMsg('chat-msgs', 'ai', intro, new Date());
@@ -553,16 +627,25 @@ window.DS_CHAT = {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body:    JSON.stringify({
-          message:   msg,
-          analyseId: S.currentAnalyse?.id ?? null,
-          history:   S.chatHistory.slice(-10),
-          userId:    user.uid,
-          stream:    true,
+          message:       msg,
+          analyseId:     S.currentAnalyse?.id ?? null,
+          history:       S.chatHistory.slice(-10),
+          userId:        user.uid,
+          llmProvider:   window.DS_CHAT_SETTINGS?.llmProvider || null,
+          voiceProvider: window.DS_CHAT_SETTINGS?.voiceProvider || null,
+          voiceId:       window.DS_CHAT_SETTINGS?.voiceId || null,
         }),
         signal: this._abortCtrl.signal,
       });
 
-      if (!res.ok) throw new Error(res.status);
+      if (!res.ok) {
+        let detail = `HTTP ${res.status}`;
+        try {
+          const err = await res.json();
+          detail = err.detail || err.message || detail;
+        } catch (_) {}
+        throw new Error(detail);
+      }
 
       // ── Détecter JSON vs SSE avant de lire ───────────────
       const ct = res.headers.get('content-type') || '';
@@ -641,6 +724,8 @@ window.DS_CHAT = {
       if (err.name === 'AbortError') {
         fullReply = fullReply || '(Génération interrompue)';
       } else {
+        console.error('[ds-chat] Erreur API:', err);
+        window.showToast?.(`Chat IA indisponible — ${err.message}`, 'warn');
         fullReply = this._localReply(msg);
       }
     }
@@ -739,7 +824,7 @@ window.DS_CHAT = {
       const msgs = document.getElementById('chat-msgs-full');
       if (msgs && !msgs.children.length)
         this._appendMsg('chat-msgs-full', 'ai',
-          'Bonjour 👋 Importez une analyse depuis le Dashboard pour commencer.', new Date());
+          'Bonjour <i class="fa-solid fa-hand-wave" style="color:var(--amber);"></i> Importez une analyse depuis le Dashboard pour commencer.', new Date());
     }
     setTimeout(_patchDsIconInDOM, 80);
   },
@@ -758,7 +843,7 @@ window.DS_CHAT = {
       const msgs = document.getElementById('chat-msgs-full');
       if (msgs && !msgs.children.length)
         this._appendMsg('chat-msgs-full', 'ai',
-          'Bonjour 👋 Importez une analyse depuis le Dashboard pour commencer.', new Date());
+          'Bonjour <i class="fa-solid fa-hand-wave" style="color:var(--amber);"></i> Importez une analyse depuis le Dashboard pour commencer.', new Date());
     }
     setTimeout(_patchDsIconInDOM, 80);
   },
@@ -821,6 +906,12 @@ window.DS_CHAT = {
 
     if (role === 'ai') {
       // ── Actions messages IA ──
+      const btnSpeak = document.createElement('button');
+      btnSpeak.className = 'msg-act-btn';
+      btnSpeak.title = 'Écouter';
+      btnSpeak.innerHTML = '<i class="fa-solid fa-volume-high"></i>Écouter';
+      btnSpeak.addEventListener('click', () => window.DS_TTS?.speak(content));
+
       const btnCopy = document.createElement('button');
       btnCopy.className = 'msg-act-btn';
       btnCopy.title = 'Copier';
@@ -839,7 +930,7 @@ window.DS_CHAT = {
       btnRegen.innerHTML = '<i class="fa-solid fa-rotate-right"></i>Régénérer';
       btnRegen.addEventListener('click', () => DS_CHAT._regenerate(containerId));
 
-      actions.append(btnCopy, btnEdit, btnRegen);
+      actions.append(btnSpeak, btnCopy, btnEdit, btnRegen);
 
     } else {
       // ── Actions messages USER ──
@@ -860,7 +951,7 @@ window.DS_CHAT = {
       await navigator.clipboard.writeText(plain);
       const orig = btn.innerHTML;
       btn.innerHTML = '<i class="fa-solid fa-check"></i>Copié !';
-      btn.style.color = '#10b981';
+      btn.style.color = 'var(--color-success)';
       setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 2000);
     } catch {
       showToast('Impossible de copier', 'warn');
@@ -1060,46 +1151,46 @@ window.DS_CHAT = {
       const nomHl = q && nomLc.includes(q)
         ? escHtml(item.name).replace(
             new RegExp('(' + escHtml(q).replace(/[.*+?^${}()|[\\]]/g, '\\$&') + ')', 'gi'),
-            '<mark style="background:rgba(125,211,252,.25);color:#7DD3FC;border-radius:2px;">$1</mark>'
+            '<mark style="background:var(--cyan-hover);color:var(--cyan);border-radius:2px;">$1</mark>'
           )
         : escHtml(item.name);
 
       // Badge score ou type
       const badge = item.isLibre
-        ? `<span style="font-size:7px;font-weight:800;color:rgba(125,211,252,.5);background:rgba(125,211,252,.08);border:1px solid rgba(125,211,252,.15);padding:2px 6px;border-radius:4px;">Libre</span>`
+        ? `<span style="font-size:7px;font-weight:800;color:var(--cyan);background:var(--cyan-hover);border:1px solid var(--cyan-border);padding:2px 6px;border-radius:4px;">Libre</span>`
         : `<span style="font-size:7.5px;font-weight:800;color:${zc.t};background:${zc.bg};border:1px solid ${zc.s}33;padding:2px 7px;border-radius:4px;">${zc.l}</span>`;
 
-      const scoreStr = item.isLibre ? '' : `<span style="font-size:8px;color:rgba(255,255,255,.28);">${item.score ?? '—'}/100</span>`;
+      const scoreStr = item.isLibre ? '' : `<span style="font-size:8px;color:var(--text-hint);">${item.score ?? '—'}/100</span>`;
 
       return `
       <div class="_chi${hidden ? ' search-hidden' : ''}" data-aid="${item.id}" data-convid="${item.convId || ''}"
         style="padding:11px 14px 10px;cursor:pointer;position:relative;
-          border-bottom:1px solid rgba(255,255,255,.04);
-          background:${isCur ? 'rgba(125,211,252,.07)' : 'transparent'};
-          border-left:3px solid ${isCur ? '#7DD3FC' : 'transparent'};
+          border-bottom:1px solid var(--border);
+          background:${isCur ? 'var(--cyan-hover)' : 'transparent'};
+          border-left:3px solid ${isCur ? 'var(--cyan)' : 'transparent'};
           transition:all .15s;">
         <button class="_chi_del" data-aid="${item.id}" data-convid="${item.convId || ''}" title="Supprimer"
           style="position:absolute;top:9px;right:9px;width:22px;height:22px;border-radius:6px;
-            background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.18);
-            color:rgba(239,68,68,.5);font-size:9px;cursor:pointer;
+            background:var(--error-bg);border:1px solid var(--error-border);
+            color:var(--error);font-size:9px;cursor:pointer;
             display:none;align-items:center;justify-content:center;transition:all .15s;">
           <i class="fa-solid fa-trash-can"></i></button>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:4px;padding-right:26px;">
-          <div style="font-family:'Syne',sans-serif;font-size:10px;font-weight:800;color:#fff;
+          <div style="font-family:'Syne',sans-serif;font-size:10px;font-weight:800;color:var(--text);
             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;">
             ${nomHl}</div>
-          <div style="font-size:7.5px;color:rgba(255,255,255,.22);flex-shrink:0;">${date}</div>
+          <div style="font-size:7.5px;color:var(--text-hint);flex-shrink:0;">${date}</div>
         </div>
         <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px;">
           ${badge}
           ${scoreStr}
           ${cached?.length || item.msgCount
-            ? `<span style="margin-left:auto;font-size:7.5px;color:rgba(125,211,252,.35);">
+            ? `<span style="margin-left:auto;font-size:7.5px;color:var(--cyan);">
                 <i class="fa-regular fa-message" style="font-size:7px;"></i> ${cached?.length || item.msgCount || ''}
                </span>` : ''}
         </div>
         <div class="_chi_prev" data-aid="${item.id}"
-          style="font-size:8.5px;color:rgba(255,255,255,.22);white-space:nowrap;overflow:hidden;
+          style="font-size:8.5px;color:var(--text-hint);white-space:nowrap;overflow:hidden;
             text-overflow:ellipsis;max-width:195px;line-height:1.5;font-style:italic;">
           ${escHtml(preview)}</div>
       </div>`;
@@ -1109,11 +1200,11 @@ window.DS_CHAT = {
     list.querySelectorAll('._chi[data-aid]').forEach(el => {
       const btn = el.querySelector('._chi_del');
       el.addEventListener('mouseenter', () => {
-        if (cur !== el.dataset.aid) el.style.background = 'rgba(125,211,252,.04)';
+        if (cur !== el.dataset.aid) el.style.background = 'var(--surface-2)';
         if (btn) btn.style.display = 'flex';
       });
       el.addEventListener('mouseleave', () => {
-        el.style.background = cur === el.dataset.aid ? 'rgba(125,211,252,.07)' : 'transparent';
+        el.style.background = cur === el.dataset.aid ? 'var(--cyan-hover)' : 'transparent';
         if (btn) btn.style.display = 'none';
       });
       el.addEventListener('click', e => {
@@ -1211,7 +1302,7 @@ window.DS_CHAT = {
 
     msgs.innerHTML =
       '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;">' +
-      '<i class="fa-solid fa-circle-notch fa-spin" style="font-size:24px;color:#7DD3FC;opacity:.5;"></i>' +
+      '<i class="fa-solid fa-circle-notch fa-spin" style="font-size:24px;color:var(--color-ice);opacity:.5;"></i>' +
       '<div style="font-size:10px;color:rgba(255,255,255,.28);">Chargement des messages…</div></div>';
 
     S.chatHistory = [];
@@ -1289,10 +1380,10 @@ window.DS_CHAT = {
     const z    = analyse.zone ?? zoneFromScore(analyse.score ?? 0);
     const nom  = escHtml(analyse.entreprise ?? 'votre entreprise');
     const now  = new Date();
-    const intro = `Bonjour ${S.profile?.prenom ?? ''} 👋 ` +
+    const intro = `Bonjour ${S.profile?.prenom ?? ''} <i class="fa-solid fa-hand-wave" style="color:var(--amber);"></i> ` +
       `<strong>${nom}</strong> · Score <strong>${analyse.score ?? '?'}/100</strong>` +
       ` · ${ZC[z]?.l ?? z}.` +
-      `<br><br><i class="fa-solid fa-brain" style="color:#a78bfa;margin-right:6px;"></i>Mon <strong>Master Agent</strong> a déjà identifié ${window.DS_MASTER_AGENT?.getInsights().length || 0} insights stratégiques.` +
+      `<br><br><i class="fa-solid fa-brain" style="color:var(--violet-3);margin-right:6px;"></i>Mon <strong>Master Agent</strong> a déjà identifié ${window.DS_MASTER_AGENT?.getInsights().length || 0} insights stratégiques.` +
       ` Que voulez-vous approfondir ?`;
     this._appendMsg(containerId, 'ai', intro, now);
     this._injectSuggestions(containerId, analyse);
@@ -1316,8 +1407,8 @@ window.DS_CHAT = {
 
     msgs.innerHTML =
       '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;">' +
-      '<i class="fa-solid fa-circle-notch fa-spin" style="font-size:24px;color:#7DD3FC;opacity:.5;"></i>' +
-      '<div style="font-size:10px;color:rgba(255,255,255,.28);">Chargement…</div></div>';
+      '<i class="fa-solid fa-circle-notch fa-spin" style="font-size:24px;color:var(--cyan);opacity:.5;"></i>' +
+      '<div style="font-size:10px;color:var(--text-hint);">Chargement…</div></div>';
 
     try {
       const fs   = await this._getFs();
@@ -1487,7 +1578,7 @@ window.DS_CHAT = {
     if (!bar) {
       bar = document.createElement('div');
       bar.id = '_chi_sortbar';
-      bar.style.cssText = 'padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:5px;flex-shrink:0;';
+      bar.style.cssText = 'padding:7px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:5px;flex-shrink:0;';
       const listEl = document.getElementById('chat-history-list');
       if (listEl) panel.insertBefore(bar, listEl);
     }
@@ -1499,9 +1590,9 @@ window.DS_CHAT = {
       <button onclick="window.DS_CHAT._setSort('${o.k}')"
         style="padding:3px 9px;border-radius:5px;font-family:'Syne',sans-serif;font-size:8px;font-weight:800;
           cursor:pointer;transition:all .15s;letter-spacing:.04em;
-          background:${this._sortMode === o.k ? 'rgba(125,211,252,.14)' : 'transparent'};
-          border:1px solid ${this._sortMode === o.k ? 'rgba(125,211,252,.35)' : 'rgba(255,255,255,.08)'};
-          color:${this._sortMode === o.k ? '#7DD3FC' : 'rgba(255,255,255,.3)'};">
+          background:${this._sortMode === o.k ? 'var(--cyan-hover)' : 'transparent'};
+          border:1px solid ${this._sortMode === o.k ? 'var(--cyan-border)' : 'var(--border)'};
+          color:${this._sortMode === o.k ? 'var(--cyan)' : 'var(--text-hint)'};">
         ${o.l}
       </button>`).join('');
   },
@@ -1579,21 +1670,21 @@ window.DS_CHAT = {
       const readLbl = words > 30 ? (secs < 60 ? secs+'s' : Math.ceil(secs/60)+' min') : '';
       div.innerHTML =
         `<div class="mn" style="display:flex;align-items:center;justify-content:space-between;
-           gap:8px;margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,.05);">
+           gap:8px;margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid var(--border);">
            <span style="font-family:'Syne',sans-serif;font-size:8px;font-weight:900;
-             letter-spacing:.14em;text-transform:uppercase;color:#7DD3FC;
+             letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);
              display:flex;align-items:center;gap:6px;">
              <i class="fa-solid fa-brain" style="font-size:10px;opacity:.65;"></i>Doctor Smile IA
            </span>
-           ${readLbl?`<span style="font-size:8px;color:rgba(255,255,255,.18);font-family:'JetBrains Mono',monospace;">${readLbl} de lecture</span>`:''}
+           ${readLbl?`<span style="font-size:8px;color:var(--text-hint);font-family:'JetBrains Mono',monospace;">${readLbl} de lecture</span>`:''}
         </div>` +
         `<div class="_msg_body">${body}</div>` +
-        (timeStr?`<div class="_msg_ts" style="font-size:8px;color:rgba(255,255,255,.18);margin-top:10px;text-align:${align};font-family:'Syne',sans-serif;letter-spacing:.04em;padding-top:7px;border-top:1px solid rgba(255,255,255,.05);">${timeStr}</div>`:'');
+        (timeStr?`<div class="_msg_ts" style="font-size:8px;color:var(--text-hint);margin-top:10px;text-align:${align};font-family:'Syne',sans-serif;letter-spacing:.04em;padding-top:7px;border-top:1px solid var(--border);">${timeStr}</div>`:'');
       this._attachMsgActions(div, containerId, role, content);
     } else {
       div.innerHTML =
         `<div class="_msg_body" style="white-space:pre-wrap;word-break:break-word;">${escHtml(content)}</div>` +
-        (timeStr?`<div class="_msg_ts" style="font-size:8px;color:rgba(255,255,255,.18);margin-top:6px;text-align:${align};font-family:'Syne',sans-serif;letter-spacing:.04em;">${timeStr}</div>`:'');
+        (timeStr?`<div class="_msg_ts" style="font-size:8px;color:var(--text-hint);margin-top:6px;text-align:${align};font-family:'Syne',sans-serif;letter-spacing:.04em;">${timeStr}</div>`:'');
       this._attachMsgActions(div, containerId, role, content);
     }
 
@@ -1687,12 +1778,12 @@ window.DS_CHAT = {
       const o = document.createElement('div');
       o.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);';
       o.innerHTML = `
-        <div style="background:rgba(8,12,22,.99);border:1px solid rgba(239,68,68,.2);border-radius:18px;padding:30px;max-width:380px;width:90%;box-shadow:0 24px 60px rgba(0,0,0,.7);">
-          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:900;color:#fff;margin-bottom:9px;">${title}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.4);line-height:1.7;margin-bottom:24px;white-space:pre-line;">${body}</div>
+        <div style="background:var(--bg-elevated);border:1px solid var(--error-border);border-radius:18px;padding:30px;max-width:380px;width:90%;box-shadow:var(--shadow-lg);">
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:900;color:var(--text);margin-bottom:9px;">${title}</div>
+          <div style="font-size:10px;color:var(--text-hint);line-height:1.7;margin-bottom:24px;white-space:pre-line;">${body}</div>
           <div style="display:flex;gap:10px;justify-content:flex-end;">
-            <button id="_cc" style="padding:9px 22px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.4);font-family:'Syne',sans-serif;font-size:10px;cursor:pointer;">Annuler</button>
-            <button id="_ck" style="padding:9px 22px;border-radius:9px;border:none;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;font-family:'Syne',sans-serif;font-size:10px;font-weight:800;cursor:pointer;">Supprimer</button>
+            <button id="_cc" style="padding:9px 22px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--text-hint);font-family:'Syne',sans-serif;font-size:10px;cursor:pointer;">Annuler</button>
+            <button id="_ck" style="padding:9px 22px;border-radius:9px;border:none;background:var(--error-bg);color:var(--error);font-family:'Syne',sans-serif;font-size:10px;font-weight:800;cursor:pointer;">Supprimer</button>
           </div>
         </div>`;
       document.body.appendChild(o);
@@ -1728,13 +1819,17 @@ window._DS_renderChatHistoryPanel = () => window.DS_CHAT.renderChatHistoryPanel(
 
 // ── Init ─────────────────────────────────────────────────────
 (function () {
+  // Garantir une référence `S` locale même si `ds-core.js` n'a pas encore défini window.S
+  if (!window.S) window.S = {};
+  var S = window.S;
   function init() {
     _patchDsIconInDOM();
     window.DS_CHAT._startTimeTicker();
+    window.DS_CHAT.restoreHistoryState?.();
 
     // ── Déclencher _initOnAuth dès que l'utilisateur est authentifié ──
     let _authWait = setInterval(() => {
-      if (S.user?.uid) {
+      if (window.S?.user?.uid) {
         clearInterval(_authWait);
         window.DS_CHAT._initOnAuth();
       }

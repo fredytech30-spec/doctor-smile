@@ -1,12 +1,12 @@
 // ════════════════════════════════════════════════════════════════
 //  background.js — Doctor Smile
-//  Animation canvas : réseau de points + smileys flottants
-//  Code exact extrait du fichier source original
+//  Animation canvas : réseau de points + smileys flottants (VIOLET/INDIGO)
+//  Code adapté au thème Doctor Smile
 // ════════════════════════════════════════════════════════════════
 
-// ══════════════════════════════════════════
-// SMILE NETWORK BACKGROUND — Points + Têtes souriantes bleues
-// ══════════════════════════════════════════
+// ══════════════════════════════════════════════
+// SMILE NETWORK BACKGROUND — Points + Têtes souriantes violettes/bleues
+// ══════════════════════════════════════════════
 (function() {
   const canvas = document.getElementById('smile-canvas');
   const ctx = canvas.getContext('2d');
@@ -19,7 +19,7 @@
   resize();
   window.addEventListener('resize', resize);
 
-  // Points flottants
+  // Points flottants (plus gros!)
   const N = 90;
   const pts = [];
   for(let i=0;i<N;i++){
@@ -28,11 +28,11 @@
       y: Math.random()*H,
       vx: (Math.random()-0.5)*0.3,
       vy: (Math.random()-0.5)*0.3,
-      r: Math.random()*2+0.8
+      r: Math.random()*4+2 // bigger particles!
     });
   }
 
-  // Têtes souriantes (smiley icons) en bleu rayonnant
+  // Têtes souriantes (smiley icons) en violet rayonnant
   // On crée 6 smileys qui se déplacent lentement
   const smileys = [];
   for(let i=0;i<6;i++){
@@ -53,10 +53,10 @@
   function drawSmiley(x, y, r, glowOpacity) {
     const cx = x, cy = y;
     
-    // Glow rayonnant bleu autour de la tête
+    // Glow rayonnant violet autour de la tête
     const grd = ctx.createRadialGradient(cx, cy, r*0.5, cx, cy, r*3.5);
-    grd.addColorStop(0, `rgba(56,189,248,${glowOpacity*0.4})`);
-    grd.addColorStop(0.5, `rgba(125,211,252,${glowOpacity*0.15})`);
+    grd.addColorStop(0, `rgba(139,127,240,${glowOpacity*0.4})`);
+    grd.addColorStop(0.5, `rgba(139,127,240,${glowOpacity*0.15})`);
     grd.addColorStop(1, 'transparent');
     ctx.beginPath();
     ctx.arc(cx, cy, r*3.5, 0, Math.PI*2);
@@ -66,14 +66,14 @@
     // Cercle tête
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI*2);
-    ctx.strokeStyle = `rgba(125,211,252,${glowOpacity*0.9})`;
+    ctx.strokeStyle = `rgba(139,127,240,${glowOpacity*0.9})`;
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
     // Remplissage léger
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI*2);
-    ctx.fillStyle = `rgba(14,165,233,${glowOpacity*0.07})`;
+    ctx.fillStyle = `rgba(139,127,240,${glowOpacity*0.07})`;
     ctx.fill();
 
     // Yeux
@@ -81,7 +81,7 @@
     const eyeY = cy - r * 0.25;
     ctx.beginPath();
     ctx.arc(cx - r*0.28, eyeY, eyeR, 0, Math.PI*2);
-    ctx.fillStyle = `rgba(125,211,252,${glowOpacity})`;
+    ctx.fillStyle = `rgba(139,127,240,${glowOpacity})`;
     ctx.fill();
     ctx.beginPath();
     ctx.arc(cx + r*0.28, eyeY, eyeR, 0, Math.PI*2);
@@ -90,7 +90,7 @@
     // Sourire
     ctx.beginPath();
     ctx.arc(cx, cy + r*0.05, r*0.45, 0.2, Math.PI - 0.2);
-    ctx.strokeStyle = `rgba(125,211,252,${glowOpacity})`;
+    ctx.strokeStyle = `rgba(139,127,240,${glowOpacity})`;
     ctx.lineWidth = 1.5;
     ctx.lineCap = 'round';
     ctx.stroke();
@@ -118,24 +118,25 @@
       };
     }
 
-    // Dessiner les connexions entre points
+    // Dessiner les connexions entre points (mix violet/or)
     for(let i=0;i<pts.length;i++){
       for(let j=i+1;j<pts.length;j++){
         const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y;
         const d=Math.sqrt(dx*dx+dy*dy);
         if(d<130){
           const a=(1-d/130)*0.18;
+          const useViolet = (i + j) % 3 !== 0;
           ctx.beginPath();
           ctx.moveTo(pts[i].x, pts[i].y);
           ctx.lineTo(pts[j].x, pts[j].y);
-          ctx.strokeStyle=`rgba(125,211,252,${a})`;
+          ctx.strokeStyle= useViolet ? `rgba(139,127,240,${a})` : `rgba(240,208,120,${a})`;
           ctx.lineWidth=0.7;
           ctx.stroke();
         }
       }
     }
 
-    // Connexions entre smileys et points proches
+    // Connexions entre smileys et points proches (violet)
     for(let s of smileys){
       for(let p of pts){
         const dx=s.x-p.x, dy=s.y-p.y;
@@ -145,27 +146,29 @@
           ctx.beginPath();
           ctx.moveTo(s.x,s.y);
           ctx.lineTo(p.x,p.y);
-          ctx.strokeStyle=`rgba(56,189,248,${a})`;
+          ctx.strokeStyle=`rgba(139,127,240,${a})`;
           ctx.lineWidth=0.6;
           ctx.stroke();
         }
       }
     }
 
-    // Dessiner les points
-    for(let p of pts){
+    // Dessiner les points (mix violet/or)
+    for(let i=0;i<pts.length;i++){
+      const p = pts[i];
       p.x+=p.vx; p.y+=p.vy;
       if(p.x<0)p.x=W; if(p.x>W)p.x=0;
       if(p.y<0)p.y=H; if(p.y>H)p.y=0;
 
+      const useViolet = i % 2 !== 0;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-      ctx.fillStyle='rgba(125,211,252,0.55)';
+      ctx.fillStyle= useViolet ? 'rgba(139,127,240,0.65)' : 'rgba(240,208,120,0.55)';
       ctx.fill();
 
       // Micro-glow
       const gg=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*5);
-      gg.addColorStop(0,'rgba(125,211,252,0.12)');
+      gg.addColorStop(0, useViolet ? 'rgba(139,127,240,0.15)' : 'rgba(240,208,120,0.12)');
       gg.addColorStop(1,'transparent');
       ctx.beginPath();
       ctx.arc(p.x,p.y,p.r*5,0,Math.PI*2);

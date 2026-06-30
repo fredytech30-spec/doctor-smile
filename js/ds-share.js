@@ -50,11 +50,11 @@ window.DS_SHARE = {
         url:'https://twitter.com/intent/tweet?text=' + encodeURIComponent(titre + ' — ' + texte) + '&url=' + encodeURIComponent(url) },
       { id:'facebook', label:'Facebook',    icon:'fa-facebook',  brand:true,  color:'#1877F2',
         url:'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url) + '&quote=' + encodeURIComponent(texte) },
-      { id:'email',    label:'Email',        icon:'fa-envelope',  brand:false, color:'#7DD3FC',
+      { id:'email',    label:'Email',        icon:'fa-envelope',  brand:false, color:'#8B7FF0',
         url:'mailto:?subject=' + encodeURIComponent(titre) + '&body=' + encodeURIComponent(texte + '\n\n' + url) },
       { id:'slack',    label:'Slack',        icon:'fa-slack',     brand:true,  color:'#E01E5A',
         url:'https://slack.com/intl/share?text=' + encodeURIComponent(titre + '\n' + texte) },
-      { id:'copy',     label:'Copier lien',  icon:'fa-link',      brand:false, color:'#a78bfa', url:null },
+      { id:'copy',     label:'Copier lien',  icon:'fa-link',      brand:false, color:'#8B7FF0', url:null },
     ];
 
     const fname = 'rapport-' + (a.entreprise ?? 'analyse').replace(/\s+/g,'-').toLowerCase() + '.html';
@@ -64,7 +64,7 @@ window.DS_SHARE = {
     modal.style.cssText = 'position:fixed;inset:0;z-index:99990;display:flex;align-items:center;'
       + 'justify-content:center;background:rgba(0,0,0,.82);backdrop-filter:blur(16px);padding:16px;';
 
-    modal.innerHTML = '<div id="_share_box" style="background:rgba(6,10,20,.99);border:1px solid rgba(125,211,252,.15);'
+    modal.innerHTML = '<div id="_share_box" style="background:rgba(6,10,20,.99);border:1px solid rgba(139,127,240,.15);'
       + 'border-radius:20px;padding:26px;max-width:500px;width:100%;'
       + 'animation:mIn .24s cubic-bezier(.16,1,.3,1);max-height:92vh;overflow-y:auto;">'
 
@@ -72,7 +72,7 @@ window.DS_SHARE = {
       + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">'
       + '<div>'
       + '<div style="font-family:Syne,sans-serif;font-size:15px;font-weight:900;color:#fff;margin-bottom:6px;">'
-      + '<i class="fa-solid fa-share-nodes" style="color:#7DD3FC;margin-right:9px;"></i>Partager le rapport</div>'
+      + '<i class="fa-solid fa-share-nodes" style="color:#8B7FF0;margin-right:9px;"></i>Partager le rapport</div>'
       + '<div style="font-size:10px;color:rgba(255,255,255,.38);">'
       + '<span style="background:' + zc.bg + ';color:' + zc.t + ';border:1px solid ' + zc.s + '44;padding:2px 9px;border-radius:6px;font-family:Syne,sans-serif;font-size:8px;font-weight:800;margin-right:8px;">' + zc.l + '</span>'
       + escHtml(a.entreprise ?? 'Analyse') + ' · Score <strong style="color:' + zc.s + '">' + score + '</strong>/100'
@@ -225,13 +225,13 @@ window.DS_SHARE = {
     btn.id = '_share_score_btn';
     btn.title = 'Partager ce rapport';
     btn.style.cssText = 'position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:9px;'
-      + 'background:rgba(125,211,252,.1);border:1px solid rgba(125,211,252,.2);color:#7DD3FC;'
+      + 'background:rgba(139,127,240,.1);border:1px solid rgba(139,127,240,.2);color:#8B7FF0;'
       + 'display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;'
       + 'transition:all .18s var(--spring);z-index:2;';
     btn.innerHTML = '<i class="fa-solid fa-share-nodes"></i>';
     btn.addEventListener('click', () => window.DS_SHARE.open());
-    btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(125,211,252,.22)'; btn.style.transform = 'scale(1.1)'; });
-    btn.addEventListener('mouseleave', () => { btn.style.background = 'rgba(125,211,252,.1)';  btn.style.transform = 'none'; });
+    btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(139,127,240,.22)'; btn.style.transform = 'scale(1.1)'; });
+    btn.addEventListener('mouseleave', () => { btn.style.background = 'rgba(139,127,240,.1)';  btn.style.transform = 'none'; });
     hero.appendChild(btn);
   },
 

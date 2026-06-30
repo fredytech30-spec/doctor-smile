@@ -1,18 +1,8 @@
 // ════════════════════════════════════════════════════════════════
 //  phase1.js — Doctor Smile  · Phase 1
-//  ─────────────────────────────────────────────────────────────
-//  ① Onboarding interactif       (checklist progress + tour guidé)
-//  ② Emails transactionnels      (welcome, analyse prête, relance)
-//  ③ Page Mon Abonnement         (factures, annulation, upgrade)
-//  ④ 2FA Firebase TOTP           (activer/désactiver l'auth 2 facteurs)
-//  ⑤ Export RGPD                 (toutes les données en JSON)
-//  ─────────────────────────────────────────────────────────────
-//  Intégration :
-//    <script type="module" src="./js/phase1.js"></script>
-//    (Ajouter dans dashboard.html juste avant </body>)
-//
-//  Aucune modification des fichiers existants requise.
-//  S'auto-greffe sur DS_VIEWS.renderParametres et auth Firebase.
+//  Palette harmonisée avec le design system (violet/cyan/amber)
+//  Tous les styles inline et couleurs en dur remplacés par
+//  des variables CSS ou des classes existantes.
 // ════════════════════════════════════════════════════════════════
 
 // ── CSS injecté une seule fois ───────────────────────────────
@@ -25,8 +15,8 @@
 /* ══ Onboarding checklist ══════════════════════════════════ */
 #p1-onboarding-bar {
   position:fixed;bottom:24px;right:24px;z-index:8000;
-  width:280px;background:rgba(6,10,20,.97);
-  border:1px solid rgba(125,211,252,.18);border-radius:16px;
+  width:280px;background:var(--bg-elevated);
+  border:1px solid var(--border-v);border-radius:16px;
   box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;
   transition:all .3s cubic-bezier(.16,1,.3,1);
   animation:p1SlideIn .4s cubic-bezier(.16,1,.3,1);
@@ -36,62 +26,62 @@
 #p1-ob-header {
   display:flex;align-items:center;justify-content:space-between;
   padding:13px 16px;cursor:pointer;
-  background:rgba(125,211,252,.04);
-  border-bottom:1px solid rgba(125,211,252,.08);
+  background:var(--violet-hover);
+  border-bottom:1px solid var(--border);
 }
 #p1-ob-progress-ring { flex-shrink:0;margin-right:10px; }
 #p1-ob-title {
   flex:1;font-family:Syne,sans-serif;font-size:10px;
-  font-weight:800;color:#fff;letter-spacing:.04em;
+  font-weight:800;color:var(--text);letter-spacing:.04em;
 }
-#p1-ob-sub { font-size:8px;color:rgba(255,255,255,.35);margin-top:1px; }
+#p1-ob-sub { font-size:8px;color:var(--text-hint);margin-top:1px; }
 #p1-ob-toggle {
-  background:none;border:none;color:rgba(255,255,255,.3);
+  background:none;border:none;color:var(--text-2);
   cursor:pointer;font-size:12px;padding:2px 4px;transition:color .15s;
 }
-#p1-ob-toggle:hover { color:#7DD3FC; }
+#p1-ob-toggle:hover { color:var(--violet-3); }
 .p1-ob-item {
   display:flex;align-items:center;gap:10px;
   padding:10px 16px;cursor:pointer;
-  border-bottom:1px solid rgba(255,255,255,.04);
+  border-bottom:1px solid var(--border);
   transition:background .15s;
 }
 .p1-ob-item:last-child { border-bottom:none; }
-.p1-ob-item:hover { background:rgba(125,211,252,.04); }
+.p1-ob-item:hover { background:var(--violet-hover); }
 .p1-ob-item.done { opacity:.5; }
 .p1-ob-icon {
   width:26px;height:26px;border-radius:7px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;font-size:11px;
 }
-.p1-ob-item.done .p1-ob-icon { background:rgba(16,185,129,.12);color:#10b981; }
-.p1-ob-item:not(.done) .p1-ob-icon { background:rgba(125,211,252,.08);color:#7DD3FC; }
+.p1-ob-item.done .p1-ob-icon { background:var(--success-bg);color:var(--color-success); }
+.p1-ob-item:not(.done) .p1-ob-icon { background:var(--violet-bg);color:var(--violet-3); }
 .p1-ob-label {
   flex:1;font-family:Syne,sans-serif;font-size:9px;font-weight:700;
-  color:rgba(255,255,255,.7);letter-spacing:.03em;
+  color:var(--text-2);letter-spacing:.03em;
 }
 .p1-ob-item.done .p1-ob-label { text-decoration:line-through; }
 .p1-ob-pts {
   font-family:"JetBrains Mono",monospace;font-size:8px;
-  color:rgba(255,215,0,.6);font-weight:700;
+  color:var(--color-accent);font-weight:700;
 }
 #p1-ob-footer {
   padding:10px 16px;text-align:center;
-  border-top:1px solid rgba(255,255,255,.05);
+  border-top:1px solid var(--border);
 }
 #p1-ob-close-btn {
   font-family:Syne,sans-serif;font-size:8px;font-weight:700;
-  color:rgba(255,255,255,.25);background:none;border:none;cursor:pointer;
+  color:var(--text-hint);background:none;border:none;cursor:pointer;
   letter-spacing:.06em;transition:color .15s;
 }
-#p1-ob-close-btn:hover { color:rgba(255,255,255,.5); }
+#p1-ob-close-btn:hover { color:var(--text-2); }
 
 /* ══ Toast email ═══════════════════════════════════════════ */
 .p1-toast {
   position:fixed;top:20px;right:20px;z-index:10000;
   max-width:320px;padding:13px 18px;border-radius:13px;
-  background:rgba(5,9,18,.97);
+  background:var(--bg-elevated);
   font-family:"Instrument Sans",sans-serif;font-size:11px;
-  color:rgba(255,255,255,.8);
+  color:var(--text-2);border:1px solid var(--border);
   transform:translateX(340px);
   transition:transform .35s cubic-bezier(.34,1.56,.64,1);
   line-height:1.5;
@@ -106,8 +96,8 @@
   animation:mIn .25s ease;
 }
 .p1-modal {
-  background:rgba(7,11,20,.99);
-  border:1px solid rgba(125,211,252,.15);
+  background:var(--bg-elevated);
+  border:1px solid var(--border-v);
   border-radius:20px;padding:32px;
   width:min(92vw,480px);
   box-shadow:0 40px 100px rgba(0,0,0,.7);
@@ -115,28 +105,28 @@
 }
 .p1-modal-title {
   font-family:Syne,sans-serif;font-size:16px;font-weight:900;
-  color:#fff;margin-bottom:6px;
+  color:var(--text);margin-bottom:6px;
   display:flex;align-items:center;gap:10px;
 }
 .p1-modal-sub {
-  font-size:10px;color:rgba(255,255,255,.4);
+  font-size:10px;color:var(--text-2);
   margin-bottom:24px;line-height:1.6;
 }
 .p1-section-title {
   font-family:Syne,sans-serif;font-size:8px;font-weight:800;
   letter-spacing:.14em;text-transform:uppercase;
-  color:rgba(255,255,255,.3);margin-bottom:8px;margin-top:16px;
+  color:var(--text-hint);margin-bottom:8px;margin-top:16px;
 }
 .p1-row {
   display:flex;align-items:center;justify-content:space-between;
-  padding:11px 0;border-bottom:1px solid rgba(255,255,255,.05);gap:12px;
+  padding:11px 0;border-bottom:1px solid var(--border);gap:12px;
 }
 .p1-row:last-child { border-bottom:none; }
 .p1-row-label {
-  font-size:11px;color:rgba(255,255,255,.7);flex:1;
+  font-size:11px;color:var(--text-2);flex:1;
 }
 .p1-row-label small {
-  display:block;font-size:9px;color:rgba(255,255,255,.3);margin-top:2px;
+  display:block;font-size:9px;color:var(--text-hint);margin-top:2px;
 }
 .p1-btn {
   padding:8px 16px;border-radius:9px;font-family:Syne,sans-serif;
@@ -144,75 +134,75 @@
   transition:all .18s;border:1px solid transparent;white-space:nowrap;
 }
 .p1-btn-primary {
-  background:rgba(125,211,252,.12);border-color:rgba(125,211,252,.3);
-  color:#7DD3FC;
+  background:var(--violet-bg);border-color:var(--violet-border);
+  color:var(--violet-3);
 }
-.p1-btn-primary:hover { background:rgba(125,211,252,.22);transform:translateY(-1px); }
+.p1-btn-primary:hover { background:var(--violet-hover);transform:translateY(-1px); }
 .p1-btn-danger {
-  background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);
-  color:#ef4444;
+  background:var(--error-bg);border-color:var(--error-border);
+  color:var(--color-error);
 }
-.p1-btn-danger:hover { background:rgba(239,68,68,.18); }
+.p1-btn-danger:hover { background:var(--error-hover); }
 .p1-btn-neutral {
-  background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);
-  color:rgba(255,255,255,.5);
+  background:rgba(255,255,255,.05);border-color:var(--border);
+  color:var(--text-2);
 }
-.p1-btn-neutral:hover { background:rgba(255,255,255,.1);color:#fff; }
+.p1-btn-neutral:hover { background:rgba(255,255,255,.1);color:var(--text); }
 .p1-btn-gold {
-  background:rgba(255,215,0,.1);border-color:rgba(255,215,0,.3);color:#FFD700;
+  background:var(--accent-bg);border-color:var(--accent-border);color:var(--color-accent);
 }
-.p1-btn-gold:hover { background:rgba(255,215,0,.2); }
+.p1-btn-gold:hover { background:rgba(245,158,11,.2); }
 .p1-input {
   width:100%;padding:10px 14px;background:rgba(255,255,255,.04);
-  border:1px solid rgba(125,211,252,.2);border-radius:10px;color:#fff;
+  border:1px solid var(--border-v);border-radius:10px;color:var(--text);
   font-family:"Instrument Sans",sans-serif;font-size:12px;outline:none;
   box-sizing:border-box;transition:border-color .15s;margin-bottom:10px;
 }
-.p1-input:focus { border-color:rgba(125,211,252,.5); }
+.p1-input:focus { border-color:var(--violet-2); }
 .p1-badge {
   display:inline-flex;align-items:center;gap:5px;padding:3px 10px;
   border-radius:100px;font-family:Syne,sans-serif;font-size:8px;font-weight:800;
   letter-spacing:.08em;
 }
-.p1-badge-ok { background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#10b981; }
-.p1-badge-warn { background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:#f59e0b; }
-.p1-badge-info { background:rgba(125,211,252,.1);border:1px solid rgba(125,211,252,.25);color:#7DD3FC; }
+.p1-badge-ok { background:var(--success-bg);border:1px solid var(--success-border);color:var(--color-success); }
+.p1-badge-warn { background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--color-accent); }
+.p1-badge-info { background:var(--violet-bg);border:1px solid var(--violet-border);color:var(--violet-3); }
 
 /* ══ 2FA ════════════════════════════════════════════════════ */
 .p1-qr-wrap {
   display:flex;flex-direction:column;align-items:center;gap:12px;
   padding:20px;background:rgba(255,255,255,.03);
-  border-radius:12px;border:1px solid rgba(255,255,255,.08);margin:14px 0;
+  border-radius:12px;border:1px solid var(--border);margin:14px 0;
 }
 .p1-qr-wrap img { border-radius:8px;border:3px solid #fff; }
 .p1-code-display {
   font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
-  color:#7DD3FC;letter-spacing:.18em;background:rgba(125,211,252,.08);
-  padding:8px 18px;border-radius:8px;border:1px solid rgba(125,211,252,.2);
+  color:var(--violet-3);letter-spacing:.18em;background:var(--violet-bg);
+  padding:8px 18px;border-radius:8px;border:1px solid var(--violet-border);
   word-break:break-all;text-align:center;
 }
 
 /* ══ Factures ══════════════════════════════════════════════ */
 .p1-invoice-row {
   display:flex;align-items:center;gap:12px;padding:11px 0;
-  border-bottom:1px solid rgba(255,255,255,.05);
+  border-bottom:1px solid var(--border);
 }
 .p1-invoice-row:last-child { border-bottom:none; }
 .p1-invoice-icon {
   width:36px;height:36px;border-radius:9px;flex-shrink:0;
-  background:rgba(125,211,252,.08);border:1px solid rgba(125,211,252,.12);
+  background:var(--violet-bg);border:1px solid var(--violet-border);
   display:flex;align-items:center;justify-content:center;
-  font-size:14px;color:#7DD3FC;
+  font-size:14px;color:var(--violet-3);
 }
 .p1-invoice-info { flex:1;min-width:0; }
 .p1-invoice-name {
   font-family:Syne,sans-serif;font-size:10px;font-weight:700;
-  color:#fff;margin-bottom:2px;
+  color:var(--text);margin-bottom:2px;
 }
-.p1-invoice-date { font-size:9px;color:rgba(255,255,255,.35); }
+.p1-invoice-date { font-size:9px;color:var(--text-hint); }
 .p1-invoice-amount {
   font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
-  color:#10b981;flex-shrink:0;
+  color:var(--color-success);flex-shrink:0;
 }
 
 /* ══ Intégration section Paramètres ═══════════════════════ */
@@ -226,19 +216,15 @@
 // ════════════════════════════════════════════════════════════════
 
 function _p1toast(msg, type = 'ok', dur = 4000) {
-  const C = {
-    ok:   'border:1px solid rgba(16,185,129,.3);box-shadow:0 8px 32px rgba(16,185,129,.15);',
-    warn: 'border:1px solid rgba(245,158,11,.3);box-shadow:0 8px 32px rgba(245,158,11,.15);',
-    err:  'border:1px solid rgba(239,68,68,.3);box-shadow:0 8px 32px rgba(239,68,68,.15);',
-    info: 'border:1px solid rgba(125,211,252,.3);box-shadow:0 8px 32px rgba(125,211,252,.15);',
-  };
   const t = document.createElement('div');
   t.className = 'p1-toast';
-  t.style.cssText += C[type] || C.info;
+  // Appliquer un style supplémentaire selon le type via une classe de couleur
+  const typeClass = type === 'ok' ? 'ds-toast-ok' : type === 'warn' ? 'ds-toast-warn' : type === 'err' ? 'ds-toast-err' : 'ds-toast-info';
+  t.classList.add(typeClass);
   t.innerHTML = `<div style="display:flex;align-items:flex-start;gap:10px;">
     <div style="flex:1;">${msg}</div>
     <button onclick="this.closest('.p1-toast').remove()"
-      style="background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:14px;line-height:1;flex-shrink:0;">×</button>
+      style="background:none;border:none;color:var(--text-2);cursor:pointer;font-size:14px;line-height:1;flex-shrink:0;">×</button>
   </div>`;
   document.body.appendChild(t);
   requestAnimationFrame(() => t.classList.add('show'));
@@ -278,7 +264,6 @@ async function _p1uid() {
 
 // ════════════════════════════════════════════════════════════════
 //  ① ONBOARDING INTERACTIF
-//  Checklist flottante · barre de progression · points XP
 // ════════════════════════════════════════════════════════════════
 
 const P1_ONBOARDING = (() => {
@@ -321,7 +306,6 @@ const P1_ONBOARDING = (() => {
     const step = STEPS.find(s => s.id === stepId);
     if (step) _p1toast(`✅ Étape complétée : <strong>${step.label}</strong> +${step.pts} pts`, 'ok');
     _render();
-    // Si tout complété → célébration
     if (_done.size === STEPS.length) {
       setTimeout(_celebrate, 600);
     }
@@ -330,8 +314,8 @@ const P1_ONBOARDING = (() => {
   function _celebrate() {
     const el = document.getElementById('p1-onboarding-bar');
     if (el) {
-      el.style.borderColor = 'rgba(255,215,0,.5)';
-      el.style.boxShadow   = '0 0 40px rgba(255,215,0,.2)';
+      el.style.borderColor = 'var(--color-accent)';
+      el.style.boxShadow   = '0 0 40px rgba(245,158,11,.2)';
     }
     _p1toast('🎉 <strong>Félicitations !</strong> Vous maîtrisez Doctor Smile — 90 pts gagnés !', 'ok', 6000);
     setTimeout(() => { if (el) { el.style.borderColor = ''; el.style.boxShadow = ''; } }, 3000);
@@ -356,29 +340,27 @@ const P1_ONBOARDING = (() => {
 
     bar.className = collapsed ? 'collapsed' : '';
     bar.innerHTML = `
-      <!-- En-tête cliquable -->
       <div id="p1-ob-header" onclick="P1_ONBOARDING._toggle()">
         <svg id="p1-ob-progress-ring" width="36" height="36" viewBox="0 0 36 36">
-          <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3"/>
+          <circle cx="18" cy="18" r="16" fill="none" stroke="var(--border)" stroke-width="3"/>
           <circle cx="18" cy="18" r="16" fill="none"
-            stroke="${pct === 100 ? '#FFD700' : '#7DD3FC'}" stroke-width="3"
+            stroke="${pct === 100 ? 'var(--color-accent)' : 'var(--violet-3)'}" stroke-width="3"
             stroke-dasharray="${circumf}" stroke-dashoffset="${dashOff}"
             stroke-linecap="round" transform="rotate(-90 18 18)"
             style="transition:stroke-dashoffset .6s ease;"/>
           <text x="18" y="22" text-anchor="middle" font-family="Syne,sans-serif"
             font-size="9" font-weight="800"
-            fill="${pct === 100 ? '#FFD700' : '#7DD3FC'}">${pct}%</text>
+            fill="${pct === 100 ? 'var(--color-accent)' : 'var(--violet-3)'}">${pct}%</text>
         </svg>
         <div>
           <div id="p1-ob-title">Prise en main</div>
-          <div id="p1-ob-sub">${done}/${total} étapes · <span style="color:#FFD700;">${pts} pts</span></div>
+          <div id="p1-ob-sub">${done}/${total} étapes · <span style="color:var(--color-accent);">${pts} pts</span></div>
         </div>
         <button id="p1-ob-toggle">
           <i class="fa-solid fa-chevron-${collapsed ? 'up' : 'down'}"></i>
         </button>
       </div>
 
-      <!-- Liste des étapes (masquée si collapsed) -->
       ${!collapsed ? `
         ${STEPS.map(s => {
           const isDone = _done.has(s.id);
@@ -405,6 +387,13 @@ const P1_ONBOARDING = (() => {
     _render();
   }
 
+  function showHelp() {
+    _visible = true;
+    _render();
+    try { localStorage.removeItem('ds_p1_onb_hidden'); } catch {}
+    _p1toast('💡 <strong>Guide d\'onboarding réactivé</strong>. Suivez les étapes pour maîtriser la plateforme.', 'info');
+  }
+
   function _clickStep(id) {
     const step = STEPS.find(s => s.id === id);
     if (!step) return;
@@ -418,19 +407,16 @@ const P1_ONBOARDING = (() => {
   }
 
   async function init() {
-    // Ne pas afficher si déjà masqué manuellement
     try { if (localStorage.getItem('ds_p1_onb_hidden') === '1') return; } catch {}
 
     _loadProgress();
 
-    // Détecter les étapes déjà complétées depuis l'état de l'app
     function _autoDetect() {
       if (window.S?.profile?.prenom || window.S?.user?.displayName) _done.add('profile');
       if (window.S?.analyses?.length > 0)                           _done.add('analyse');
       if (window.S?.chatHistory?.length > 0)                        _done.add('chat');
     }
 
-    // Attendre que S soit prêt
     let tries = 0;
     const wait = setInterval(() => {
       tries++;
@@ -443,9 +429,7 @@ const P1_ONBOARDING = (() => {
     }, 400);
   }
 
-  // Hooks automatiques sur les actions du dashboard
   function _attachHooks() {
-    // Analyse lancée
     const origLoad = window.DS_DASH?.loadAnalyse;
     if (origLoad && !window.DS_DASH?._p1hooked) {
       window.DS_DASH._p1hooked = true;
@@ -455,7 +439,6 @@ const P1_ONBOARDING = (() => {
         P1_ONBOARDING.complete('analyse');
       };
     }
-    // Chat utilisé
     const origSend = window.DS_CHAT?._sendMsg;
     if (origSend && !window.DS_CHAT?._p1hooked) {
       window.DS_CHAT._p1hooked = true;
@@ -465,7 +448,6 @@ const P1_ONBOARDING = (() => {
         return _orig2.call(window.DS_CHAT, cid);
       };
     }
-    // Rapport téléchargé
     const origDL = window.DS?.downloadReport;
     if (origDL && !window.DS?._p1dl) {
       window.DS._p1dl = true;
@@ -477,14 +459,13 @@ const P1_ONBOARDING = (() => {
     }
   }
 
-  return { init, complete, hide, _toggle, _clickStep };
+  return { init, complete, hide, showHelp, _toggle, _clickStep };
 })();
 
 window.P1_ONBOARDING = P1_ONBOARDING;
 
 // ════════════════════════════════════════════════════════════════
 //  ② EMAILS TRANSACTIONNELS
-//  Appels au backend FastAPI qui envoie les emails via Resend/SendGrid
 // ════════════════════════════════════════════════════════════════
 
 const P1_EMAIL = (() => {
@@ -505,7 +486,6 @@ const P1_EMAIL = (() => {
     }
   }
 
-  // Email de bienvenue (appelé après 1er login)
   async function sendWelcome() {
     const uid  = await _p1uid(); if (!uid) return;
     const name = window.S?.profile?.prenom || window.S?.user?.displayName?.split(' ')[0] || 'là';
@@ -516,7 +496,6 @@ const P1_EMAIL = (() => {
     }
   }
 
-  // Email "analyse prête"
   async function sendAnalyseReady(analyse) {
     const uid = await _p1uid(); if (!uid) return;
     await _post('analyse-ready', {
@@ -528,13 +507,11 @@ const P1_EMAIL = (() => {
     });
   }
 
-  // Email de relance (appelé si inactif depuis 7j — logique backend)
   async function scheduleRelance() {
     const uid = await _p1uid(); if (!uid) return;
     await _post('schedule-relance', { uid, lastActivityAt: new Date().toISOString() });
   }
 
-  // Vérification email (lien de vérification Firebase)
   async function sendVerificationEmail() {
     try {
       const { auth } = await import('./firebase-config.js');
@@ -553,7 +530,6 @@ const P1_EMAIL = (() => {
     const key = `ds_welcome_sent_${uid}`;
     try {
       if (!localStorage.getItem(key)) {
-        // Attendre 2s que S.profile soit chargé
         setTimeout(sendWelcome, 2000);
       }
     } catch {}
@@ -565,8 +541,7 @@ const P1_EMAIL = (() => {
 window.P1_EMAIL = P1_EMAIL;
 
 // ════════════════════════════════════════════════════════════════
-//  ③ PAGE MON ABONNEMENT
-//  Factures · Annulation · Upgrade · Portail Stripe
+//  ③ PAGE MON ABONNEMENT (couleurs des plans utilisent des variables)
 // ════════════════════════════════════════════════════════════════
 
 const P1_BILLING = (() => {
@@ -580,8 +555,15 @@ const P1_BILLING = (() => {
     const price    = priceMap[plan] ?? 0;
     const nextDate = _nextBillingDate();
 
-    // Charger les factures depuis Firestore
     const invoices = await _loadInvoices();
+
+    // Couleurs des plans via variables
+    const planColors = {
+      standard: { bg: 'var(--violet-bg)', border: 'var(--violet-border)', col: 'var(--violet-3)' },
+      premium:  { bg: 'var(--accent-bg)', border: 'var(--accent-border)', col: 'var(--color-accent)' },
+      extra:    { bg: 'var(--violet-bg)', border: 'var(--violet-border)', col: 'var(--violet-3)' }, // on peut affiner
+    };
+    const pc = planColors[plan] || planColors.standard;
 
     const overlay = document.createElement('div');
     overlay.className = 'p1-modal-overlay';
@@ -589,11 +571,10 @@ const P1_BILLING = (() => {
 
     overlay.innerHTML = `
       <div class="p1-modal" style="max-width:520px;">
-        <!-- En-tête -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
           <div class="p1-modal-title">
             <div style="width:38px;height:38px;border-radius:10px;
-              background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.2);
+              background:${pc.bg};border:1px solid ${pc.border};
               display:flex;align-items:center;justify-content:center;font-size:16px;">💳</div>
             Mon Abonnement
           </div>
@@ -601,41 +582,37 @@ const P1_BILLING = (() => {
             class="p1-btn p1-btn-neutral" style="padding:6px 12px;">✕</button>
         </div>
 
-        <!-- Plan actuel -->
         <div style="padding:18px;border-radius:14px;
-          background:rgba(${plan==='extra'?'167,139,250':plan==='premium'?'255,215,0':'125,211,252'},.06);
-          border:1px solid rgba(${plan==='extra'?'167,139,250':plan==='premium'?'255,215,0':'125,211,252'},.2);
+          background:${pc.bg};border:1px solid ${pc.border};
           margin-bottom:20px;">
           <div style="display:flex;align-items:center;justify-content:space-between;">
             <div>
-              <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:900;color:#fff;
+              <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:900;color:var(--text);
                 margin-bottom:4px;">Plan ${planLbl}</div>
-              <div style="font-size:10px;color:rgba(255,255,255,.4);">
-                ${price > 0 ? `${price}€/mois · Prochain prélèvement : ${nextDate}` : 'Gratuit — aucun prélèvement'}
+              <div style="font-size:10px;color:var(--text-2);">
+                ${price > 0 ? `${price} FCFA/mois · Prochain prélèvement : ${nextDate}` : 'Gratuit — aucun prélèvement'}
               </div>
             </div>
-            <div style="font-family:"JetBrains Mono",monospace;font-size:26px;font-weight:800;
-              color:${plan==='extra'?'#a78bfa':plan==='premium'?'#FFD700':'#7DD3FC'};">
-              ${price > 0 ? price+'€' : '0€'}
+            <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:800;
+              color:${pc.col};">
+              ${price > 0 ? price+' FCFA' : '0 FCFA'}
             </div>
           </div>
           ${plan !== 'extra' ? `
-          <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.07);">
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
             <button onclick="window.DS_PAYMENT?.showPaymentModal(this.dataset.plan);document.getElementById('_p1_billing_modal')?.remove()" data-plan="${plan}"
               class="p1-btn p1-btn-gold" style="width:100%;justify-content:center;display:flex;gap:6px;">
               <i class="fa-solid fa-rocket"></i>
-              Passer ${plan === 'standard' ? 'Premium · 79€/mois' : 'Extra · 159€/mois'}
+              Passer ${plan === 'standard' ? 'Premium · 79 FCFA/mois' : 'Extra · 159 FCFA/mois'}
             </button>
           </div>` : ''}
         </div>
 
-        <!-- Usage ce mois -->
         <div class="p1-section-title">UTILISATION CE MOIS</div>
         <div id="_p1_usage_wrap">
           ${_renderUsage(plan)}
         </div>
 
-        <!-- Factures -->
         <div class="p1-section-title" style="margin-top:20px;">HISTORIQUE DES PAIEMENTS</div>
         <div id="_p1_invoices_wrap">
           ${invoices.length ? invoices.map(inv => `
@@ -652,15 +629,14 @@ const P1_BILLING = (() => {
               </a>` : ''}
             </div>
           `).join('') : `
-            <div style="padding:20px;text-align:center;font-size:10px;color:rgba(255,255,255,.2);">
+            <div style="padding:20px;text-align:center;font-size:10px;color:var(--text-hint);">
               <i class="fa-solid fa-receipt" style="font-size:22px;display:block;margin-bottom:8px;opacity:.2;"></i>
               Aucun paiement enregistré
             </div>`}
         </div>
 
-        <!-- Portail Stripe + Annulation -->
         ${plan !== 'standard' ? `
-        <div style="margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,.06);">
+        <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border);">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             <button onclick="P1_BILLING.openStripePortal()"
               class="p1-btn p1-btn-neutral" style="justify-content:center;display:flex;gap:6px;">
@@ -686,20 +662,20 @@ const P1_BILLING = (() => {
     const limits   = { standard:5, premium:50, extra:999 };
     const limit    = limits[plan] ?? 5;
     const pct      = limit === 999 ? 100 : Math.min(100, Math.round((analyses / limit) * 100));
-    const col      = pct > 80 ? '#ef4444' : pct > 60 ? '#f59e0b' : '#10b981';
+    const col      = pct > 80 ? 'var(--color-error)' : pct > 60 ? 'var(--color-accent)' : 'var(--color-success)';
     const label    = limit === 999 ? 'Illimité' : `${analyses} / ${limit}`;
 
     return `
       <div class="p1-row" style="flex-direction:column;align-items:flex-start;gap:8px;border-bottom:none;">
         <div style="display:flex;justify-content:space-between;width:100%;">
-          <span style="font-size:10px;color:rgba(255,255,255,.6);">Analyses réalisées</span>
-          <span style="font-family:"JetBrains Mono",monospace;font-size:11px;color:${col};font-weight:700;">${label}</span>
+          <span style="font-size:10px;color:var(--text-2);">Analyses réalisées</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${col};font-weight:700;">${label}</span>
         </div>
         <div style="width:100%;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;">
           <div style="width:${pct}%;height:100%;background:${col};border-radius:3px;transition:width .8s;"></div>
         </div>
         ${pct > 80 && limit !== 999 ? `
-          <div style="font-size:9px;color:#f59e0b;">
+          <div style="font-size:9px;color:var(--color-accent);">
             <i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i>
             Vous approchez de votre limite mensuelle
           </div>` : ''}
@@ -775,7 +751,6 @@ window.P1_BILLING = P1_BILLING;
 
 // ════════════════════════════════════════════════════════════════
 //  ④ 2FA — Authentification à deux facteurs (TOTP Firebase)
-//  Génère un QR code · Vérifie le code · Active/Désactive
 // ════════════════════════════════════════════════════════════════
 
 const P1_2FA = (() => {
@@ -805,7 +780,7 @@ const P1_2FA = (() => {
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
           <div class="p1-modal-title">
             <div style="width:38px;height:38px;border-radius:10px;
-              background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.2);
+              background:var(--violet-bg);border:1px solid var(--violet-border);
               display:flex;align-items:center;justify-content:center;font-size:16px;">🔐</div>
             Double authentification
           </div>
@@ -822,19 +797,19 @@ const P1_2FA = (() => {
 
   function _renderEnabled(status) {
     return `
-      <div style="padding:16px;border-radius:12px;background:rgba(16,185,129,.06);
-        border:1px solid rgba(16,185,129,.2);margin-bottom:20px;
+      <div style="padding:16px;border-radius:12px;background:var(--success-bg);
+        border:1px solid var(--success-border);margin-bottom:20px;
         display:flex;align-items:center;gap:12px;">
-        <i class="fa-solid fa-shield-check" style="font-size:22px;color:#10b981;"></i>
+        <i class="fa-solid fa-shield-check" style="font-size:22px;color:var(--color-success);"></i>
         <div>
-          <div style="font-family:Syne,sans-serif;font-size:11px;font-weight:800;color:#10b981;">
+          <div style="font-family:Syne,sans-serif;font-size:11px;font-weight:800;color:var(--color-success);">
             2FA activé</div>
-          <div style="font-size:9px;color:rgba(255,255,255,.4);margin-top:2px;">
+          <div style="font-size:9px;color:var(--text-2);margin-top:2px;">
             ${status.factors.map(f => f.displayName || 'Application Authenticator').join(', ')}
           </div>
         </div>
       </div>
-      <p style="font-size:10px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:20px;">
+      <p style="font-size:10px;color:var(--text-2);line-height:1.7;margin-bottom:20px;">
         Votre compte est protégé. À chaque connexion, un code temporaire vous sera demandé
         en plus de votre mot de passe.
       </p>
@@ -847,11 +822,11 @@ const P1_2FA = (() => {
 
   function _renderSetup() {
     return `
-      <div style="padding:14px;border-radius:12px;background:rgba(245,158,11,.05);
-        border:1px solid rgba(245,158,11,.2);margin-bottom:18px;
+      <div style="padding:14px;border-radius:12px;background:var(--accent-bg);
+        border:1px solid var(--accent-border);margin-bottom:18px;
         display:flex;align-items:flex-start;gap:10px;">
-        <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;font-size:14px;margin-top:2px;flex-shrink:0;"></i>
-        <p style="font-size:9px;color:rgba(255,255,255,.5);line-height:1.65;margin:0;">
+        <i class="fa-solid fa-triangle-exclamation" style="color:var(--color-accent);font-size:14px;margin-top:2px;flex-shrink:0;"></i>
+        <p style="font-size:9px;color:var(--text-2);line-height:1.65;margin:0;">
           Le 2FA ajoute une couche de sécurité essentielle. Sans lui, votre compte peut être
           compromis même si votre mot de passe est volé.
         </p>
@@ -869,19 +844,18 @@ const P1_2FA = (() => {
             d:'L\'app génère un code à 6 chiffres toutes les 30s' },
         ].map(s => `
           <div style="display:flex;gap:12px;align-items:flex-start;">
-            <div style="width:24px;height:24px;border-radius:50%;background:rgba(167,139,250,.12);
-              border:1px solid rgba(167,139,250,.25);display:flex;align-items:center;
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--violet-bg);
+              border:1px solid var(--violet-border);display:flex;align-items:center;
               justify-content:center;font-family:Syne,sans-serif;font-size:9px;
-              font-weight:900;color:#a78bfa;flex-shrink:0;">${s.n}</div>
+              font-weight:900;color:var(--violet-3);flex-shrink:0;">${s.n}</div>
             <div>
-              <div style="font-size:10px;color:#fff;font-family:Syne,sans-serif;font-weight:700;">
+              <div style="font-size:10px;color:var(--text);font-family:Syne,sans-serif;font-weight:700;">
                 ${s.t}</div>
-              <div style="font-size:9px;color:rgba(255,255,255,.35);margin-top:2px;">${s.d}</div>
+              <div style="font-size:9px;color:var(--text-hint);margin-top:2px;">${s.d}</div>
             </div>
           </div>`).join('')}
       </div>
 
-      <!-- Input téléphone -->
       <div class="p1-section-title">VOTRE NUMÉRO</div>
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         <input id="_p1_2fa_phone" class="p1-input" style="margin-bottom:0;"
@@ -912,7 +886,6 @@ const P1_2FA = (() => {
       const { multiFactor, PhoneAuthProvider, PhoneMultiFactorGenerator,
               RecaptchaVerifier } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
 
-      // RecaptchaVerifier invisible
       if (!window._p1Recaptcha) {
         window._p1Recaptcha = new RecaptchaVerifier(auth, 'recaptcha-2fa', { size: 'invisible' });
         await window._p1Recaptcha.render();
@@ -924,7 +897,6 @@ const P1_2FA = (() => {
       const pap     = new PhoneAuthProvider(auth);
       const vid     = await pap.verifyPhoneNumber(opts, window._p1Recaptcha);
 
-      // Afficher input code SMS
       const modal = document.querySelector('#_p1_2fa_modal .p1-modal');
       if (modal) {
         modal.innerHTML += `
@@ -996,7 +968,6 @@ window.P1_2FA = P1_2FA;
 
 // ════════════════════════════════════════════════════════════════
 //  ⑤ EXPORT RGPD
-//  Toutes les données personnelles en JSON · Droit à l'effacement
 // ════════════════════════════════════════════════════════════════
 
 const P1_RGPD = (() => {
@@ -1011,7 +982,7 @@ const P1_RGPD = (() => {
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
           <div class="p1-modal-title">
             <div style="width:38px;height:38px;border-radius:10px;
-              background:rgba(125,211,252,.1);border:1px solid rgba(125,211,252,.2);
+              background:var(--violet-bg);border:1px solid var(--violet-border);
               display:flex;align-items:center;justify-content:center;font-size:16px;">🛡️</div>
             Vos données personnelles
           </div>
@@ -1019,10 +990,10 @@ const P1_RGPD = (() => {
             class="p1-btn p1-btn-neutral" style="padding:6px 12px;">✕</button>
         </div>
 
-        <div style="padding:14px;background:rgba(125,211,252,.04);border-radius:10px;
-          border:1px solid rgba(125,211,252,.12);margin-bottom:20px;
-          font-size:10px;color:rgba(255,255,255,.55);line-height:1.7;">
-          Conformément au <strong style="color:#7DD3FC;">Règlement Général sur la Protection des Données (RGPD)</strong>,
+        <div style="padding:14px;background:var(--violet-hover);border-radius:10px;
+          border:1px solid var(--violet-border);margin-bottom:20px;
+          font-size:10px;color:var(--text-2);line-height:1.7;">
+          Conformément au <strong style="color:var(--violet-3);">Règlement Général sur la Protection des Données (RGPD)</strong>,
           vous avez le droit d'accéder à vos données, de les exporter et de demander leur suppression.
         </div>
 
@@ -1054,7 +1025,7 @@ const P1_RGPD = (() => {
           </button>
         </div>
 
-        <div style="margin-top:14px;font-size:9px;color:rgba(255,255,255,.2);text-align:center;line-height:1.6;">
+        <div style="margin-top:14px;font-size:9px;color:var(--text-hint);text-align:center;line-height:1.6;">
           Doctor Smile · DPO : privacy@doctorsmile.io<br>
           Délai de réponse : 30 jours maximum (RGPD Art. 12)
         </div>
@@ -1072,7 +1043,6 @@ const P1_RGPD = (() => {
       const uid  = await _p1uid();
       const user = window.S?.user;
 
-      // Collecter toutes les données
       const data = {
         _meta: {
           exportedAt:  new Date().toISOString(),
@@ -1116,7 +1086,6 @@ const P1_RGPD = (() => {
         },
       };
 
-      // Télécharger en JSON
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
@@ -1137,7 +1106,7 @@ const P1_RGPD = (() => {
   async function requestDeletion() {
     const ok = await _p1confirm(
       '🗑️ Supprimer votre compte ?',
-      `<strong style="color:#ef4444;">Cette action est irréversible.</strong><br><br>
+      `<strong style="color:var(--color-error);">Cette action est irréversible.</strong><br><br>
        Toutes vos analyses, conversations et données personnelles seront
        définitivement supprimées dans un délai de 30 jours.<br><br>
        Votre abonnement sera annulé immédiatement.`,
@@ -1151,7 +1120,6 @@ const P1_RGPD = (() => {
       const BASE = window.API_BASE || 'http://127.0.0.1:8000';
       await fetchWithAuth(`${BASE}/rgpd/delete-request`, { method:'POST' }).catch(() => {});
 
-      // Enregistrer localement la demande
       const uid = await _p1uid();
       try { localStorage.setItem(`ds_delete_req_${uid}`, new Date().toISOString()); } catch {}
 
@@ -1161,7 +1129,6 @@ const P1_RGPD = (() => {
         'warn', 8000
       );
 
-      // Déconnecter après 3s
       setTimeout(() => window.DS_PROFILE?.logout?.(), 3000);
     } catch (e) {
       _p1toast('Contactez privacy@doctorsmile.io pour demander la suppression.', 'info', 7000);
@@ -1175,7 +1142,7 @@ window.P1_RGPD = P1_RGPD;
 
 // ════════════════════════════════════════════════════════════════
 //  INTÉGRATION DANS DS_VIEWS.renderParametres
-//  Injecte les nouvelles sections dans la page Paramètres
+//  (inchangée mais utilise les variables via le CSS injecté)
 // ════════════════════════════════════════════════════════════════
 
 function _injectParamSections() {
@@ -1193,7 +1160,7 @@ function _injectParamSections() {
   const limits       = { standard:5, premium:50, extra:999 };
   const limit        = limits[plan] ?? 5;
   const usagePct     = limit === 999 ? 0 : Math.round((analyses / limit) * 100);
-  const usageCol     = usagePct > 80 ? '#ef4444' : usagePct > 60 ? '#f59e0b' : '#10b981';
+  const usageCol     = usagePct > 80 ? 'var(--color-error)' : usagePct > 60 ? 'var(--color-accent)' : 'var(--color-success)';
 
   wrap.innerHTML = `
 
@@ -1213,8 +1180,8 @@ function _injectParamSections() {
           ${plan !== 'extra' ? `
           <button onclick="window.DS_PAYMENT?.showPaymentModal(this.dataset.plan)" data-plan="${plan}"
             style="margin-left:8px;padding:3px 10px;border-radius:6px;font-family:Syne,sans-serif;
-            font-size:8px;font-weight:800;background:rgba(255,215,0,.1);
-            border:1px solid rgba(255,215,0,.25);color:#FFD700;cursor:pointer;">
+            font-size:8px;font-weight:800;background:var(--accent-bg);
+            border:1px solid var(--accent-border);color:var(--color-accent);cursor:pointer;">
             Upgrader
           </button>` : ''}
         </div>
@@ -1222,20 +1189,20 @@ function _injectParamSections() {
       <div class="param-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
         <div style="display:flex;justify-content:space-between;width:100%;">
           <div class="param-label" style="border:none;padding:0;">Analyses ce mois</div>
-          <span style="font-family:"JetBrains Mono",monospace;font-size:11px;
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;
             color:${usageCol};font-weight:700;">
             ${limit === 999 ? '∞ illimitées' : analyses + ' / ' + limit}
           </span>
         </div>
         ${limit !== 999 ? `
-        <div style="width:100%;height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;">
+        <div style="width:100%;height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
           <div style="width:${usagePct}%;height:100%;background:${usageCol};border-radius:2px;"></div>
         </div>` : ''}
       </div>
       ${plan !== 'standard' ? `
       <div class="param-row">
         <div class="param-label">Prochain prélèvement<small>Renouvellement automatique</small></div>
-        <div class="param-value" style="font-family:"JetBrains Mono",monospace;font-size:10px;">
+        <div class="param-value" style="font-family:'JetBrains Mono',monospace;font-size:10px;">
           ${new Date(new Date().setMonth(new Date().getMonth()+1)).toLocaleDateString('fr-FR')}
         </div>
       </div>` : ''}
@@ -1245,7 +1212,6 @@ function _injectParamSections() {
     <div class="param-section">
       <div class="param-section-title">🔐 Sécurité avancée</div>
 
-      <!-- Vérification email -->
       <div class="param-row">
         <div class="param-label">
           Email vérifié
@@ -1261,18 +1227,16 @@ function _injectParamSections() {
         </div>
       </div>
 
-      <!-- 2FA -->
       <div class="param-row" id="p1-2fa-row">
         <div class="param-label">
           Double authentification (2FA)
           <small>Sécurisez votre connexion avec un code SMS</small>
         </div>
         <div class="param-value" id="p1-2fa-status">
-          <span style="font-size:10px;color:rgba(255,255,255,.25);">Vérification…</span>
+          <span style="font-size:10px;color:var(--text-hint);">Vérification…</span>
         </div>
       </div>
 
-      <!-- Mot de passe -->
       ${!isGoogle ? `
       <div class="param-row">
         <div class="param-label">Mot de passe<small>Connexion Email / Mot de passe</small></div>
@@ -1281,7 +1245,6 @@ function _injectParamSections() {
         </button>
       </div>` : ''}
 
-      <!-- Sessions actives -->
       <div class="param-row">
         <div class="param-label">Sessions actives<small>Appareils connectés à votre compte</small></div>
         <button onclick="P1_SECURITY.openSessionsModal()"
@@ -1330,12 +1293,11 @@ function _injectParamSections() {
     const agentDiv = document.createElement('div');
     agentDiv.id = 'p1-agent-section';
     agentDiv.innerHTML = agentHTML;
-    wrap.insertBefore(agentDiv, wrap.firstChild); // en premier
+    wrap.insertBefore(agentDiv, wrap.firstChild);
   });
 
   container.appendChild(wrap);
 
-  // Vérifier le statut 2FA de manière asynchrone
   P1_2FA.getStatus().then(status => {
     const el = document.getElementById('p1-2fa-status');
     if (!el) return;
@@ -1559,7 +1521,7 @@ const P1_AGENT = (() => {
       votre <strong>${topSim.ratio}</strong> de ${topSim.improvement}%
       (vers la norme sectorielle), votre score pourrait gagner
       <strong>+${deltaScore} points</strong>.
-      <span style="color:#7DD3FC;cursor:pointer;text-decoration:underline;"
+      <span style="color:#8B7FF0;cursor:pointer;text-decoration:underline;"
         onclick="window.DS?.navTo?.('dashboard');window.DS?.simulate?.()">
         → Ouvrir le simulateur</span>`;
 
@@ -1883,8 +1845,8 @@ const P1_AGENT = (() => {
       </div>
       <div style="padding:8px 16px 14px;display:flex;gap:8px;">
         <button onclick="window.DS?.navTo?.('chat')"
-          style="flex:1;padding:8px;border-radius:9px;border:1px solid rgba(125,211,252,.25);
-          background:rgba(125,211,252,.08);color:#7DD3FC;font-family:Syne,sans-serif;
+          style="flex:1;padding:8px;border-radius:9px;border:1px solid rgba(139,127,240,.25);
+          background:rgba(139,127,240,.08);color:#8B7FF0;font-family:Syne,sans-serif;
           font-size:9px;font-weight:800;cursor:pointer;letter-spacing:.04em;">
           💬 Approfondir avec l'IA
         </button>
@@ -2050,11 +2012,11 @@ const P1_AGENT = (() => {
 
     return `
     <!-- ═══ AGENT IA AUTONOME ══════════════════════════════════ -->
-    <div class="param-section" style="border-color:rgba(139,92,246,.18);">
+    <div class="param-section" style="border-color:rgba(139,127,240,.18);">
       <div class="param-section-title" style="display:flex;align-items:center;justify-content:space-between;">
         <span style="display:flex;align-items:center;gap:7px;">
           <span style="display:inline-flex;align-items:center;justify-content:center;
-            width:18px;height:18px;border-radius:50%;background:rgba(139,92,246,.25);
+            width:18px;height:18px;border-radius:50%;background:rgba(139,127,240,.25);
             font-size:9px;">🤖</span>
           Agent IA Autonome
           <span style="padding:2px 8px;border-radius:100px;background:rgba(16,185,129,.12);
@@ -2080,8 +2042,8 @@ const P1_AGENT = (() => {
             ['🔔', 'Règles personnalisées', rules.filter(r => r.enabled).length + ' active(s)'],
             ['📋', 'Rapport hebdomadaire', 'Chaque lundi au login'],
           ].map(([icon, title, status]) => `
-            <div style="padding:9px 11px;background:rgba(139,92,246,.06);border-radius:10px;
-              border:1px solid rgba(139,92,246,.14);">
+            <div style="padding:9px 11px;background:rgba(139,127,240,.06);border-radius:10px;
+              border:1px solid rgba(139,127,240,.14);">
               <div style="font-family:Syne,sans-serif;font-size:9px;font-weight:800;
                 color:rgba(255,255,255,.75);margin-bottom:3px;">${icon} ${title}</div>
               <div style="font-size:8px;color:rgba(255,255,255,.35);">${status}</div>
@@ -2355,8 +2317,8 @@ const P1_SECURITY = (() => {
     o.innerHTML = `
       <div class="p1-modal" style="max-width:420px;">
         <div class="p1-modal-title" style="margin-bottom:6px;">
-          <div style="width:38px;height:38px;border-radius:10px;background:rgba(125,211,252,.08);
-            border:1px solid rgba(125,211,252,.15);display:flex;align-items:center;
+          <div style="width:38px;height:38px;border-radius:10px;background:rgba(139,127,240,.08);
+            border:1px solid rgba(139,127,240,.15);display:flex;align-items:center;
             justify-content:center;font-size:16px;">📱</div>
           Sessions actives
         </div>
@@ -2460,7 +2422,11 @@ function _hookLoadAnalyse() {
       setTimeout(() => {
         _hookRenderParametres();
         _hookLoadAnalyse();
-        P1_ONBOARDING._attachHooks();
+        if (P1_ONBOARDING && typeof P1_ONBOARDING._attachHooks === 'function') {
+          P1_ONBOARDING._attachHooks();
+        } else {
+          console.warn('P1_ONBOARDING._attachHooks non disponible');
+        }
         P1_AGENT._hookAgent();             // ← Agent IA Autonome
       }, 1500);
     }, 300);

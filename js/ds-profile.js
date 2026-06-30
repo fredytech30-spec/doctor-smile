@@ -38,7 +38,7 @@ window.DS_PROFILE = {
     if (emailEl) emailEl.textContent = email;
 
     // Badge plan
-    const pb = document.getElementById('pd-plan-badge');
+    const pb = document.getElementById('pd-drawer-plan-badge');
     if (pb) {
       const labels = { standard:'Standard', premium:'Premium', extra:'Extra' };
       pb.textContent = labels[plan] ?? plan;
@@ -92,8 +92,8 @@ window.DS_PROFILE = {
       if (pdText)  { pdText.textContent = initials; pdText.style.display = 'block'; }
       if (navImg)  navImg.style.display = 'none';
       if (navInit) { navInit.textContent = initials; navInit.style.display = 'block'; }
-      // Remettre le gradient
-      if (navAvatar) navAvatar.style.background = 'linear-gradient(135deg,var(--gold),var(--ice))';
+      // Remettre le gradient (Design System)
+      if (navAvatar) navAvatar.style.background = 'var(--gold-ice)';
     }
   },
 
@@ -133,7 +133,7 @@ window.DS_PROFILE = {
       this._setAvatarPhoto(photoURL);
 
       if (statusEl) statusEl.innerHTML = '';
-      showToast('Photo mise à jour ✓', 'ok');
+      showToast('Photo mise à jour', 'ok');
 
     } catch (err) {
       console.error('[Profile] Upload photo erreur:', err);
@@ -249,7 +249,7 @@ window.DS_PROFILE = {
         'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js'
       );
       await updateDoc(doc(db, 'users', S.user.uid), { prenom, nom });
-      showToast('Profil mis à jour ✓', 'ok');
+      showToast('Profil mis à jour', 'ok');
     } catch {
       // Essayer setDoc merge
       try {
@@ -258,7 +258,7 @@ window.DS_PROFILE = {
           'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js'
         );
         await setDoc(doc(db, 'users', S.user.uid), { prenom, nom }, { merge: true });
-        showToast('Profil mis à jour ✓', 'ok');
+        showToast('Profil mis à jour', 'ok');
       } catch {
         showToast('Profil mis à jour localement', 'ok');
       }
@@ -269,16 +269,22 @@ window.DS_PROFILE = {
     else if (typeof updateUserUI === 'function') updateUserUI();
   },
 
-  // ── Réinitialisation mot de passe ────────────────────────────
+  // ── Réinitialisation mot de passe via Brevo ──────────────────
   async sendResetEmail() {
     try {
-      const { auth } = await import('./firebase-config.js');
-      const { sendPasswordResetEmail } = await import(
-        'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js'
-      );
-      await sendPasswordResetEmail(auth, S.user.email);
-      showToast(`Email envoyé à ${S.user.email} ✓`, 'ok');
+      const API_BASE = window.API_BASE || ((window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost')
+        ? 'http://127.0.0.1:8000'
+        : 'https://votre-api-render.onrender.com');
+      const response = await fetch(`${API_BASE}/reset-password/forgot`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: S.user.email })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Erreur d\'envoi');
+      showToast(`Email envoyé à ${S.user.email}`, 'ok');
     } catch (err) {
+      console.error('[sendResetEmail]', err);
       showToast("Erreur d'envoi email", 'err');
     }
   },
@@ -306,7 +312,7 @@ window.DS_PROFILE = {
       // Nettoyer session et rediriger
       sessionStorage.clear();
       localStorage.removeItem('ds_user');
-      showToast('Déconnecté ✓', 'ok');
+      showToast('Déconnecté', 'ok');
       setTimeout(() => { window.location.href = 'auth.html'; }, 600);
 
     } catch (err) {
@@ -319,27 +325,35 @@ window.DS_PROFILE = {
 
   // ── Dialog de confirmation logout ────────────────────────────
   _confirmLogout() {
+    if (window.Modal) {
+      return window.Modal.confirm('Se déconnecter ?', 'Vous serez redirigé vers la page de connexion.', {
+        confirmLabel: 'Déconnecter',
+        size: 'small'
+      });
+    }
+    
+    // Fallback original si Modal n'est pas chargé
     return new Promise(resolve => {
       const overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:var(--overlay-bg);backdrop-filter:blur(12px);';
       overlay.innerHTML = `
-        <div style="background:rgba(6,10,20,.99);border:1px solid rgba(239,68,68,.2);border-radius:16px;
+        <div style="background:var(--bg-elevated);border:1px solid var(--error-border);border-radius:16px;
           padding:28px;max-width:340px;width:90%;animation:mIn .22s cubic-bezier(.16,1,.3,1);">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-            <div style="width:40px;height:40px;border-radius:10px;background:rgba(239,68,68,.1);
-              color:#ef4444;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">
+            <div style="width:40px;height:40px;border-radius:10px;background:var(--error-bg);
+              color:var(--error);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">
               <i class="fa-solid fa-right-from-bracket"></i></div>
             <div>
-              <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:900;color:#fff;margin-bottom:2px;">Se déconnecter ?</div>
-              <div style="font-size:10px;color:rgba(255,255,255,.4);">Vous serez redirigé vers la page de connexion.</div>
+              <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:900;color:var(--text);margin-bottom:2px;">Se déconnecter ?</div>
+              <div style="font-size:10px;color:var(--text-hint);">Vous serez redirigé vers la page de connexion.</div>
             </div>
           </div>
           <div style="display:flex;gap:10px;">
-            <button id="_logout_cancel" style="flex:1;padding:9px;border-radius:9px;background:rgba(255,255,255,.06);
-              border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-family:Syne,sans-serif;
+            <button id="_logout_cancel" style="flex:1;padding:9px;border-radius:9px;background:var(--surface-2);
+              border:1px solid var(--border);color:var(--text-2);font-family:Syne,sans-serif;
               font-size:10px;font-weight:700;cursor:pointer;">Annuler</button>
-            <button id="_logout_confirm" style="flex:1;padding:9px;border-radius:9px;background:rgba(239,68,68,.12);
-              border:1px solid rgba(239,68,68,.3);color:#ef4444;font-family:Syne,sans-serif;
+            <button id="_logout_confirm" style="flex:1;padding:9px;border-radius:9px;background:var(--error-bg);
+              border:1px solid var(--error-border);color:var(--error);font-family:Syne,sans-serif;
               font-size:10px;font-weight:800;cursor:pointer;letter-spacing:.04em;">Déconnecter</button>
           </div>
         </div>`;
@@ -362,7 +376,7 @@ window.DS_PROFILE = {
       await this._savePhotoURL(null);
       if (S.profile) S.profile.photoURL = null;
       this._setAvatarPhoto(null);
-      showToast('Photo supprimée ✓', 'ok');
+      showToast('Photo supprimée', 'ok');
       // Rafraîchir la vue paramètres si ouverte
       if (document.getElementById('param-avatar-wrap')) {
         window.DS_VIEWS?.renderParametres?.();

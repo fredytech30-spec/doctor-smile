@@ -22,14 +22,14 @@
 
   .dsm-box {
     background: linear-gradient(145deg, #060A14 0%, #0A1020 100%);
-    border: 1px solid rgba(125,211,252,.18);
+    border: 1px solid rgba(139,127,240,.18);
     border-radius: 22px; padding: 34px 30px;
     max-width: 520px; width: 100%;
     max-height: 92vh; overflow-y: auto;
     transform: translateY(28px) scale(.96);
     transition: transform .32s cubic-bezier(.16,1,.3,1);
-    box-shadow: 0 40px 80px rgba(0,0,0,.65), 0 0 0 1px rgba(125,211,252,.05);
-    scrollbar-width: thin; scrollbar-color: rgba(125,211,252,.2) transparent;
+    box-shadow: 0 40px 80px rgba(0,0,0,.65), 0 0 0 1px rgba(139,127,240,.05);
+    scrollbar-width: thin; scrollbar-color: rgba(139,127,240,.2) transparent;
   }
   .dsm-overlay.open .dsm-box { transform: translateY(0) scale(1); }
 
@@ -60,8 +60,8 @@
     outline: none; transition: border-color .18s, box-shadow .18s; width: 100%;
   }
   .dsm-input:focus, .dsm-select:focus, .dsm-textarea:focus {
-    border-color: rgba(125,211,252,.45);
-    box-shadow: 0 0 0 3px rgba(125,211,252,.1);
+    border-color: rgba(139,127,240,.45);
+    box-shadow: 0 0 0 3px rgba(139,127,240,.1);
   }
   .dsm-input::placeholder, .dsm-textarea::placeholder { color: rgba(255,255,255,.22); }
   .dsm-select option { background: #0A1020; color: #fff; }
@@ -76,10 +76,10 @@
     cursor: pointer; text-align: center; transition: all .15s;
     font-family: 'Syne', sans-serif;
   }
-  .dsm-slot:hover { background: rgba(125,211,252,.1); border-color: rgba(125,211,252,.35); }
+  .dsm-slot:hover { background: rgba(139,127,240,.1); border-color: rgba(139,127,240,.35); }
   .dsm-slot.selected {
-    background: rgba(125,211,252,.15); border-color: rgba(125,211,252,.55);
-    box-shadow: 0 0 14px rgba(125,211,252,.2);
+    background: rgba(139,127,240,.15); border-color: rgba(139,127,240,.55);
+    box-shadow: 0 0 14px rgba(139,127,240,.2);
   }
   .dsm-slot-day  { font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.38); margin-bottom: 3px; }
   .dsm-slot-time { font-size: 12px; font-weight: 800; color: #fff; }
@@ -98,10 +98,10 @@
   }
   .dsm-btn-gold:hover { transform: translateY(-2px); box-shadow: 0 6px 32px rgba(255,215,0,.5); }
   .dsm-btn-ice {
-    background: rgba(125,211,252,.12); color: #7DD3FC;
-    border: 1px solid rgba(125,211,252,.3);
+    background: rgba(139,127,240,.12); color: #8B7FF0;
+    border: 1px solid rgba(139,127,240,.3);
   }
-  .dsm-btn-ice:hover { background: rgba(125,211,252,.22); }
+  .dsm-btn-ice:hover { background: rgba(139,127,240,.22); }
   .dsm-btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
 
   /* Succès */
@@ -126,7 +126,7 @@
 
   .dsm-divider { height: 1px; background: rgba(255,255,255,.07); margin: 4px 0; }
   .dsm-hint { font-size: 11px; color: rgba(255,255,255,.3); text-align: center; line-height: 1.5; }
-  .dsm-hint a { color: rgba(125,211,252,.7); }
+  .dsm-hint a { color: rgba(139,127,240,.7); }
   `;
 
   const styleEl = document.createElement('style');
@@ -210,7 +210,7 @@
             <a href="#">Politique de confidentialité</a>.
           </p>
           <p class="dsm-hint" style="margin-top:6px;">
-            Déjà un compte ? <a href="./auth.html" style="color:#7DD3FC;font-weight:700;">Se connecter</a>
+            Déjà un compte ? <a href="./auth.html" style="color:#8B7FF0;font-weight:700;">Se connecter</a>
           </p>
           <div class="dsm-trust">
             <span><i class="fa-solid fa-shield-halved"></i> RGPD</span>
@@ -394,7 +394,7 @@
         return;
       } catch (err) {
         const ERRS = {
-          'auth/email-already-in-use': 'Email déjà utilisé — <a href="./auth.html" style="color:#7DD3FC">Se connecter</a>',
+          'auth/email-already-in-use': 'Email déjà utilisé — <a href="./auth.html" style="color:#8B7FF0">Se connecter</a>',
           'auth/weak-password': 'Mot de passe trop faible',
           'auth/invalid-email': 'Email invalide',
         };

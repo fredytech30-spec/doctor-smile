@@ -1,4 +1,4 @@
-﻿// ════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
 //  supplement.js — Doctor Smile · Module Supplémentaire Complet
 //  Version 1.0
 //
@@ -30,17 +30,17 @@ import {
 
 // ── Palette (miroir exact du dashboard) ─────────────────────────
 const P = {
-  gold:'#FFD700', ice:'#7DD3FC',  ice2:'#38BDF8',
-  em:  '#10b981', ruby:'#ef4444', amb:'#f59e0b',
-  vio: '#8B5CF6', pink:'#EC4899',
-  bg:  '#02040B', surf:'#060A14', surf2:'#0A1020',
-  mut: 'rgba(255,255,255,.35)',
+  gold:'var(--gold-500)', ice:'var(--violet-500)',  ice2:'var(--violet-300)',
+  em:  'var(--success)', ruby:'var(--error)', amb:'var(--warning)',
+  vio: 'var(--violet-500)', pink:'var(--color-admin)',
+  bg:  'var(--bg)', surf:'var(--surface)', surf2:'var(--surface-2)',
+  mut: 'var(--text-muted)',
 };
 
 const ZONES = {
   saine:     { c: P.em,   l: 'Zone Saine'  },
   vigilance: { c: P.amb,  l: 'Vigilance'   },
-  risque:    { c:'#f97316',l:'Zone Risque'  },
+  risque:    { c:'var(--color-risque)',l:'Zone Risque'  },
   critique:  { c: P.ruby, l: 'Critique'    },
 };
 
@@ -108,10 +108,10 @@ const SCATTER = (() => {
     wrap.innerHTML = `
       <div style="position:relative;">
 
-      <svg id="sc-svg" viewBox="0 0 ${W} ${H}" width="100%" style="display:block;border-radius:10px;background:rgba(6,10,20,.7);border:1px solid rgba(125,211,252,.07);" preserveAspectRatio="xMidYMid meet">
+      <svg id="sc-svg" viewBox="0 0 ${W} ${H}" width="100%" style="display:block;border-radius:10px;background:rgba(6,10,20,.7);border:1px solid rgba(139,127,240,.07);" preserveAspectRatio="xMidYMid meet">
         <defs>
           <radialGradient id="sc-rbg" cx="50%" cy="50%" r="55%">
-            <stop offset="0%"   stop-color="rgba(125,211,252,.04)"/>
+            <stop offset="0%"   stop-color="rgba(139,127,240,.04)"/>
             <stop offset="100%" stop-color="rgba(2,4,11,0)"/>
           </radialGradient>
           <filter id="sc-gGold" x="-100%" y="-100%" width="300%" height="300%">
@@ -232,7 +232,7 @@ const SCATTER = (() => {
 
       <!-- Tooltip -->
       <div id="sc-tt" style="position:fixed;z-index:9500;pointer-events:none;opacity:0;
-        background:rgba(5,9,18,.97);border:1px solid rgba(125,211,252,.2);border-radius:11px;
+        background:rgba(5,9,18,.97);border:1px solid rgba(139,127,240,.2);border-radius:11px;
         padding:11px 15px;min-width:170px;box-shadow:0 20px 60px rgba(0,0,0,.65);
         transition:opacity .1s;font-family:'Instrument Sans',sans-serif;backdrop-filter:blur(14px);">
       </div>
@@ -255,13 +255,13 @@ const SCATTER = (() => {
         </div>
         ${sameSec.length>=3?`
         <div style="display:flex;align-items:center;gap:5px;">
-          <svg width="14" height="10"><ellipse cx="7" cy="5" rx="6" ry="4" fill="none" stroke="rgba(125,211,252,.45)" stroke-width="1.2" stroke-dasharray="3,2"/></svg>
+          <svg width="14" height="10"><ellipse cx="7" cy="5" rx="6" ry="4" fill="none" stroke="rgba(139,127,240,.45)" stroke-width="1.2" stroke-dasharray="3,2"/></svg>
           <span style="font-family:Syne,sans-serif;font-size:9px;color:rgba(255,255,255,.28);">Zone sectorielle</span>
         </div>`:''}
         <div style="display:flex;gap:6px;">
           <button onclick="DS_SUPPLEMENT.scatter.filter('all')" id="sc-f-all"
-            style="padding:3px 10px;border-radius:6px;background:rgba(125,211,252,.12);border:1px solid rgba(125,211,252,.3);
-            font-family:Syne,sans-serif;font-size:8px;font-weight:800;color:#7DD3FC;cursor:pointer;">Tous</button>
+            style="padding:3px 10px;border-radius:6px;background:rgba(139,127,240,.12);border:1px solid rgba(139,127,240,.3);
+            font-family:Syne,sans-serif;font-size:8px;font-weight:800;color:#8B7FF0;cursor:pointer;">Tous</button>
           <button onclick="DS_SUPPLEMENT.scatter.filter('same')" id="sc-f-same"
             style="padding:3px 10px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
             font-family:Syne,sans-serif;font-size:8px;font-weight:800;color:rgba(255,255,255,.4);cursor:pointer;">Mon secteur</button>
@@ -302,7 +302,7 @@ const SCATTER = (() => {
     const ry = Math.max(Math.sqrt(ys.reduce((a,b)=>a+(b-my)**2,0)/ys.length)*1.8, 8);
     return `
       <ellipse cx="${xM(mx)}" cy="${yM(my)}" rx="${rx*(xM(100)-xM(0))/100}" ry="${ry*(yM(0)-yM(100))/100}"
-        fill="rgba(125,211,252,.04)" stroke="rgba(125,211,252,.35)" stroke-width="1.2"
+        fill="rgba(139,127,240,.04)" stroke="rgba(139,127,240,.35)" stroke-width="1.2"
         stroke-dasharray="5,3" clip-path="url(#sc-clip)"/>
     `;
   }
@@ -396,7 +396,7 @@ const SCATTER = (() => {
     ['all','same'].forEach(m => {
       const b = document.getElementById(`sc-f-${m}`);
       if (!b) return;
-      if (m===mode) { b.style.background='rgba(125,211,252,.14)'; b.style.color=P.ice; b.style.borderColor='rgba(125,211,252,.35)'; }
+      if (m===mode) { b.style.background='rgba(139,127,240,.14)'; b.style.color=P.ice; b.style.borderColor='rgba(139,127,240,.35)'; }
       else { b.style.background='rgba(255,255,255,.05)'; b.style.color='rgba(255,255,255,.4)'; b.style.borderColor='rgba(255,255,255,.1)'; }
     });
     const peers = mode==='same' ? _allPeers.filter(p=>p.secteur===_current.secteur) : _allPeers;
@@ -445,7 +445,7 @@ const SCATTER = (() => {
         </div>
         <span id="sc-sector-tag" style="font-family:Syne,sans-serif;font-size:8px;font-weight:800;
           letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:100px;
-          background:rgba(125,211,252,.08);color:#7DD3FC;border:1px solid rgba(125,211,252,.18);"></span>
+          background:rgba(139,127,240,.08);color:#8B7FF0;border:1px solid rgba(139,127,240,.18);"></span>
       </div>
       <div style="font-size:9px;color:rgba(255,255,255,.28);margin-bottom:14px;line-height:1.6;">
         ★ Votre position · Axe X = Doctor Score · Axe Y = Probabilité de faillite estimée · Points = benchmarks sectoriels anonymisés
@@ -628,7 +628,7 @@ const SHORTCUTS = (() => {
 
   function init() {
     document.addEventListener('keydown', _handle, { capture:true });
-    console.log('%c[SHORTCUTS] Raccourcis clavier actifs (? pour aide)', 'color:#8B5CF6');
+    console.log('%c[SHORTCUTS] Raccourcis clavier actifs (? pour aide)', 'color:#8B7FF0');
   }
 
   function _handle(e) {
@@ -698,9 +698,9 @@ const SHORTCUTS = (() => {
   function _toast(msg) {
     const t=document.createElement('div');
     t.style.cssText=`position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
-      background:rgba(5,9,18,.95);border:1px solid rgba(125,211,252,.25);border-radius:8px;
+      background:rgba(5,9,18,.95);border:1px solid rgba(139,127,240,.25);border-radius:8px;
       padding:7px 16px;font-family:Syne,sans-serif;font-size:10px;font-weight:700;
-      color:#7DD3FC;z-index:99999;pointer-events:none;letter-spacing:.06em;
+      color:#8B7FF0;z-index:99999;pointer-events:none;letter-spacing:.06em;
       transition:opacity .3s;`;
     t.textContent=msg;
     document.body.appendChild(t);
@@ -726,7 +726,7 @@ const SHORTCUTS = (() => {
     const box = document.createElement('div');
     box.id='shortcuts-help';
     box.style.cssText=`position:fixed;bottom:80px;right:20px;z-index:99999;
-      background:rgba(6,10,20,.99);border:1px solid rgba(125,211,252,.18);border-radius:14px;
+      background:rgba(6,10,20,.99);border:1px solid rgba(139,127,240,.18);border-radius:14px;
       padding:18px 20px;min-width:220px;box-shadow:0 20px 60px rgba(0,0,0,.6);
       animation:onbFadeIn .2s ease;`;
     box.innerHTML=`
@@ -742,7 +742,7 @@ const SHORTCUTS = (() => {
           <span style="font-size:10px;color:rgba(255,255,255,.45);">${l}</span>
           <kbd style="font-family:JetBrains Mono,monospace;font-size:9px;font-weight:700;
             padding:2px 7px;border-radius:5px;background:rgba(255,255,255,.07);
-            border:1px solid rgba(255,255,255,.12);color:#7DD3FC;">${k}</kbd>
+            border:1px solid rgba(255,255,255,.12);color:#8B7FF0;">${k}</kbd>
         </div>
       `).join('')}
     `;
@@ -775,17 +775,17 @@ const SEARCH = (() => {
 
     overlay.innerHTML=`
       <div style="width:min(94vw,580px);background:rgba(6,10,20,.99);
-        border:1px solid rgba(125,211,252,.2);border-radius:18px;
+        border:1px solid rgba(139,127,240,.2);border-radius:18px;
         box-shadow:0 40px 100px rgba(0,0,0,.7);overflow:hidden;
         animation:onbFadeIn .2s ease;">
 
         <!-- Search input -->
         <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;
           border-bottom:1px solid rgba(255,255,255,.06);">
-          <i class="fa-solid fa-magnifying-glass" style="color:#7DD3FC;font-size:15px;flex-shrink:0;"></i>
+          <i class="fa-solid fa-magnifying-glass" style="color:#8B7FF0;font-size:15px;flex-shrink:0;"></i>
           <input id="gs-input" type="text" placeholder="Rechercher une entreprise, analyse, ratio…"
             style="flex:1;background:none;border:none;outline:none;font-family:'Instrument Sans',sans-serif;
-            font-size:14px;color:#fff;caret-color:#7DD3FC;"
+            font-size:14px;color:#fff;caret-color:#8B7FF0;"
             autocomplete="off" spellcheck="false"/>
           <kbd style="font-family:JetBrains Mono,monospace;font-size:9px;padding:2px 7px;
             border-radius:5px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
@@ -858,12 +858,12 @@ const SEARCH = (() => {
       html += VIEWS.map(v=>`
         <div class="gs-result" data-action="nav:${v.id}" style="display:flex;align-items:center;gap:12px;
           padding:10px 18px;cursor:pointer;transition:background .1s;"
-          onmouseenter="this.style.background='rgba(125,211,252,.05)'"
+          onmouseenter="this.style.background='rgba(139,127,240,.05)'"
           onmouseleave="this.style.background=''"
           onclick="DS_SUPPLEMENT.search._activate('nav:${v.id}')">
-          <div style="width:32px;height:32px;border-radius:8px;background:rgba(125,211,252,.08);
-            border:1px solid rgba(125,211,252,.14);display:flex;align-items:center;justify-content:center;
-            flex-shrink:0;color:#7DD3FC;font-size:12px;">
+          <div style="width:32px;height:32px;border-radius:8px;background:rgba(139,127,240,.08);
+            border:1px solid rgba(139,127,240,.14);display:flex;align-items:center;justify-content:center;
+            flex-shrink:0;color:#8B7FF0;font-size:12px;">
             <i class="fa-solid ${v.icon}"></i>
           </div>
           <div style="flex:1;min-width:0;">
@@ -884,7 +884,7 @@ const SEARCH = (() => {
         return `
           <div class="gs-result" data-action="analyse:${a.id}"
             style="display:flex;align-items:center;gap:12px;padding:10px 18px;cursor:pointer;transition:background .1s;"
-            onmouseenter="this.style.background='rgba(125,211,252,.05)'"
+            onmouseenter="this.style.background='rgba(139,127,240,.05)'"
             onmouseleave="this.style.background=''"
             onclick="DS_SUPPLEMENT.search._activate('analyse:${a.id}')">
             <div style="width:32px;height:32px;border-radius:8px;
@@ -917,7 +917,7 @@ const SEARCH = (() => {
     if (!items.length) return;
     items[_selectedIdx]?.style.setProperty('background','');
     _selectedIdx = Math.max(0, Math.min(items.length-1, _selectedIdx+dir));
-    items[_selectedIdx].style.background='rgba(125,211,252,.07)';
+    items[_selectedIdx].style.background='rgba(139,127,240,.07)';
     items[_selectedIdx].scrollIntoView({ block:'nearest' });
   }
 
@@ -989,7 +989,7 @@ const LAZY_THREE = (() => {
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
     script.onload = () => {
       _loaded = true;
-      console.log('%c[LAZY_THREE] Three.js r128 chargé à la demande', 'color:#8B5CF6');
+      console.log('%c[LAZY_THREE] Three.js r128 chargé à la demande', 'color:#8B7FF0');
       cb?.();
       window.DS_EXTRA?.initAll?.();
     };
@@ -1302,7 +1302,7 @@ const PORTFOLIO = (() => {
       <div style="font-family:Syne,sans-serif;font-size:9px;font-weight:800;letter-spacing:.18em;
         text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:12px;
         display:flex;align-items:center;gap:7px;">
-        <i class="fa-solid fa-briefcase" style="color:#7DD3FC;"></i> Vue Portfolio
+        <i class="fa-solid fa-briefcase" style="color:#8B7FF0;"></i> Vue Portfolio
       </div>
       <div id="portfolio-wrap"></div>
     `;
@@ -1380,8 +1380,8 @@ function _injectStyles() {
 
 /* ══ Onboarding ═══════════════════════════════════ */
 @keyframes onbPulse {
-  0%,100%{box-shadow:0 0 0 4000px rgba(2,4,11,.75),0 0 24px rgba(125,211,252,.4);}
-  50%{box-shadow:0 0 0 4000px rgba(2,4,11,.75),0 0 40px rgba(125,211,252,.7);}
+  0%,100%{box-shadow:0 0 0 4000px rgba(2,4,11,.75),0 0 24px rgba(139,127,240,.4);}
+  50%{box-shadow:0 0 0 4000px rgba(2,4,11,.75),0 0 40px rgba(139,127,240,.7);}
 }
 @keyframes onbFadeIn {
   from{opacity:0;transform:translateY(-8px) scale(.97);}
@@ -1391,10 +1391,10 @@ function _injectStyles() {
 #onb-bubble button:hover { filter:brightness(1.1); }
 
 /* ══ Recherche globale ═══════════════════════════ */
-#gs-input { caret-color:#7DD3FC; }
+#gs-input { caret-color:#8B7FF0; }
 #gs-input::placeholder { color:rgba(255,255,255,.2); }
 #gs-results::-webkit-scrollbar { width:3px; }
-#gs-results::-webkit-scrollbar-thumb { background:rgba(125,211,252,.2);border-radius:2px; }
+#gs-results::-webkit-scrollbar-thumb { background:rgba(139,127,240,.2);border-radius:2px; }
 .gs-result { outline:none; }
 
 /* ══ Raccourcis ══════════════════════════════════ */
@@ -1415,19 +1415,19 @@ kbd { font-size:9px!important; }
 /* ══ Améliorations globales ══════════════════════ */
 ::-webkit-scrollbar { width:4px; height:4px; }
 ::-webkit-scrollbar-track { background:rgba(255,255,255,.02); border-radius:2px; }
-::-webkit-scrollbar-thumb { background:rgba(125,211,252,.18); border-radius:2px; }
-::-webkit-scrollbar-thumb:hover { background:rgba(125,211,252,.32); }
+::-webkit-scrollbar-thumb { background:rgba(139,127,240,.18); border-radius:2px; }
+::-webkit-scrollbar-thumb:hover { background:rgba(139,127,240,.32); }
 
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline:2px solid rgba(125,211,252,.45);
+  outline:2px solid rgba(139,127,240,.45);
   outline-offset:2px;
 }
 
 .card { transition:border-color .2s, box-shadow .22s; }
-.card:hover { border-color:rgba(125,211,252,.12); box-shadow:0 8px 32px rgba(0,0,0,.22); }
+.card:hover { border-color:rgba(139,127,240,.12); box-shadow:0 8px 32px rgba(0,0,0,.22); }
 
 /* Skeleton loader */
 .ds-skeleton {

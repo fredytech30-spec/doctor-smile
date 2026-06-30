@@ -87,7 +87,7 @@ def _send_confirmation_email(email: str, uid: str) -> None:
           </div>
 
           <p style="font-size:11px;color:rgba(255,255,255,.35);line-height:1.7;margin:0 0 20px 0;">
-            Référence de la demande : <code style="color:#7DD3FC;">{uid[:12]}…</code><br>
+            Référence de la demande : <code style="color:#8B7FF0;">{uid[:12]}…</code><br>
             Date de la demande : {deadline}<br>
             Traitement par : {DPO_EMAIL}
           </p>

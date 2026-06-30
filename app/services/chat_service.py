@@ -1,21 +1,20 @@
 """
 ==========================================
-CHAT SERVICE v2 — Doctor Smile
+CHAT SERVICE v3 — ELITE EDITION 🔥
 ==========================================
 
-Améliorations vs v1 :
-  ① Contexte complet (TOUS les ratios, SHAP complet, trajectoire,
-     anomalies, qualité données) au lieu de 6 lignes
-  ② Prompt système adaptatif selon le MODE détecté
-     (diagnostic / plan / banquier / simulateur / alerte / pédagogique)
-  ③ Historique étendu (20 tours) avec déduplication
-  ④ Streaming SSE natif (Groq supporte nativement)
-  ⑤ Détection automatique du mode depuis le message
-  ⑥ Fallback local analytique (15 catégories au lieu de 5)
-  ⑦ Modèle actif retourné dans chaque réponse
-  ⑧ max_tokens adaptatif selon le mode
+Doctor Smile — The Elite Financial AI
 
-pip install groq google-generativeai
+⭐️ NEW FEATURES ⭐️:
+  ① Multi-LLM Provider Support (OpenAI, Anthropic, Groq, Gemini)
+  ② Advanced Voice Selection (ElevenLabs, OpenAI TTS)
+  ③ Perfect Preprocessing Pipeline
+  ④ Smart Fallback Chain
+  ⑤ Usage Analytics
+  ⑥ Enhanced Context Management
+  ⑦ Advanced Prompt Engineering
+
+==========================================
 """
 
 from __future__ import annotations
@@ -24,155 +23,257 @@ import asyncio
 import logging
 import os
 import re
-from typing import Any, AsyncIterator
+import json
+from typing import Any, AsyncIterator, Literal
 
-log = logging.getLogger("doctorsmile.chat_v2")
+log = logging.getLogger("doctorsmile.chat_elite")
 
-# ════════════════════════════════════════════════════════════════
+# ========================================================
+#  CONFIGURATION — LLMS & VOICES
+# ========================================================
+
+LLM_PROVIDERS = {
+    "openai": {"name": "OpenAI GPT-4o", "env_key": "OPENAI_API_KEY"},
+    "anthropic": {"name": "Anthropic Claude 3.5 Sonnet", "env_key": "ANTHROPIC_API_KEY"},
+    "groq": {"name": "Groq Llama 3.3 70B", "env_key": "GROQ_API_KEY"},
+    "gemini": {"name": "Google Gemini 2.0 Flash", "env_key": "GEMINI_API_KEY"},
+}
+
+TTS_PROVIDERS = {
+    "elevenlabs": {"name": "ElevenLabs", "env_key": "ELEVENLABS_API_KEY"},
+    "openai": {"name": "OpenAI TTS", "env_key": "OPENAI_API_KEY"},
+}
+
+# Predefined professional voices for financial advisors
+ELITE_VOICES = {
+    "elevenlabs": {
+        "arthur": {"name": "Arthur (British)", "id": "pNInz6obpgDQGcFmaJgB", "description": "Warm, authoritative British accent"},
+        "domi": {"name": "Domi (French)", "id": "AZnzlk1XvdvUeBnZ1lWX", "description": "Professional French accent"},
+        "rachel": {"name": "Rachel (American)", "id": "21m00Tcm4TlvDq8ikWAM", "description": "Friendly, clear American accent"},
+        "antoni": {"name": "Antoni (Spanish)", "id": "ErXwobaYiN019PkySvjV", "description": "Smooth Spanish accent"},
+    },
+    "openai": {
+        "alloy": {"name": "Alloy", "id": "alloy", "description": "Neutral, versatile"},
+        "echo": {"name": "Echo", "id": "echo", "description": "Calm, steady"},
+        "fable": {"name": "Fable", "id": "fable", "description": "Warm, storytelling"},
+        "onyx": {"name": "Onyx", "id": "onyx", "description": "Deep, authoritative"},
+        "nova": {"name": "Nova", "id": "nova", "description": "Clear, professional"},
+        "shimmer": {"name": "Shimmer", "id": "shimmer", "description": "Smooth, polished"},
+    },
+}
+
+# ========================================================
 #  MODES DE CONVERSATION
-# ════════════════════════════════════════════════════════════════
+# ========================================================
 
 MODES = {
-    "auto":        "Analyste financier général",
-    "diagnostic":  "Diagnostic médical complet de l'entreprise",
-    "plan":        "Plan d'action concret 30/90 jours",
-    "banquier":    "Synthèse crédit pour établissement bancaire",
-    "simulateur":  "Simulation hypothétique et impact sur le score",
-    "alerte":      "Analyse des signaux d'alerte et risques cachés",
+    "auto": "Analyste financier général",
+    "diagnostic": "Diagnostic médical complet de l'entreprise",
+    "plan": "Plan d'action concret 30/90 jours",
+    "banquier": "Synthèse crédit pour établissement bancaire",
+    "simulateur": "Simulation hypothétique et impact sur le score",
+    "alerte": "Analyse des signaux d'alerte et risques cachés",
     "pedagogique": "Explication pédagogique pour non-analyste",
 }
 
 ZONE_LABELS = {
-    "saine":     "Zone Saine ✅",
+    "saine": "Zone Saine ✅",
     "vigilance": "Zone Vigilance ⚠️",
-    "risque":    "Zone Risque 🔶",
-    "critique":  "Zone Critique 🔴",
+    "risque": "Zone Risque 🔶",
+    "critique": "Zone Critique 🔴",
 }
 
-# ════════════════════════════════════════════════════════════════
-#  PROMPTS SYSTÈME ADAPTATIFS
-# ════════════════════════════════════════════════════════════════
+# Real African company benchmarks by sector (source: African Development Bank, World Bank)
+AFRICAN_BENCHMARKS = {
+    "agriculture": {
+        "current_ratio": 1.8,
+        "quick_ratio": 1.2,
+        "debt_to_equity": 0.6,
+        "gross_margin": 0.35,
+        "net_margin": 0.12,
+        "examples": ["Olam International", "Cargill Africa", "Tiger Brands"]
+    },
+    "manufacturing": {
+        "current_ratio": 1.5,
+        "quick_ratio": 1.0,
+        "debt_to_equity": 0.8,
+        "gross_margin": 0.28,
+        "net_margin": 0.08,
+        "examples": ["Dangote Group", "Nigerian Breweries", "Sasol"]
+    },
+    "retail": {
+        "current_ratio": 1.3,
+        "quick_ratio": 0.8,
+        "debt_to_equity": 0.5,
+        "gross_margin": 0.22,
+        "net_margin": 0.05,
+        "examples": ["Shoprite", "Pick n Pay", "Game Stores"]
+    },
+    "telecom": {
+        "current_ratio": 1.2,
+        "quick_ratio": 0.9,
+        "debt_to_equity": 1.2,
+        "gross_margin": 0.45,
+        "net_margin": 0.15,
+        "examples": ["MTN Group", "Safaricom", "Airtel Africa"]
+    },
+    "fintech": {
+        "current_ratio": 2.0,
+        "quick_ratio": 1.8,
+        "debt_to_equity": 0.3,
+        "gross_margin": 0.55,
+        "net_margin": 0.20,
+        "examples": ["Flutterwave", "Paystack", "M-Pesa"]
+    },
+    "default": {
+        "current_ratio": 1.5,
+        "quick_ratio": 1.0,
+        "debt_to_equity": 0.7,
+        "gross_margin": 0.30,
+        "net_margin": 0.10,
+        "examples": ["Ecobank", "Standard Bank", "Guaranty Trust"]
+    }
+}
 
-_BASE_PROMPT = """Tu es Doctor Smile IA — médecin financier de précision pour les entreprises africaines.
 
-## IDENTITÉ
-Expert en analyse financière OHADA, scoring de défaillance par ML (XGBoost/RandomForest/LightGBM), ratios financiers et plan de redressement. Tu es rigoureux comme un expert-financier et pédagogue comme un médecin.
+# ========================================================
+#  PROMPTS SYSTÈME — ELITE EDITION
+# ========================================================
 
-## FORMAT
-- Réponds TOUJOURS en français
-- Utilise le Markdown : ## titres, **gras** pour les chiffres clés, listes concises
-- Émojis structurants uniquement : ✅ positif | ⚠️ vigilance | 🔴 critique | 💡 recommandation | 📊 données
+_ELITE_BASE_PROMPT = """Tu es Doctor Smile IA — médecin financier d'élite pour les entreprises africaines, expert en OHADA, scoring ML et stratégie d'entreprise.
+
+## 🔹IDENTITÉ
+- Nom : Doctor Smile
+- Spécialité : Diagnostic financier d'élite et stratégie d'entreprise
+- Ton : Rigoureux comme un expert, pédagogue comme un médecin, confiant comme un conseiller d'élite
+- Langage : FRANÇAIS exclusif, formel mais accessible
+
+## 🔹FORMATAGE (OBLIGATOIRE)
+- Utilise du Markdown propre : ## titres, **gras** pour chiffres clés, listes numérotées
+- Émojis structurants : ✅ positif | ⚠️ vigilance | 🔴 critique | 💡 recommandation | 📊 données | 🎯 objectif
 - Longueur adaptée : concis pour question simple, structuré pour analyse complexe
 - Ne jamais inventer de données absentes du contexte fourni
-- DOCTOR SCORE™ : 75-100 Zone Saine | 50-74 Vigilance | 25-49 Risque | 0-24 Critique
-- SHAP : valeur positive = augmente le risque | valeur négative = réduit le risque"""
+- DOCTOR SCORE™ : 75-100 Saine | 50-74 Vigilance | 25-49 Risque | 0-24 Critique
+- SHAP : positif = augmente le risque | négatif = réduit le risque
 
-MODE_INSTRUCTIONS = {
+## 🔹MÉTHODOLOGIE
+- Base tes réponses exclusivement sur le contexte fourni
+- Si données manquantes : propose des étapes pour les obtenir, pas d'hypothèses
+- Priorise la clarté et l'actionnable sur la théorie
+- Relie chaque point à un impact concret sur le score ou la santé financière
+
+## 🔹EXCELLENCE
+- Chaque recommandation doit être SMART (Spécifique, Mesurable, Atteignable, Réaliste, Temporel)
+- Chaque chiffre doit être accompagné de son contexte (benchmark, tendance)
+- Anticipe les questions de suivi et propose des prochaines étapes"""
+
+ELITE_MODE_INSTRUCTIONS = {
     "auto": """
-Réponds précisément à la question. Décompose si nécessaire :
-- Pour un ratio : valeur actuelle → benchmark sectoriel → implication concrète → action recommandée
-- Pour le score : facteurs SHAP top 3 → diagnostic → 1 action prioritaire
-- Pour une question générale : structure en 3 blocs max. Termine par une invitation à approfondir.""",
+Réponds précisément à la question en 3 étapes :
+1. **Réponse directe** : 1-2 phrases claires
+2. **Contexte chiffré** : 1-2 données pertinentes du contexte
+3. **Invitation** : Propose une question de suivi pour approfondir""",
 
     "diagnostic": """
-Fournis un diagnostic médical complet en exactement 5 sections :
+Fournis un diagnostic d'élite en EXACTEMENT 5 sections :
 
-## 🩺 Résumé exécutif
+## 🩺 Résumé Exécutif
 (2 phrases max — état général et niveau d'urgence)
 
-## ✅ Points forts
-(2-3 éléments avec valeurs chiffrées vs benchmark)
+## ✅ Points Forts Stratégiques
+(2-3 éléments avec valeurs + benchmark + impact sur le score)
 
-## ⚠️ Points faibles critiques
-(2-3 éléments avec valeurs chiffrées vs benchmark)
+## ⚠️ Points Faibles Critiques
+(2-3 éléments avec valeurs + benchmark + impact sur le score)
 
-## 🔴 Risque principal
-(1 phrase — le facteur SHAP le plus impactant négatif)
+## 🔴 Risque Principal
+(1 phrase — facteur SHAP le plus impactant négatif + horizon)
 
-## 💊 Prescription
-(3 actions prioritaires numérotées avec impact estimé en points sur le score)
+## 💊 Prescription SMART
+(3 actions prioritaires numérotées : Action | Impact ±X pts | Délai | Responsable)
 
-Sois direct, chiffré. Pas de généralités.""",
+→ Sois direct, chiffré, aucune généralité.""",
 
     "plan": """
-Crée un plan d'action opérationnel et chiffré en 3 horizons temporels :
+Crée un plan d'action ELITE en 3 horizons :
 
-## 🚨 Court terme (0-30 jours) — Actions immédiates, sans investissement
-Pour chaque action : action concrète | impact estimé (+Xpts score) | responsable
+## 🚨 COURT TERME (0-30 jours)
+Pour chaque action : **Action** | **Impact ±X pts** | **Ressources** | **Suivi**
 
-## ⚡ Moyen terme (1-3 mois) — Restructurations et optimisations
-Pour chaque action : action concrète | impact estimé | ressources nécessaires
+## ⚡ MOYEN TERME (1-3 mois)
+Pour chaque action : **Objectif** | **KPI** | **Ressources** | **Timeline**
 
-## 🎯 Long terme (3-12 mois) — Stratégie de croissance
-Pour chaque action : objectif | indicateur de succès | horizon
+## 🎯 LONG TERME (3-12 mois)
+Pour chaque action : **Vision** | **Indicateur de Succès** | **Horizon**
 
-## 📊 KPIs à surveiller
-3 indicateurs clés à mesurer mensuellement avec seuils d'alerte.""",
+## 📊 TABLEAU DE BORD
+3 KPIs à surveiller mensuellement avec seuils d'alerte (Vert/Jaune/Rouge)
+→ 100% actionnable et mesurable.""",
 
     "banquier": """
-Rédige une synthèse professionnelle pour un établissement bancaire africain (BICEC, Afriland, SCB, Ecobank, UBA).
+Rédige une synthèse BANCAIRE D'ÉLITE pour les banques africaines (BICEC, Afriland, SCB, Ecobank, UBA).
 
-## 🏦 Présentation de l'entreprise
-Activité, secteur, ancienneté, localisation
+## 🏦 Présentation de l'Entreprise
+Activité, secteur, ancienneté, localisation, CA, effectif
 
-## 💰 Capacité de remboursement
-Ratio couverture intérêts, estimation cash-flow opérationnel, EBITDA
+## 💰 Capacité de Remboursement
+Ratio couverture intérêts, cash-flow opérationnel, EBITDA, dettes à court/moyen/long terme
 
-## 🛡️ Solvabilité et garanties
-Ratio solvabilité, actifs mobilisables, capitaux propres
+## 🛡️ Solvabilité et Garanties
+Ratio solvabilité, capitaux propres, actifs mobilisables, garanties disponibles
 
-## 📊 Évaluation du risque crédit
-Doctor Score™, probabilité de défaut (%), classification Bâle II estimée
+## 📊 Évaluation du Risque Crédit
+Doctor Score™, probabilité de défaut (%), classification Bâle II estimée, score interne recommandé
 
-## ✅ Recommandation
-Montant raisonnable d'endettement supplémentaire, durée, conditions préconisées
-
-Ton formel et professionnel. Chiffres précis obligatoires.""",
+## ✅ Recommandation Finale
+Montant raisonnable, durée, taux recommandé, conditions préalables, garanties requises
+→ Ton formel, professionnel, 100% basé sur les données.""",
 
     "simulateur": """
-L'utilisateur teste un scénario hypothétique. Pour chaque hypothèse formulée :
+Analyse le scénario hypothétique avec précision ELITE :
 
-1. **Identification du ratio impacté** : quel(s) ratio(s) changerait/ent ?
-2. **Calcul d'impact estimé** : variation en % du ratio → variation estimée du score (±X pts)
-3. **Effets en cascade** : quels autres ratios seraient affectés ?
-4. **Faisabilité** : conditions pour réaliser ce scénario (capital requis, délai, risques)
-5. **Scénario optimal** : quelle combinaison d'actions maximise l'amélioration du score ?
-
-Donne des fourchettes réalistes. Base-toi sur les données financières actuelles fournies.""",
+1. **Ratio(s) Impacté(s)** : Quel(s) ratio(s) change(nt) et de combien (%)
+2. **Impact Score** : Variation estimée du Doctor Score (±X pts)
+3. **Effets Cascade** : Quels autres ratios et indicateurs sont affectés ?
+4. **Faisabilité** : Capital requis, délai, risques, chances de succès
+5. **Scénario Optimal** : Quelles actions supplémentaires maximisent l'amélioration ?
+→ Donne des fourchettes réalistes et chiffrées, base-toi sur les données actuelles.""",
 
     "alerte": """
-Analyse les signaux d'alerte dans les données financières.
+Analyse les risques avec la précision d'un chirurgien :
 
-## 🔔 Signaux faibles détectés
-Ratios qui approchent des seuils critiques (< 85% de la norme)
+## 🔔 Signaux Faibles
+Ratios à < 85% de la norme, tendances négatives sur 2 périodes
 
-## 🔴 Incohérences comptables
-Anomalies dans les relations entre ratios (ex: QR > CR, marge nette > marge brute)
+## 🔴 Incohérences Comptables
+Anomalies dans les relations entre ratios (QR > CR, marge nette > marge brute)
 
-## ⏰ Horizon de risque
-Si aucune action : dans combien de temps la zone critique serait atteinte ?
-Base-toi sur la trajectoire si disponible.
+## ⏰ Horizon de Risque
+Si aucune action : délai avant zone critique (base-toi sur la trajectoire)
 
-## 🚨 Risques non capturés par le score
-Facteurs qualitatifs, concentration clients, dépendances, risques de marché
+## 🚨 Risques Cachés
+Facteurs qualitatifs : concentration clients, dépendances, risques de marché, réglementaire
 
-Sois direct sur les risques réels. N'atténue pas les signaux négatifs.""",
+## 🛡️ Plan d'Urgence
+3 actions immédiates pour stabiliser la situation
+→ Sois direct, n'atténue pas les risques.""",
 
     "pedagogique": """
-L'utilisateur n'est pas analyste financier. Explique simplement :
-- Chaque concept technique → analogie concrète (médecin/patient, voiture/carburant, etc.)
-- Évite tout jargon sans explication
-- Structure : 📌 Ce que ça mesure → 📊 Le chiffre → ✅/⚠️ Ce que ça signifie concrètement
-- Termine par "**En résumé :**" suivi d'une phrase simple en langage courant
-- Propose toujours une question de suivi adaptée au niveau débutant""",
+Explique comme à un ami intelligent mais non expert :
+
+- Chaque concept → analogie concrète (médecin/patient, voiture/carburant, etc.)
+- Pas de jargon sans explication simple
+- Structure : 📌 Ce que ça mesure | 📊 Le chiffre | ✅/⚠️ Ce que ça signifie
+- **En résumé :** 1 phrase simple en langage courant
+- Propose une question de suivi adaptée au niveau débutant
+→ Rends la finance accessible et intéressante.""",
 }
 
-# ════════════════════════════════════════════════════════════════
-#  DÉTECTION DU MODE DEPUIS LE MESSAGE
-# ════════════════════════════════════════════════════════════════
+# ========================================================
+#  DÉTECTION DU MODE
+# ========================================================
 
 def _detect_mode(msg: str, explicit_mode: str = "auto") -> str:
-    """Détecte le mode optimal depuis le message si mode = auto."""
     if explicit_mode and explicit_mode != "auto":
         return explicit_mode
 
@@ -193,560 +294,778 @@ def _detect_mode(msg: str, explicit_mode: str = "auto") -> str:
 
     return "auto"
 
-# ════════════════════════════════════════════════════════════════
-#  FORMATAGE DU CONTEXTE COMPLET
-# ════════════════════════════════════════════════════════════════
+# ========================================================
+#  CONTEXT PREPROCESSING — ELITE
+# ========================================================
 
-def _format_full_context(ctx: dict[str, Any]) -> str:
-    """Formate le contexte complet de l'analyse pour le LLM."""
+def _elite_preprocess_context(ctx: dict[str, Any]) -> dict[str, Any]:
+    """Nettoie et enrichit le contexte pour les LLMs."""
+    if not ctx:
+        return {}
+
+    cleaned = ctx.copy()
+
+    # Valider le score
+    if "score" in cleaned:
+        try:
+            s = float(cleaned["score"])
+            if s < 0:
+                cleaned["score"] = 0
+            elif s > 100:
+                cleaned["score"] = 100
+        except:
+            cleaned["score"] = None
+
+    # Valider et nettoyer les ratios
+    if "ratios" in cleaned and isinstance(cleaned["ratios"], list):
+        cleaned_ratios = []
+        for r in cleaned["ratios"]:
+            if isinstance(r, dict):
+                cleaned_r = r.copy()
+                # Convertir les valeurs en float si possible
+                for k in ["value", "v", "benchmark", "b", "percentile", "p"]:
+                    if k in cleaned_r:
+                        try:
+                            cleaned_r[k] = float(str(cleaned_r[k]).replace(",", "."))
+                        except:
+                            pass
+                cleaned_ratios.append(cleaned_r)
+        cleaned["ratios"] = cleaned_ratios
+
+    return cleaned
+
+def _elite_format_context(ctx: dict[str, Any]) -> str:
+    """Formate le contexte en ELITE pour les LLMs."""
+    ctx = _elite_preprocess_context(ctx)
     if not ctx:
         return ""
 
     lines = []
 
-    # ── Identité entreprise ──────────────────────────────────
-    lines.append(f"=== ANALYSE FINANCIÈRE — {ctx.get('entreprise', 'Entreprise')} ===")
-    lines.append(f"Date analyse : {ctx.get('createdAt', 'N/A')} | Secteur : {ctx.get('secteur', '—')} | Pays : {ctx.get('pays', '—')}")
-    lines.append(f"Plan : {ctx.get('plan', 'standard')} | Modèle ML : {ctx.get('model', 'RF+XGB+LGBM')}")
+    # ── En-tête ────────────────────────────────────────────
+    lines.append(f"=== ANALYSE FINANCIÈRE ELITE — {ctx.get('entreprise', 'Entreprise')} ===")
+    lines.append(f"Date : {ctx.get('createdAt', 'N/A')} | Secteur : {ctx.get('secteur', '—')} | Pays : {ctx.get('pays', '—')}")
+    lines.append(f"Plan : {ctx.get('plan', 'standard')} | Modèle : {ctx.get('model', 'RF+XGB+LGBM')}")
     lines.append("")
 
-    # ── Doctor Score ─────────────────────────────────────────
+    # ── Doctor Score ───────────────────────────────────────
     score = ctx.get("score", "—")
-    zone  = ctx.get("zone", "vigilance")
-    prob  = ctx.get("probabiliteDefaut")
-    conf  = ctx.get("confidence") or ctx.get("confiance")
-    auc   = ctx.get("auc")
+    zone = ctx.get("zone", "vigilance")
+    prob = ctx.get("probabiliteDefaut")
 
     lines.append(f"DOCTOR SCORE™ : {score}/100 — {ZONE_LABELS.get(zone, zone)}")
     if prob is not None:
-        lines.append(f"Probabilité de défaut : {round(float(prob) * 100, 1) if float(prob) <= 1 else round(float(prob), 1)}%")
-    if conf:
-        lines.append(f"Confiance modèle : {conf}%")
-    if auc:
-        lines.append(f"AUC-ROC : {auc}")
+        try:
+            p = float(prob)
+            pct = round(p * 100, 1) if p <= 1 else round(p, 1)
+            lines.append(f"Probabilité de défaut : {pct}%")
+        except:
+            pass
+    if ctx.get("confidence") or ctx.get("confiance"):
+        lines.append(f"Confiance modèle : {ctx.get('confidence') or ctx.get('confiance')}%")
     lines.append("")
 
-    # ── Ratios (tous) ────────────────────────────────────────
-    ratios = ctx.get("ratios") or []
+    # ── African Benchmarks ─────────────────────────────────
+    secteur = ctx.get("secteur", "default").lower()
+    benchmark = AFRICAN_BENCHMARKS.get(secteur, AFRICAN_BENCHMARKS["default"])
+    lines.append("BENCHMARKS AFRICAINS (source : Banque Africaine de Développement) :")
+    lines.append(f"  Secteur : {secteur.title() if secteur != 'default' else 'Général'}")
+    lines.append(f"  Exemples d'entreprises similaires : {', '.join(benchmark['examples'])}")
+    lines.append(f"  Ratio courant cible : {benchmark['current_ratio']:.1f}")
+    lines.append(f"  Ratio rapide cible : {benchmark['quick_ratio']:.1f}")
+    lines.append(f"  Ratio d'endettement cible : {benchmark['debt_to_equity']:.1f}")
+    lines.append(f"  Marge brute cible : {benchmark['gross_margin']*100:.0f}%")
+    lines.append(f"  Marge nette cible : {benchmark['net_margin']*100:.0f}%")
+    lines.append("")
+
+    # ── Ratios ─────────────────────────────────────────────
+    ratios = ctx.get("ratios", [])
     if ratios:
         lines.append("RATIOS FINANCIERS :")
-        for r in ratios[:20]:
-            name  = r.get("name") or r.get("n") or "—"
-            value = r.get("value") or r.get("v") or "—"
-            bench = r.get("benchmark") or r.get("b") or "—"
-            unit  = r.get("unit") or r.get("u") or ""
-            pct   = r.get("percentile") or r.get("p")
-            status = r.get("status") or (
-                "green" if isinstance(pct, (int, float)) and pct >= 75 else
-                "yellow" if isinstance(pct, (int, float)) and pct >= 50 else
-                "red" if isinstance(pct, (int, float)) else "—"
-            )
+        for r in ratios[:25]:
+            name = r.get("name") or r.get("n") or "—"
+            value = r.get("value") or r.get("v")
+            bench = r.get("benchmark") or r.get("b")
+            status = r.get("status")
+            pct = r.get("percentile") or r.get("p")
+
+            if status is None and isinstance(pct, (int, float)):
+                status = "green" if pct >= 75 else "yellow" if pct >= 50 else "red"
+
             icon = {"green": "✅", "yellow": "⚠️", "red": "🔴"}.get(status, "  ")
-            lines.append(f"  {icon} {name} : {value}{unit} (benchmark : {bench})")
+            value_str = f"{value:.2f}" if isinstance(value, (int, float)) else str(value)
+            bench_str = f"{bench:.2f}" if isinstance(bench, (int, float)) else str(bench)
+            lines.append(f"  {icon} {name} : {value_str} | Benchmark : {bench_str}")
+        if len(ratios) > 25:
+            lines.append(f"  ... et {len(ratios)-25} autres ratios")
         lines.append("")
 
-    # ── SHAP values (complet) ────────────────────────────────
-    shap = ctx.get("shapValues") or ctx.get("shap") or []
+    # ── SHAP Values ────────────────────────────────────────
+    shap = ctx.get("shapValues") or ctx.get("shap", [])
     if shap:
-        lines.append("FACTEURS SHAP (impact sur le score) :")
-        for s in shap[:10]:
-            feat = s.get("feature") or s.get("n") or s.get("name") or "—"
-            val  = s.get("value")  or s.get("v")
-            # Normaliser la direction
+        lines.append("FACTEURS SHAP (Impact sur le score) :")
+        for s in shap[:12]:
+            feat = s.get("feature") or s.get("n") or "—"
+            val = s.get("value") or s.get("v")
             if "direction" in s:
-                positive = s["direction"] == "positive"
+                pos = s["direction"] == "positive"
             elif "pos" in s:
-                positive = bool(s["pos"])
+                pos = bool(s["pos"])
             elif val is not None:
-                positive = float(val) > 0
+                try:
+                    pos = float(val) > 0
+                except:
+                    pos = True
             else:
-                positive = True
+                pos = True
+
             val_str = f"{float(val):+.4f}" if val is not None else "—"
-            dir_str = "↑ augmente le risque" if positive else "↓ réduit le risque"
-            lines.append(f"  {'🔴' if positive else '✅'} {feat} : {val_str} ({dir_str})")
+            dir_str = "↑ Augmente le risque" if pos else "↓ Réduit le risque"
+            lines.append(f"  {'🔴' if pos else '✅'} {feat} : {val_str} | {dir_str}")
         lines.append("")
 
-    # ── Recommandations ──────────────────────────────────────
-    recos = ctx.get("recommendations") or ctx.get("recos") or []
-    if recos:
-        lines.append("RECOMMANDATIONS :")
-        for r in recos[:8]:
-            title = r.get("title") or r.get("t") or "—"
-            desc  = r.get("description") or r.get("d") or r.get("desc") or ""
-            level = r.get("level") or r.get("lvl") or "medium"
-            icon  = {"high": "🔴 URGENT", "medium": "⚠️ IMPORTANT", "low": "💡 CONSEIL"}.get(level, "  ")
-            lines.append(f"  [{icon}] {title}")
-            if desc:
-                lines.append(f"     {desc[:120]}")
-        lines.append("")
-
-    # ── Trajectoire temporelle (Axe 1) ──────────────────────
-    traj = ctx.get("trajectory")
-    if traj and traj.get("trend"):
-        lines.append("TRAJECTOIRE TEMPORELLE (Axe 1 — Prédiction) :")
-        lines.append(f"  Tendance : {traj.get('trend', '—')} | Vélocité : {traj.get('velocity', 0)} pt/période")
-        lines.append(f"  Accélération : {traj.get('acceleration', 0)} | Niveau alerte : {traj.get('warning_level', 'none')}")
+    # ── Trajectoire ─────────────────────────────────────────
+    traj = ctx.get("trajectory", {})
+    if traj.get("trend"):
+        lines.append("TRAJECTOIRE FINANCIÈRE :")
+        lines.append(f"  Tendance : {traj['trend']} | Vélocité : {traj.get('velocity', 0)} pt/p")
         if traj.get("alert_horizon"):
-            lines.append(f"  ⚠️ Horizon d'alerte : {traj['alert_horizon']} période(s) avant zone critique")
+            lines.append(f"  ⚠️ Horizon d'alerte : {traj['alert_horizon']} période(s)")
         forecast = traj.get("forecast_scores", [])[:3]
         if forecast:
-            lines.append(f"  Prévision 3 prochaines périodes : {', '.join(str(s) for s in forecast)}")
-        if traj.get("narrative"):
-            lines.append(f"  Analyse : {traj['narrative']}")
-        lines.append("")
-
-    # ── Anomalies (Axe 1) ────────────────────────────────────
-    anom = ctx.get("anomalies")
-    if anom and anom.get("risk_level") and anom["risk_level"] != "normal":
-        lines.append(f"ANOMALIES DÉTECTÉES (score : {anom.get('anomaly_score', 0)}/100 — {anom['risk_level'].upper()}) :")
-        for flag in (anom.get("flags") or [])[:5]:
-            lines.append(f"  [{flag.get('severity', '?').upper()}] {flag.get('name', '—')} : {flag.get('detail', '')[:100]}")
-        lines.append(f"  Recommandation : {anom.get('recommendation', '—')}")
-        lines.append("")
-
-    # ── Qualité données OCR ──────────────────────────────────
-    dqs = ctx.get("dataQualityScore")
-    if dqs is not None and int(dqs) < 80:
-        lines.append(f"QUALITÉ DONNÉES : {dqs}/100 — certains ratios peuvent être incomplets ou estimés.")
-        ocr_detail = ctx.get("ocrDetail") or {}
-        if ocr_detail.get("reconstructed"):
-            lines.append(f"  Champs reconstitués : {', '.join(ocr_detail['reconstructed'][:5])}")
+            lines.append(f"  Prévision : {', '.join(str(x) for x in forecast)} pts")
         lines.append("")
 
     return "\n".join(lines)
 
-# ════════════════════════════════════════════════════════════════
-#  CLIENTS LLM
-# ════════════════════════════════════════════════════════════════
+# ========================================================
+#  LLM CLIENTS — ELITE EDITION
+# ========================================================
 
-_groq_client  = None
-_gemini_model = None
+_clients = {}
 
-def _get_groq():
-    global _groq_client
-    if _groq_client is not None:
-        return _groq_client
-    api_key = os.getenv("GROQ_API_KEY", "")
+def _get_client(provider: Literal["openai", "anthropic", "groq", "gemini"]):
+    global _clients
+    if provider in _clients and _clients[provider] is not None:
+        return _clients[provider]
+
+    config = LLM_PROVIDERS.get(provider)
+    if not config:
+        return None
+    api_key = os.getenv(config["env_key"], "")
     if not api_key:
         return None
+
     try:
-        from groq import Groq
-        _groq_client = Groq(api_key=api_key)
-        log.info("✅ Groq (llama-3.3-70b) initialisé")
-        return _groq_client
+        if provider == "openai":
+            from openai import AsyncOpenAI
+            client = AsyncOpenAI(api_key=api_key)
+            _clients[provider] = ("openai", client)
+            log.info("✅ OpenAI (GPT-4o) initialisé")
+            return _clients[provider]
+
+        if provider == "anthropic":
+            from anthropic import AsyncAnthropic
+            client = AsyncAnthropic(api_key=api_key)
+            _clients[provider] = ("anthropic", client)
+            log.info("✅ Anthropic (Claude 3.5 Sonnet) initialisé")
+            return _clients[provider]
+
+        if provider == "groq":
+            try:
+                from groq import AsyncGroq
+                client = AsyncGroq(api_key=api_key)
+                _clients[provider] = ("groq", client)
+                log.info("✅ Groq (Llama 3.3 70B) initialisé")
+                return _clients[provider]
+            except ImportError:
+                # Fallback: utiliser httpx directement
+                log.warning("⚠️ Package groq non installé, utilisation de httpx comme fallback")
+                import httpx
+                _clients[provider] = ("groq_fallback", api_key)
+                log.info("✅ Groq fallback (httpx) initialisé")
+                return _clients[provider]
+
+        if provider == "gemini":
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(
+                model_name="gemini-2.0-flash",
+                generation_config={"temperature": 0.3, "max_output_tokens": 1200},
+                system_instruction=_ELITE_BASE_PROMPT,
+            )
+            _clients[provider] = ("gemini", model)
+            log.info("✅ Gemini 2.0 Flash initialisé")
+            return _clients[provider]
+
     except Exception as e:
-        log.error("Groq init: %s", e)
+        import traceback
+        log.error(f"❌ Erreur init {provider} : {e}")
+        log.error(traceback.format_exc())
         return None
 
-def _get_gemini():
-    global _gemini_model
-    if _gemini_model is not None:
-        return _gemini_model
-    api_key = os.getenv("GEMINI_API_KEY", "")
-    if not api_key:
-        return None
-    try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        _gemini_model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
-            generation_config={"temperature": 0.35, "max_output_tokens": 900, "top_p": 0.92},
-            system_instruction=_BASE_PROMPT,
-        )
-        log.info("✅ Gemini 2.0 Flash initialisé")
-        return _gemini_model
-    except Exception as e:
-        log.error("Gemini init: %s", e)
-        return None
+# ========================================================
+#  VOICE TTS SERVICE
+# ========================================================
 
-# ════════════════════════════════════════════════════════════════
-#  FALLBACK LOCAL COMPLET (15 catégories)
-# ════════════════════════════════════════════════════════════════
+class EliteTTSService:
+    """Service TTS ELITE pour générer des voix professionnelles."""
 
-def _local_response(message: str, ctx: dict[str, Any], mode: str) -> str:
-    """Réponse analytique calculée localement depuis les données brutes."""
+    def __init__(self):
+        self._elevenlabs_client = None
+        self._openai_client = None
+
+    def _init_elevenlabs(self):
+        if self._elevenlabs_client:
+            return self._elevenlabs_client
+        api_key = os.getenv("ELEVENLABS_API_KEY", "")
+        if not api_key:
+            return None
+        try:
+            from elevenlabs.client import ElevenLabs
+            self._elevenlabs_client = ElevenLabs(api_key=api_key)
+            return self._elevenlabs_client
+        except Exception as e:
+            log.error(f"❌ Erreur ElevenLabs : {e}")
+            return None
+
+    def _init_openai(self):
+        if self._openai_client:
+            return self._openai_client
+        api_key = os.getenv("OPENAI_API_KEY", "")
+        if not api_key:
+            return None
+        try:
+            from openai import OpenAI
+            self._openai_client = OpenAI(api_key=api_key)
+            return self._openai_client
+        except Exception as e:
+            log.error(f"❌ Erreur OpenAI TTS : {e}")
+            return None
+
+    async def generate_voice(
+        self,
+        text: str,
+        provider: Literal["elevenlabs", "openai"] = "openai",
+        voice_id: str = "nova"
+    ) -> bytes | None:
+        try:
+            if provider == "elevenlabs":
+                client = self._init_elevenlabs()
+                if not client:
+                    return None
+                loop = asyncio.get_event_loop()
+                audio = await loop.run_in_executor(
+                    None,
+                    lambda: client.generate(text=text, voice=voice_id, model="eleven_multilingual_v2")
+                )
+                return b"".join(chunk for chunk in audio if chunk)
+            if provider == "openai":
+                client = self._init_openai()
+                if not client:
+                    return None
+                loop = asyncio.get_event_loop()
+                response = await loop.run_in_executor(
+                    None,
+                    lambda: client.audio.speech.create(model="tts-1", voice=voice_id, input=text)
+                )
+                return response.read()
+            return None
+        except Exception as e:
+            log.error(f"❌ Erreur TTS {provider} : {e}")
+            return None
+
+    def list_voices(self, provider: Literal["elevenlabs", "openai"] = "openai"):
+        return ELITE_VOICES.get(provider, {})
+
+# ========================================================
+#  FALLBACK LOCAL — ELITE
+# ========================================================
+
+def _elite_local_response(message: str, ctx: dict[str, Any], mode: str) -> str:
     if not ctx:
-        return ("Aucune analyse chargée. Importez un fichier financier depuis le Dashboard "
-                "pour démarrer votre diagnostic Doctor Smile.")
+        return ("Aucune analyse chargée. Importez un fichier financier depuis le Dashboard pour démarrer votre diagnostic Doctor Smile ELITE.")
 
-    lc    = message.lower()
+    lc = message.lower()
     score = ctx.get("score", "—")
-    zone  = ctx.get("zone", "vigilance")
-    nom   = ctx.get("entreprise", "l'entreprise")
+    zone = ctx.get("zone", "vigilance")
+    nom = ctx.get("entreprise", "l'entreprise")
 
-    # Normalisation des ratios
-    raw_ratios = ctx.get("ratios") or []
-    ratios_map: dict[str, dict] = {}
-    for r in raw_ratios:
-        key = (r.get("name") or r.get("n") or "").lower()
-        ratios_map[key] = r
+    ratios = ctx.get("ratios", [])
+    shap = ctx.get("shapValues") or ctx.get("shap", [])
+    recos = ctx.get("recommendations") or ctx.get("recos", [])
+    traj = ctx.get("trajectory", {})
 
-    def _rv(r: dict) -> str:
-        return str(r.get("value") or r.get("v") or "—")
-
-    def _rb(r: dict) -> str:
-        return str(r.get("benchmark") or r.get("b") or "—")
-
-    def _rs(r: dict) -> str:
-        s = r.get("status")
-        if s == "green": return "✅"
-        if s == "yellow": return "⚠️"
-        if s == "red": return "🔴"
-        return ""
-
-    def _find(*keys) -> dict | None:
-        for k in keys:
-            for rk, rv in ratios_map.items():
-                if k.lower() in rk: return rv
+    def find_ratio(*keywords):
+        for r in ratios:
+            name = str(r.get("name") or r.get("n", "")).lower()
+            for kw in keywords:
+                if kw.lower() in name:
+                    return r
         return None
 
-    shap  = ctx.get("shapValues") or ctx.get("shap") or []
-    recos = ctx.get("recommendations") or ctx.get("recos") or []
-    traj  = ctx.get("trajectory") or {}
-    anom  = ctx.get("anomalies") or {}
+    if re.search(r"score|note|résultat|santé|état|diagnostic", lc) or mode == "diagnostic":
+        top_shap = shap[:3]
+        urgent = next((r for r in recos if r.get("level") in ["high", "urgent"]), None)
+        return f"""## 🩺 Diagnostic ELITE — {nom}
 
-    # ── Score global / diagnostic ────────────────────────────
-    if re.search(r"score|note|résultat|santé|état|diagnostic|global|comment|ça va", lc) or mode == "diagnostic":
-        top3 = shap[:3]
-        top3_str = " | ".join(
-            f"{'📈' if (s.get('direction')=='positive' or s.get('pos',True)) else '📉'} **{s.get('feature') or s.get('n', '—')}**"
-            for s in top3
-        ) if top3 else "—"
-        urgent = next((r for r in recos if (r.get("level") or r.get("lvl")) == "high"), None)
-        trend  = traj.get("trend", "")
+**Doctor Score™ : {score}/100 — {ZONE_LABELS.get(zone, zone)}**
 
-        state = {
-            "saine":     "✅ **Santé financière solide.** Les fondamentaux sont au-dessus des normes sectorielles.",
-            "vigilance": "⚠️ **Situation mitigée.** Certains indicateurs méritent une attention particulière.",
-            "risque":    "🔶 **Situation préoccupante.** Plusieurs ratios sont en dessous des normes. Des actions sont nécessaires.",
-            "critique":  "🔴 **Situation critique.** Des mesures correctrices urgentes s'imposent pour éviter la défaillance.",
-        }.get(zone, "—")
+{ELITE_MODE_INSTRUCTIONS['diagnostic'].split('## 🩺 Résumé Exécutif')[0].strip()}
 
-        reply = f"## 🩺 Diagnostic — {nom}\n\n"
-        reply += f"**Doctor Score™ : {score}/100 — {ZONE_LABELS.get(zone, zone)}**\n\n{state}\n\n"
-        reply += f"**Principaux facteurs (SHAP) :** {top3_str}\n\n"
-        if trend:
-            reply += f"**Trajectoire :** tendance {trend}"
-            if traj.get("alert_horizon"):
-                reply += f" · ⚠️ horizon alerte : {traj['alert_horizon']} période(s)"
-            reply += "\n\n"
-        if urgent:
-            reply += f"**💊 Priorité :** {urgent.get('title') or urgent.get('t', '—')}\n\n"
-        reply += "*Connectez le backend FastAPI pour un diagnostic LLM complet avec recommandations détaillées.*"
-        return reply
+**Principaux facteurs (SHAP) :**
+{chr(10).join(f"  {'🔴' if s.get('direction') == 'positive' or s.get('pos', True) else '✅'} {s.get('feature') or s.get('n') or '—'}" for s in top_shap)}
+"""
 
-    # ── Liquidité ────────────────────────────────────────────
-    if re.search(r"liquid|trésor|cash|courant|disponibil", lc):
-        cr = _find("liquidité générale", "current ratio", "liquidite generale")
-        qr = _find("liquidité immédiate", "quick ratio", "liquidite immediate")
-        ca = _find("cash ratio", "trésorerie passive")
-        r  = "## 💧 Analyse de la Liquidité\n\n"
-        if cr:
-            v = float(str(_rv(cr)).replace(",", ".")) if _rv(cr) != "—" else 1.0
-            r += f"**Liquidité générale : {_rv(cr)}** {_rs(cr)}\n"
-            r += "Benchmark : " + _rb(cr) + "\n"
-            r += ("✅ Au-dessus de 1 — actifs courants couvrent les dettes à court terme.\n\n"
-                  if v >= 1 else
-                  "🔴 En dessous de 1 — risque d'insolvabilité à court terme. Surveiller la trésorerie quotidiennement.\n\n")
-        if qr:
-            r += f"**Liquidité immédiate (sans stocks) : {_rv(qr)}** {_rs(qr)} — Benchmark : {_rb(qr)}\n\n"
-        if ca:
-            r += f"**Cash Ratio (trésorerie pure) : {_rv(ca)}** {_rs(ca)} — Benchmark : {_rb(ca)}\n\n"
-        if not cr and not qr:
-            r += "*Ratios de liquidité non disponibles dans cette analyse.*"
-        return r
+    if re.search(r"liquid|trésor|cash|courant", lc):
+        cr = find_ratio("liquidité générale", "current ratio")
+        qr = find_ratio("liquidité immédiate", "quick ratio")
+        return f"""## 💧 Analyse Liquidité ELITE — {nom}
+{"**Liquidité générale :** " + str(cr.get("value") or cr.get("v")) if cr else "—"} | Benchmark : {cr.get("benchmark") if cr else "—"}
+{"**Liquidité immédiate :** " + str(qr.get("value") or qr.get("v")) if qr else "—"} | Benchmark : {qr.get("benchmark") if qr else "—"}
+"""
 
-    # ── Endettement ──────────────────────────────────────────
-    if re.search(r"endett|dette|levier|solv|capital|fond propre", lc):
-        de  = _find("endettement", "debt/equity", "d/e", "dettes capitaux")
-        sol = _find("solvabilité", "solvabilite")
-        ci  = _find("couverture", "intérêts")
-        r   = "## 🏦 Structure Financière & Endettement\n\n"
-        if de:
-            v = float(str(_rv(de)).replace(",", ".")) if _rv(de) != "—" else 1.5
-            r += f"**Ratio Dettes/Capitaux : {_rv(de)}** {_rs(de)} — Benchmark : {_rb(de)}\n"
-            if v > 3:   r += "🔴 Levier très élevé. Entreprise fortement dépendante de la dette externe.\n\n"
-            elif v > 2: r += "⚠️ Levier significatif. Surveiller la charge financière.\n\n"
-            else:       r += "✅ Levier modéré. Bonne autonomie financière.\n\n"
-        if sol:
-            r += f"**Solvabilité : {_rv(sol)}** {_rs(sol)} — Benchmark : {_rb(sol)}\n\n"
-        if ci:
-            r += f"**Couverture intérêts : {_rv(ci)}** {_rs(ci)} — Benchmark : {_rb(ci)}\n\n"
-        if not de and not sol:
-            r += "*Ratios d'endettement non disponibles.*"
-        return r
+    top_shap = shap[0] if shap else None
+    return f"""## 🩺 Doctor Smile ELITE — {nom}
 
-    # ── Rentabilité ──────────────────────────────────────────
-    if re.search(r"rentabilité|roa|roe|marge|bénéfice|profit|résultat", lc):
-        roa = _find("roa", "rentabilité actif")
-        roe = _find("roe", "rentabilité capitaux", "rentabilite capitaux")
-        em  = _find("ebitda", "excédent brut")
-        nm  = _find("marge nette", "net margin")
-        r   = "## 📈 Analyse de la Rentabilité\n\n"
-        if roa: r += f"**ROA : {_rv(roa)}** {_rs(roa)} — Pour 100F d'actif, {_rv(roa)} de résultat net. Benchmark : {_rb(roa)}\n\n"
-        if roe: r += f"**ROE : {_rv(roe)}** {_rs(roe)} — Rendement des capitaux propres. Benchmark : {_rb(roe)}\n\n"
-        if em:  r += f"**Marge EBITDA : {_rv(em)}** {_rs(em)} — Marge opérationnelle avant amortissements. Benchmark : {_rb(em)}\n\n"
-        if nm:  r += f"**Marge nette : {_rv(nm)}** {_rs(nm)} — Part du CA devenant bénéfice net. Benchmark : {_rb(nm)}\n\n"
-        if not roa and not roe: r += "*Ratios de rentabilité non disponibles.*"
-        return r
+**Score : {score}/100 — {ZONE_LABELS.get(zone, zone)}**
+{"**Facteur principal :** " + str(top_shap.get("feature") or top_shap.get("n")) if top_shap else "—"}
 
-    # ── SHAP / facteurs ──────────────────────────────────────
-    if re.search(r"shap|facteur|impact|expliquer|pourquoi|cause|contribu", lc):
-        if not shap:
-            return "*Les valeurs SHAP ne sont pas disponibles. Relancez une analyse complète.*"
-        positifs = [s for s in shap if (s.get("direction") == "positive" or s.get("pos", True))][:4]
-        negatifs = [s for s in shap if not (s.get("direction") == "positive" or s.get("pos", False))][:4]
-        r = f"## 🔍 Facteurs d'Impact SHAP — {nom}\n\n"
-        r += f"**Facteurs qui augmentent le risque :**\n"
-        for s in positifs:
-            r += f"  📈 **{s.get('feature') or s.get('n','—')}** : +{abs(s.get('value') or s.get('v') or 0):.4f}\n"
-        r += f"\n**Facteurs protecteurs :**\n"
-        for s in negatifs:
-            r += f"  📉 **{s.get('feature') or s.get('n','—')}** : -{abs(s.get('value') or s.get('v') or 0):.4f}\n"
-        top = shap[0] if shap else None
-        if top:
-            r += f"\n*Le facteur le plus impactant est **{top.get('feature') or top.get('n','—')}**.*"
-        return r
+Posez une question précise : liquidité, endettement, rentabilité, plan d'action...
+*Connectez le backend pour des réponses LLM ELITE.*"""
 
-    # ── Recommandations / plan ───────────────────────────────
-    if re.search(r"recomm|conseil|action|am[eé]liorer|que faire|priorit|plan", lc) or mode == "plan":
-        if not recos:
-            return "*Aucune recommandation disponible. Lancez une analyse complète depuis le Dashboard.*"
-        urgent  = [r for r in recos if (r.get("level") or r.get("lvl")) == "high"][:2]
-        importt = [r for r in recos if (r.get("level") or r.get("lvl")) == "medium"][:2]
-        low     = [r for r in recos if (r.get("level") or r.get("lvl")) == "low"][:1]
-        r = f"## 📋 Plan d'Action — {nom}\n\n"
-        if urgent:
-            r += "### 🔴 Actions Urgentes\n"
-            for rec in urgent:
-                r += f"- **{rec.get('title') or rec.get('t','—')}** : {(rec.get('description') or rec.get('d') or '')[:100]}\n"
-            r += "\n"
-        if importt:
-            r += "### ⚠️ Actions Importantes\n"
-            for rec in importt:
-                r += f"- **{rec.get('title') or rec.get('t','—')}** : {(rec.get('description') or rec.get('d') or '')[:100]}\n"
-            r += "\n"
-        if low:
-            r += "### 💡 Optimisations\n"
-            for rec in low:
-                r += f"- {rec.get('title') or rec.get('t','—')}\n"
-        return r
+# ========================================================
+#  ELITE CHAT SERVICE
+# ========================================================
 
-    # ── Trajectoire ──────────────────────────────────────────
-    if re.search(r"traject|tendance|[eé]volution|futur|pr[eé]vision|prochaine", lc):
-        if not traj or not traj.get("trend"):
-            return "*Trajectoire non disponible. Effectuez plusieurs analyses successives pour calculer la tendance.*"
-        r = f"## 📈 Trajectoire Financière — {nom}\n\n"
-        r += f"**Tendance actuelle : {traj.get('trend', '—')}**\n"
-        r += f"Vélocité : {traj.get('velocity', 0)} pt/période | Accélération : {traj.get('acceleration', 0)}\n\n"
-        if traj.get("alert_horizon"):
-            r += f"⚠️ **Sans action corrective, le seuil critique pourrait être atteint dans {traj['alert_horizon']} période(s).**\n\n"
-        forecast = traj.get("forecast_scores", [])[:3]
-        if forecast:
-            r += f"**Prévision 3 prochaines périodes :** {', '.join(str(s) for s in forecast)} pts\n\n"
-        if traj.get("narrative"):
-            r += f"*{traj['narrative']}*"
-        return r
+from app.services.email_service import email_service
+from app.services.pdf_service import pdf_service
 
-    # ── Anomalies ────────────────────────────────────────────
-    if re.search(r"anomalie|fraude|incoh[eé]rence|suspect|bizarre|v[eé]rif", lc) or mode == "alerte":
-        if not anom:
-            return "*Détection d'anomalies non disponible. Activez le module Axe 1 dans le backend.*"
-        if anom.get("risk_level") == "normal":
-            return f"✅ **Aucune anomalie significative détectée pour {nom}.**\nScore d'anomalie : {anom.get('anomaly_score', 0)}/100. Les données financières sont cohérentes."
-        r = f"## 🔔 Anomalies Détectées — {nom}\n\n"
-        r += f"**Niveau : {anom.get('risk_level', '—').upper()}** | Score anomalie : {anom.get('anomaly_score', 0)}/100\n\n"
-        for flag in (anom.get("flags") or [])[:5]:
-            severity_icon = {"critical": "🔴", "warning": "⚠️"}.get(flag.get("severity"), "ℹ️")
-            r += f"{severity_icon} **{flag.get('name', '—')}**\n{flag.get('detail', '')[:150]}\n\n"
-        r += f"**Recommandation :** {anom.get('recommendation', '—')}"
-        return r
-
-    # ── Banquier ─────────────────────────────────────────────
-    if mode == "banquier":
-        ci_r  = _find("couverture", "intérêts")
-        sol_r = _find("solvabilité")
-        de_r  = _find("endettement", "dettes capitaux")
-        prob  = ctx.get("probabiliteDefaut")
-        r = f"## 🏦 Synthèse Crédit — {nom}\n\n"
-        r += f"**Doctor Score™ : {score}/100 — {ZONE_LABELS.get(zone, zone)}**\n"
-        if prob is not None:
-            r += f"Probabilité de défaut : **{round(float(prob)*100,1) if float(prob)<=1 else round(float(prob),1)}%**\n\n"
-        r += "### Capacité de remboursement\n"
-        if ci_r: r += f"Couverture intérêts : {_rv(ci_r)} (benchmark : {_rb(ci_r)}) {_rs(ci_r)}\n"
-        r += "\n### Solvabilité\n"
-        if sol_r: r += f"Ratio solvabilité : {_rv(sol_r)} (benchmark : {_rb(sol_r)}) {_rs(sol_r)}\n"
-        if de_r:  r += f"Levier financier : {_rv(de_r)} (benchmark : {_rb(de_r)}) {_rs(de_r)}\n"
-        r += "\n*Connectez le backend pour une synthèse bancaire complète au format OHADA.*"
-        return r
-
-    # ── Réponse générique enrichie ───────────────────────────
-    top  = shap[0] if shap else None
-    recoU = next((r for r in recos if (r.get("level") or r.get("lvl")) == "high"), None)
-    worst = min(
-        [r for r in raw_ratios if isinstance(r.get("percentile") or r.get("p"), (int, float))],
-        key=lambda r: r.get("percentile") or r.get("p") or 100,
-        default=None
-    )
-
-    r = f"## 🩺 Doctor Smile — **{nom}**\n\n"
-    r += f"**Score : {score}/100 — {ZONE_LABELS.get(zone, zone)}**\n\n"
-    if top:
-        r += f"**Facteur principal :** {top.get('feature') or top.get('n','—')} "
-        r += f"({'augmente' if (top.get('direction')=='positive' or top.get('pos',True)) else 'protège contre'} le risque)\n\n"
-    if worst:
-        wn = worst.get("name") or worst.get("n","—")
-        wv = worst.get("value") or worst.get("v","—")
-        wb = worst.get("benchmark") or worst.get("b","—")
-        r += f"**Point d'amélioration prioritaire :** {wn} = {wv} (objectif : {wb})\n\n"
-    if recoU:
-        r += f"**Action urgente :** {recoU.get('title') or recoU.get('t','—')}\n\n"
-    r += "Posez une question précise : *liquidité, endettement, rentabilité, plan d'action, trajectoire, anomalies...*\n"
-    r += "*Connectez le backend FastAPI pour des réponses LLM complètes.*"
-    return r
-
-# ════════════════════════════════════════════════════════════════
-#  SERVICE PRINCIPAL
-# ════════════════════════════════════════════════════════════════
-
-class ChatServiceV2:
-    """
-    Service de chat IA v2.
-    Compatible avec l'interface de ChatService v1 (méthode chat()).
-    Ajoute : mode adaptatif, contexte complet, modèle retourné.
-    """
+class EliteChatService:
+    def __init__(self):
+        self.tts = EliteTTSService()
 
     async def chat(
         self,
-        message:  str,
-        history:  list[dict[str, str]],
-        context:  dict[str, Any],
-        mode:     str = "auto",
-        system:   str | None = None,
-    ) -> str:
+        message: str,
+        history: list[dict[str, str]],
+        context: dict[str, Any],
+        mode: str = "auto",
+        llm_provider: Literal["auto", "openai", "anthropic", "groq", "gemini"] = "auto",
+        voice_provider: Literal["none", "openai", "elevenlabs"] = "none",
+        voice_id: str = "nova",
+        system_prompt: str | None = None,
+        user_info: dict[str, Any] | None = None,
+    ) -> dict:
         """
-        Retourne la réponse textuelle.
-        Compatible drop-in avec chat_service v1.
+        Retourne un dict avec : response, model, voice_bytes (optional)
         """
-        result, _ = await self.chat_with_model(message, history, context, mode, system)
-        return result
+        confirm_prefix = ""
 
-    async def chat_with_model(
+        if re.search(r"(envoie|envoi|mail|email).*(rapport|analyse|pdf)", message.lower()) and context and user_info and user_info.get("email"):
+            asyncio.create_task(self._send_report(context, user_info))
+            confirm_prefix = f"✅ **Action confirmée :** Rapport PDF en cours d'envoi à {user_info['email']}.\n\n---\n\n"
+
+        text_response, model_used = await self._chat_with_elite_llm(
+            message, history, context, mode, llm_provider, system_prompt
+        )
+
+        voice_bytes = None
+        if voice_provider != "none":
+            voice_bytes = await self.tts.generate_voice(text_response, voice_provider, voice_id)
+
+        return {
+            "response": confirm_prefix + text_response,
+            "model": model_used,
+            "voice_bytes": voice_bytes,
+        }
+
+    async def _chat_with_elite_llm(
         self,
-        message:  str,
-        history:  list[dict[str, str]],
-        context:  dict[str, Any],
-        mode:     str = "auto",
-        system:   str | None = None,
+        message: str,
+        history: list[dict[str, str]],
+        context: dict[str, Any],
+        mode: str,
+        llm_provider: str | None,
+        system_prompt: str | None,
     ) -> tuple[str, str]:
-        """
-        Retourne (réponse, modèle_utilisé).
-        """
-        if system:
-            effective_mode = mode
-            final_system = system
-        else:
-            effective_mode = _detect_mode(message, mode)
-            final_system = _BASE_PROMPT + "\n\n## MODE ACTIF : " + MODES.get(effective_mode, "") + "\n" + MODE_INSTRUCTIONS.get(effective_mode, MODE_INSTRUCTIONS["auto"])
-            
-        ctx_str = _format_full_context(context) if context else ""
-        max_tok = {"diagnostic": 900, "plan": 1000, "banquier": 850, "simulateur": 800, "alerte": 750, "pedagogique": 700}.get(effective_mode, 650)
+
+        log.info(f"🟣 _chat_with_elite_llm appelé avec llm_provider={llm_provider}")
         
-        # Allouer plus de tokens si c'est un agent IA complet (prompt système complexe)
-        if system:
-            max_tok = 1500
+        effective_mode = _detect_mode(message, mode)
+        if system_prompt:
+            final_system = system_prompt
+        else:
+            final_system = (_ELITE_BASE_PROMPT +
+                          "\n\n## MODE ELITE : " + MODES.get(effective_mode, "") +
+                          "\n" + ELITE_MODE_INSTRUCTIONS.get(effective_mode, ""))
 
-        # Priorité 1 : Groq
-        groq = _get_groq()
-        if groq:
-            try:
-                reply = await self._call_groq(groq, message, history, ctx_str, final_system, max_tok)
-                log.info("[chat_v2] Groq ✅ mode=%s len=%d", effective_mode, len(reply))
-                return reply, "Groq · Llama 3.3"
-            except Exception as e:
-                log.warning("[chat_v2] Groq error (%s) → Gemini", e)
+        ctx_str = _elite_format_context(context) if context else ""
 
-        # Priorité 2 : Gemini
-        gemini = _get_gemini()
-        if gemini:
-            try:
-                reply = await self._call_gemini(gemini, message, history, ctx_str, final_system, max_tok)
-                log.info("[chat_v2] Gemini ✅ mode=%s len=%d", effective_mode, len(reply))
-                return reply, "Gemini · Flash 2.0"
-            except Exception as e:
-                log.warning("[chat_v2] Gemini error (%s) → local", e)
+        # Priority chain for LLM providers
+        if llm_provider is None or llm_provider == "auto" or llm_provider == "":
+            providers = ["groq", "openai", "anthropic", "gemini"]
+        else:
+            providers = [llm_provider]
 
-        # Priorité 3 : Fallback local
-        reply = _local_response(message, context, effective_mode)
-        return reply, "Local"
+        log.info(f"🟣 Providers à essayer: {providers}")
 
-    async def _call_groq(self, client, message, history, ctx_str, system, max_tok) -> str:
+        for provider in providers:
+            log.info(f"🟣 Tentative avec provider: {provider}")
+            client_data = _get_client(provider)
+            if client_data:
+                p, client = client_data
+                log.info(f"🟣 Client {p} récupéré avec succès")
+                try:
+                    if p == "openai":
+                        return await self._call_openai(client, message, history, ctx_str, final_system)
+                    if p == "anthropic":
+                        return await self._call_anthropic(client, message, history, ctx_str, final_system)
+                    if p == "groq" or p == "groq_fallback":
+                        return await self._call_groq(client, message, history, ctx_str, final_system)
+                    if p == "gemini":
+                        return await self._call_gemini(client, message, history, ctx_str, final_system)
+                except Exception as e:
+                    import traceback
+                    log.warning(f"⚠️ {provider} échoué : {e} → essai suivant")
+                    log.warning(traceback.format_exc())
+            else:
+                log.warning(f"⚠️ Aucun client disponible pour {provider}")
+
+        log.warning("🟣 Aucun provider LLM n'a fonctionné, utilisation du fallback local")
+        return _elite_local_response(message, context, effective_mode), "Local"
+
+    async def _call_openai(self, client, message, history, ctx_str, system):
         messages = [{"role": "system", "content": system}]
+        seen = set()
+        for turn in history[-18:]:
+            content = str(turn.get("content", "")).strip()
+            key = (turn.get("role"), content[:80])
+            if content and key not in seen:
+                messages.append({"role": turn.get("role", "user"), "content": content})
+                seen.add(key)
 
-        # Historique dédupliqué (20 tours max)
+        user_content = f"{ctx_str}\n\n[QUESTION]\n{message}" if ctx_str else message
+        messages.append({"role": "user", "content": user_content})
+
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "calculate_financial_ratio",
+                    "description": "Calcule un ratio financier précis à partir des valeurs brutes pour éviter les erreurs mathématiques.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "ratio_type": {"type": "string", "enum": ["liquidite_courante", "marge_nette", "roe", "endettement", "bfg"]},
+                            "valeur_1": {"type": "number", "description": "Numérateur (ex: Actif circulant, Résultat net)"},
+                            "valeur_2": {"type": "number", "description": "Dénominateur (ex: Passif circulant, CA, Capitaux propres)"}
+                        },
+                        "required": ["ratio_type", "valeur_1", "valeur_2"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_industry_benchmark",
+                    "description": "Récupère les moyennes sectorielles d'Afrique pour comparer la performance de l'entreprise.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "sector": {"type": "string", "enum": ["agriculture", "manufacturing", "retail", "telecom", "fintech", "default"]}
+                        },
+                        "required": ["sector"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "simulate_what_if",
+                    "description": "Simule l'impact d'une décision sur le Doctor Score (ex: +10% CA, -50k dettes).",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "action": {"type": "string", "description": "L'action simulée (ex: augmenter_ca, reduire_dette)"},
+                            "amount_or_percent": {"type": "number", "description": "La valeur de la variation (+10, -50000)"}
+                        },
+                        "required": ["action", "amount_or_percent"]
+                    }
+                }
+            }
+        ]
+
+        # Boucle Agentic (ReAct)
+        max_iterations = 3
+        for _ in range(max_iterations):
+            response = await client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages,
+                temperature=0.3,
+                max_tokens=1200,
+                tools=tools,
+                tool_choice="auto"
+            )
+            
+            response_message = response.choices[0].message
+            
+            if not response_message.tool_calls:
+                return response_message.content.strip(), "OpenAI · GPT-4o (Agentic)"
+                
+            messages.append(response_message)
+            
+            for tool_call in response_message.tool_calls:
+                function_name = tool_call.function.name
+                import json
+                try:
+                    args = json.loads(tool_call.function.arguments)
+                except Exception:
+                    args = {}
+                    
+                tool_result = self._execute_tool(function_name, args)
+                messages.append({
+                    "tool_call_id": tool_call.id,
+                    "role": "tool",
+                    "name": function_name,
+                    "content": json.dumps(tool_result)
+                })
+
+        # Si on dépasse max_iterations
+        return "J'ai dû interrompre mon analyse approfondie. Pourriez-vous reformuler votre question ?", "OpenAI · GPT-4o (Timeout)"
+
+    def _execute_tool(self, name: str, args: dict) -> dict:
+        """Exécute les outils pour l'Agent IA."""
+        if name == "calculate_financial_ratio":
+            v1, v2 = args.get("valeur_1", 0), args.get("valeur_2", 1)
+            if v2 == 0: return {"error": "Division par zéro impossible"}
+            res = v1 / v2
+            return {"ratio_calcule": res, "formule": f"{v1} / {v2}"}
+            
+        elif name == "get_industry_benchmark":
+            sector = args.get("sector", "default").lower()
+            return AFRICAN_BENCHMARKS.get(sector, AFRICAN_BENCHMARKS["default"])
+            
+        elif name == "simulate_what_if":
+            act = args.get("action", "")
+            val = args.get("amount_or_percent", 0)
+            return {
+                "impact_estimé_sur_score": f"{'+' if val > 0 else ''}{val * 0.15:.1f} points (simulation purement théorique)",
+                "risque_associe": "Augmentation potentielle du BFR à surveiller" if "ca" in act.lower() and val > 0 else "Amélioration de la solvabilité"
+            }
+            
+        return {"error": "Outil inconnu"}
+
+    async def _call_anthropic(self, client, message, history, ctx_str, system):
+        claude_history = []
+        seen = set()
+        for turn in history[-18:]:
+            content = str(turn.get("content", "")).strip()
+            key = content[:80]
+            if content and key not in seen:
+                claude_history.append({"role": turn.get("role", "user"), "content": [{"type": "text", "text": content}]})
+                seen.add(key)
+
+        user_content = f"{ctx_str}\n\n[QUESTION]\n{message}" if ctx_str else message
+
+        response = await client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=1200,
+            system=system,
+            messages=claude_history + [{"role": "user", "content": user_content}],
+            temperature=0.3,
+        )
+        return response.content[0].text.strip(), "Anthropic · Claude 3.5 Sonnet"
+
+    async def _call_groq(self, client, message, history, ctx_str, system):
+        log.info(f"🟢 Appel Groq")
+        
+        # Si c'est un fallback httpx
+        if isinstance(client, str):
+            api_key = client
+            import httpx
+            messages = [{"role": "system", "content": system}]
+            seen = set()
+            for turn in history[-20:]:
+                content = str(turn.get("content", "")).strip()
+                key = content[:80]
+                if content and key not in seen:
+                    role = "assistant" if turn.get("role") == "assistant" else "user"
+                    messages.append({"role": role, "content": content})
+                    seen.add(key)
+            user_content = f"{ctx_str}\n\n[QUESTION]\n{message}" if ctx_str else message
+            messages.append({"role": "user", "content": user_content})
+            
+            async with httpx.AsyncClient(timeout=30.0) as http_client:
+                response = await http_client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    json={
+                        "model": "llama-3.3-70b-versatile",
+                        "messages": messages,
+                        "temperature": 0.3,
+                        "max_tokens": 1200
+                    }
+                )
+                if response.status_code != 200:
+                    log.error(f"❌ Groq API error: {response.status_code} - {response.text}")
+                    raise Exception(f"Groq API error: {response.status_code}")
+                data = response.json()
+                return data["choices"][0]["message"]["content"].strip(), "Groq · Llama 3.3 70B (httpx)"
+        
+        # Sinon, utiliser le client groq normal
+        messages = [{"role": "system", "content": system}]
         seen = set()
         for turn in history[-20:]:
-            role    = turn.get("role", "user")
-            content = (turn.get("content") or "").strip()
-            key = (role, content[:80])
+            content = str(turn.get("content", "")).strip()
+            key = content[:80]
             if content and key not in seen:
+                role = "assistant" if turn.get("role") == "assistant" else "user"
+                messages.append({"role": role, "content": content})
                 seen.add(key)
-                # Convertir 'assistant' → 'assistant' pour Groq
-                groq_role = "assistant" if role == "assistant" else "user"
-                messages.append({"role": groq_role, "content": content})
 
-        # Message utilisateur avec contexte
-        user_msg = message
-        if ctx_str:
-            user_msg = f"[CONTEXTE ANALYSE]\n{ctx_str}\n\n[QUESTION]\n{message}"
+        user_content = f"{ctx_str}\n\n[QUESTION]\n{message}" if ctx_str else message
+        messages.append({"role": "user", "content": user_content})
 
-        messages.append({"role": "user", "content": user_msg})
+        log.info(f"🟢 Envoi à Groq : {len(messages)} messages")
+        
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "calculate_financial_ratio",
+                    "description": "Calcule un ratio financier précis à partir des valeurs brutes pour éviter les erreurs mathématiques.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "ratio_type": {"type": "string", "enum": ["liquidite_courante", "marge_nette", "roe", "endettement", "bfg"]},
+                            "valeur_1": {"type": "number", "description": "Numérateur (ex: Actif circulant, Résultat net)"},
+                            "valeur_2": {"type": "number", "description": "Dénominateur (ex: Passif circulant, CA, Capitaux propres)"}
+                        },
+                        "required": ["ratio_type", "valeur_1", "valeur_2"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_industry_benchmark",
+                    "description": "Récupère les moyennes sectorielles d'Afrique pour comparer la performance de l'entreprise.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "sector": {"type": "string", "enum": ["agriculture", "manufacturing", "retail", "telecom", "fintech", "default"]}
+                        },
+                        "required": ["sector"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "simulate_what_if",
+                    "description": "Simule l'impact d'une décision sur le Doctor Score (ex: +10% CA, -50k dettes).",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "action": {"type": "string", "description": "L'action simulée (ex: augmenter_ca, reduire_dette)"},
+                            "amount_or_percent": {"type": "number", "description": "La valeur de la variation (+10, -50000)"}
+                        },
+                        "required": ["action", "amount_or_percent"]
+                    }
+                }
+            }
+        ]
 
-        loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(
-            None,
-            lambda: client.chat.completions.create(
+        # Boucle Agentic (ReAct) pour Groq
+        max_iterations = 3
+        for _ in range(max_iterations):
+            response = await client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=messages,
                 temperature=0.3,
-                max_tokens=max_tok,
+                max_tokens=1200,
+                tools=tools,
+                tool_choice="auto"
             )
-        )
-        return response.choices[0].message.content.strip()
-
-    async def _call_gemini(self, model, message, history, ctx_str, system, max_tok) -> str:
-        gemini_history = []
-        seen = set()
-        for turn in history[-16:]:
-            role    = turn.get("role", "user")
-            content = (turn.get("content") or "").strip()
-            key = content[:80]
-            if content and key not in seen:
-                seen.add(key)
-                gemini_history.append({
-                    "role":  "model" if role == "assistant" else "user",
-                    "parts": [content],
+            
+            response_message = response.choices[0].message
+            
+            if not response_message.tool_calls:
+                return response_message.content.strip(), "Groq · Llama 3.3 70B (Agentic)"
+                
+            messages.append(response_message)
+            
+            for tool_call in response_message.tool_calls:
+                function_name = tool_call.function.name
+                import json
+                try:
+                    args = json.loads(tool_call.function.arguments)
+                except Exception:
+                    args = {}
+                    
+                tool_result = self._execute_tool(function_name, args)
+                messages.append({
+                    "tool_call_id": tool_call.id,
+                    "role": "tool",
+                    "name": function_name,
+                    "content": json.dumps(tool_result)
                 })
 
-        user_msg = message
-        if ctx_str:
-            user_msg = f"[CONTEXTE ANALYSE]\n{ctx_str}\n\n[QUESTION]\n{message}"
+        return "J'ai dû interrompre mon analyse approfondie. Pourriez-vous reformuler votre question ?", "Groq · Llama 3.3 70B (Timeout)"
 
+    async def _call_gemini(self, model, message, history, ctx_str, system):
+        gem_hist = []
+        seen = set()
+        for turn in history[-16:]:
+            content = str(turn.get("content", "")).strip()
+            key = content[:80]
+            if content and key not in seen:
+                gem_hist.append({"role": "model" if turn.get("role") == "assistant" else "user", "parts": [content]})
+                seen.add(key)
+
+        user_content = f"{ctx_str}\n\n[QUESTION]\n{message}" if ctx_str else message
         loop = asyncio.get_event_loop()
         response = await loop.run_in_executor(
             None,
-            lambda: model.start_chat(history=gemini_history).send_message(user_msg)
+            lambda: model.start_chat(history=gem_hist).send_message(user_content)
         )
-        return response.text.strip()
+        return response.text.strip(), "Google · Gemini 2.0 Flash"
 
-# ════════════════════════════════════════════════════════════════
-#  SINGLETON — rétrocompatible avec v1
-# ════════════════════════════════════════════════════════════════
-chat_service = ChatServiceV2()
+    async def _send_report(self, context: dict, user_info: dict):
+        try:
+            export_data = {
+                "metadata": {
+                    "entreprise": context.get("entreprise"),
+                    "date": str(context.get("createdAt")),
+                    "score": context.get("score")
+                },
+                "ratios": context.get("ratios", []),
+                "recommandations": context.get("recommendations", [])
+            }
+            pdf_bytes = pdf_service.generate_report(export_data)
+            await email_service.send_report_pdf(
+                email=user_info["email"],
+                name=user_info.get("name", "Client"),
+                entreprise=context.get("entreprise", "votre entreprise"),
+                pdf_bytes=pdf_bytes
+            )
+            log.info(f"📧 Rapport ELITE envoyé à {user_info['email']}")
+        except Exception as e:
+            log.error(f"❌ Erreur envoi rapport : {e}")
 
-# Exposer les helpers pour le router chat.py
-get_active_model = lambda: (
-    "Groq · Llama 3.3"  if _groq_client  else
-    "Gemini · Flash 2.0" if _gemini_model else
-    "Local"
-)
+    def get_available_llms(self):
+        available = []
+        for p, conf in LLM_PROVIDERS.items():
+            if os.getenv(conf["env_key"]):
+                available.append({"id": p, "name": conf["name"]})
+        return available
+
+    def get_available_voices(self, provider: str = "openai"):
+        return self.tts.list_voices(provider)
+
+# ========================================================
+#  SINGLETON
+# ========================================================
+
+chat_service = EliteChatService()

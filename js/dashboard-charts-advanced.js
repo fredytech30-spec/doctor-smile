@@ -18,7 +18,7 @@ var _AC = {
   bg:      0x02040B, navy:   0x0C1628, blue:   0x0369A1,
   ice:     0x7DD3FC, gold:   0xFFD700, amber:  0xF59E0B,
   green:   0x10B981, teal:   0x0F766E, red:    0xEF4444,
-  orange:  0xF97316, violet:0x8B5CF6, purple: 0xA78BFA,
+  orange:  0xF97316, violet:0x8B7FF0, purple: 0xA78BFA,
   white:   0xFFFFFF, gray:   0x334155,
 };
 var _ZC = { saine:0x10B981, vigilance:0xF59E0B, risque:0xF97316, critique:0xEF4444 };
@@ -209,7 +209,7 @@ function render3DSpeedometer(cid, score, zone, label) {
   lbl.innerHTML =
     '<div style="font-family:Syne,sans-serif;font-size:28px;font-weight:900;' +
       'color:' + (_ZN[zone] || '#f59e0b') + ';line-height:1;">' + score + '</div>' +
-    '<div style="font-size:8px;color:rgba(255,255,255,.35);letter-spacing:.12em;margin-top:2px;">' +
+    '<div style="font-size:8px;color:var(--text-muted);letter-spacing:.12em;margin-top:2px;">' +
       (label || '/100 · SANTÉ FINANCIÈRE') + '</div>';
   el.style.position = 'relative';
   el.appendChild(lbl);
@@ -333,7 +333,7 @@ function render3DFRBFR(cid, ratios, score, zone) {
   info.style.cssText = 'position:absolute;bottom:10px;left:0;right:0;' +
     'display:flex;justify-content:space-around;pointer-events:none;padding:0 8px;';
   var labels = [
-    { name: 'Fonds de Roulement', val: liq.toFixed(2),  col: '#38BDF8', unit: 'x' },
+    { name: 'Fonds de Roulement', val: liq.toFixed(2),  col: '#8B7FF0', unit: 'x' },
     { name: 'Besoin FR',          val: bfrRaw.toFixed(1),col: '#F59E0B', unit: '%CA' },
     { name: 'Trésorerie Nette',   val: treso.toFixed(2), col: '#10B981', unit: 'x' },
   ];
@@ -341,7 +341,7 @@ function render3DFRBFR(cid, ratios, score, zone) {
     return '<div style="text-align:center;">' +
       '<div style="font-family:Syne,sans-serif;font-size:9px;font-weight:900;color:' +
         l.col + ';">' + l.val + l.unit + '</div>' +
-      '<div style="font-size:7.5px;color:rgba(255,255,255,.3);letter-spacing:.04em;">' +
+      '<div style="font-size:7.5px;color:var(--text-hint);letter-spacing:.04em;">' +
         l.name.toUpperCase() + '</div></div>';
   }).join('');
   el.appendChild(info);
@@ -401,7 +401,7 @@ function render3DScoreCard(cid, ratios, score, zone) {
   var pillars = [
     { name: 'Liquidité',    score: pilier(['liquid', 'trésor', 'cash']),    col: 0x0EA5E9, em: 0x38BDF8 },
     { name: 'Rentabilité',  score: pilier(['roa', 'roe', 'marge', 'ebitda']),col: 0xF59E0B, em: 0xFBBF24 },
-    { name: 'Solvabilité',  score: pilier(['solvab', 'endett', 'debt']),     col: 0x8B5CF6, em: 0xA78BFA },
+    { name: 'Solvabilité',  score: pilier(['solvab', 'endett', 'debt']),     col: 0x8B7FF0, em: 0xA78BFA },
     { name: 'Activité',     score: pilier(['rotation', 'bfr', 'couvert']),   col: 0x10B981, em: 0x34D399 },
     { name: 'Structure',    score: pilier(['altman', 'retained', 'capital']),col: 0xF97316, em: 0xFB923C },
   ];
@@ -492,7 +492,7 @@ function render3DScoreCard(cid, ratios, score, zone) {
     return '<div style="text-align:center;">' +
       '<div style="font-family:Syne,sans-serif;font-size:10px;font-weight:900;color:' + col + ';">' +
         Math.round(p.score) + '</div>' +
-      '<div style="font-size:7px;color:rgba(255,255,255,.28);letter-spacing:.04em;">' +
+      '<div style="font-size:7px;color:var(--text-hint);letter-spacing:.04em;">' +
         p.name.toUpperCase() + '</div></div>';
   }).join('');
   el.appendChild(overlay);
@@ -628,7 +628,7 @@ function render3DRiskMatrix(cid, ratios, score, zone) {
   el.style.position = 'relative';
   var axeX = document.createElement('div');
   axeX.style.cssText = 'position:absolute;bottom:8px;left:50%;transform:translateX(-50%);' +
-    'font-family:Syne,sans-serif;font-size:7.5px;color:rgba(255,255,255,.3);letter-spacing:.08em;';
+    'font-family:Syne,sans-serif;font-size:7.5px;color:var(--text-hint);letter-spacing:.08em;';
   axeX.textContent = '← PROBABILITÉ FAIBLE · · · · PROBABILITÉ ÉLEVÉE →';
   el.appendChild(axeX);
 
@@ -795,7 +795,7 @@ function render3DAltmanZ(cid, ratios, score, zone) {
   var altmanZ = 1.2 * x1 + 1.4 * x2 + 3.3 * x3 + 0.6 * x4 + 1.0 * x5;
   var contrib = [
     { name: 'X1 · BFR/Actif',      val: 1.2 * x1, color: 0x0EA5E9, raw: x1, coef: 1.2 },
-    { name: 'X2 · RE/Actif',       val: 1.4 * x2, color: 0x8B5CF6, raw: x2, coef: 1.4 },
+    { name: 'X2 · RE/Actif',       val: 1.4 * x2, color: 0x8B7FF0, raw: x2, coef: 1.4 },
     { name: 'X3 · EBIT/Actif',     val: 3.3 * x3, color: 0xF59E0B, raw: x3, coef: 3.3 },
     { name: 'X4 · CP/Dettes',      val: 0.6 * x4, color: 0x10B981, raw: x4, coef: 0.6 },
     { name: 'X5 · CA/Actif',       val: 1.0 * x5, color: 0xF97316, raw: x5, coef: 1.0 },
@@ -889,7 +889,7 @@ function render3DAltmanZ(cid, ratios, score, zone) {
   zLabel.innerHTML =
     '<div style="font-family:Syne,sans-serif;font-size:20px;font-weight:900;color:' + zCol + ';">' +
       altmanZ.toFixed(2) + '</div>' +
-    '<div style="font-size:8px;color:rgba(255,255,255,.35);letter-spacing:.06em;">ALTMAN Z</div>' +
+    '<div style="font-size:8px;color:var(--text-muted);letter-spacing:.06em;">ALTMAN Z</div>' +
     '<div style="font-size:7.5px;color:' + zCol + ';margin-top:2px;">' + zTxt + '</div>';
   el.appendChild(zLabel);
 
@@ -902,7 +902,7 @@ function render3DAltmanZ(cid, ratios, score, zone) {
       ',0.9)';
     return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">' +
       '<div style="width:7px;height:7px;border-radius:2px;background:' + cc + ';flex-shrink:0;"></div>' +
-      '<span style="font-family:Syne,sans-serif;font-size:7px;color:rgba(255,255,255,.45);">' +
+      '<span style="font-family:Syne,sans-serif;font-size:7px;color:var(--text-muted);">' +
         c.name.split('·')[0].trim() + '</span></div>';
   }).join('');
   el.appendChild(varLabels);
@@ -947,5 +947,5 @@ if (window.DS_EXTRA) {
 
 (function() {
   console.log('%c[DS Charts Advanced v1] ✅ 6 graphes chargés',
-    'color:#a78bfa;font-weight:bold;background:rgba(139,92,246,.1);padding:3px 8px;border-radius:4px;');
+    'color:#8B7FF0;font-weight:bold;background:rgba(139,127,240,.1);padding:3px 8px;border-radius:4px;');
 })();

@@ -206,25 +206,39 @@ class FirebaseService:
             # Tri décroissant par date côté Python
             def _ts_sort_key(item):
                 ts = item[0]
-                if ts is None:
-                    return 0
-                if hasattr(ts, "timestamp"):
-                    return ts.timestamp()
+                if ts is None: return 0
+                if hasattr(ts, "timestamp"): return ts.timestamp()
                 return 0
 
             results.sort(key=_ts_sort_key, reverse=True)
             scores = [s for (_, s) in results[:limit]]
             return list(reversed(scores))   # ordre chronologique pour la timeline
-
         except Exception as exc:
             log.warning("get_score_history error: %s", exc)
             return []
 
-    def delete_analysis(self, analyse_id: str) -> bool:
-        if not self.available:
+    def log_event(self, user_id: str, event_type: str, data: dict[str, Any]) -> bool:
+        """Enregistre un événement dans la collection events/{id}."""
+        if not self.available: return True
+        try:
+            doc = {
+                "userId":    user_id,
+                "type":      event_type,
+                "data":      data,
+                "createdAt": firestore.SERVER_TIMESTAMP,
+            }
+            self.db.collection("events").add(doc)
+            return True
+        except Exception as exc:
+            log.error("log_event error: %s", exc)
             return False
+
+    def delete_analysis(self, analyse_id: str) -> bool:
+        """Supprime une analyse par son ID."""
+        if not self.available: return True
         try:
             self.db.collection("analyses").document(analyse_id).delete()
+            log.info("✅ Analyse supprimée : %s", analyse_id)
             return True
         except Exception as exc:
             log.error("delete_analysis error: %s", exc)
@@ -242,6 +256,30 @@ class FirebaseService:
             return doc.to_dict() if doc.exists else None
         except Exception as exc:
             log.error("get_user error: %s", exc)
+            return None
+
+    def get_user_profile(self, user_id: str) -> dict[str, Any] | None:
+        """
+        Retourne le profil utilisateur simplifié pour l'usage dans le chat.
+        Cherche dans `users/{user_id}` et renvoie le dict si présent.
+        """
+        if not self.available:
+            return None
+        try:
+            doc = self.db.collection("users").document(user_id).get()
+            if not doc.exists:
+                return None
+            data = doc.to_dict()
+            # Normaliser les clés fréquemment utilisées par le router/chat
+            profile = {
+                "email":  data.get("email") or data.get("mail") or None,
+                "prenom": data.get("prenom") or data.get("firstName") or data.get("first_name") or "",
+                "nom":    data.get("nom") or data.get("lastName") or data.get("last_name") or "",
+                **{k: v for k, v in data.items() if k not in ("email", "prenom", "nom")},
+            }
+            return profile
+        except Exception as exc:
+            log.error("get_user_profile error: %s", exc)
             return None
 
     def save_user(self, user_id: str, data: dict[str, Any]) -> bool:
@@ -282,27 +320,6 @@ class FirebaseService:
             log.warning("save_conversation_message error: %s", exc)
             return False
 
-    # ════════════════════════════════════════════════════════════
-    #  AUDIT LOG
-    # ════════════════════════════════════════════════════════════
-
-    def log_event(
-        self, user_id: str, event_type: str, data: dict[str, Any]
-    ) -> bool:
-        if not self.available:
-            return False
-        try:
-            self.db.collection("audit_logs").add({
-                "userId":    user_id,
-                "eventType": event_type,
-                "data":      data,
-                "timestamp": firestore.SERVER_TIMESTAMP,
-            })
-            return True
-        except Exception as exc:
-            log.warning("log_event error: %s", exc)
-            return False
-
-
+    # ── Fin de classe ──
 # ── Singleton ──────────────────────────────────────────────────
 firebase_service = FirebaseService()

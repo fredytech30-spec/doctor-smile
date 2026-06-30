@@ -24,20 +24,35 @@ window.S = {
   _unsubAnalyses:   null,
   _unsubAbonnement: null,
   _benchmarkSector: 'Services',
+  currency: 'FCFA', // valeur par défaut de monnaie demandée
+  admin:            null, // Ajouté pour centraliser l'état admin
+
+  // Getters helpers
+  get plan() { return this.abonnement?.plan || this.profile?.plan || 'standard'; },
+  get uid() { return this.user?.uid; }
 };
 
 // ── Couleurs zones ────────────────────────────────────────────
 window.ZC = {
-  saine:    { s:'#10b981', bg:'rgba(16,185,129,.1)',  t:'#10b981', l:'Zone Saine'     },
-  vigilance:{ s:'#f59e0b', bg:'rgba(245,158,11,.1)',  t:'#f59e0b', l:'Zone Vigilance' },
-  risque:   { s:'#f97316', bg:'rgba(249,115,22,.1)',  t:'#f97316', l:'Zone Risque'    },
-  critique: { s:'#ef4444', bg:'rgba(239,68,68,.1)',   t:'#ef4444', l:'Zone Critique'  },
+  saine:    { s:'var(--color-success)', bg:'var(--success-bg)',  t:'var(--color-success)', l:'Zone Saine'     },
+  vigilance:{ s:'var(--color-accent)', bg:'var(--accent-bg)',  t:'var(--color-accent)', l:'Zone Vigilance' },
+  risque:   { s:'var(--color-risque)', bg:'var(--risque-bg)',  t:'var(--color-risque)', l:'Zone Risque'    },
+  critique: { s:'var(--color-error)', bg:'var(--error-bg)',   t:'var(--color-error)', l:'Zone Critique'  },
 };
 
 // ── API Base (Auto-switch entre local et production) ──────────
-window.API_BASE = (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost')
-  ? 'http://127.0.0.1:8000'
-  : 'https://votre-api-render.onrender.com'; // REMPLACEZ PAR VOTRE URL RENDER
+window.API_BASE = (() => {
+  if (window.__DOCTOR_SMILE_API_BASE__) return window.__DOCTOR_SMILE_API_BASE__;
+  const saved = localStorage.getItem('ds_api_base');
+  if (saved) return saved;
+  if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
+    return 'http://127.0.0.1:8000';
+  }
+  if (window.location.origin && !window.location.origin.startsWith('file')) {
+    return window.location.origin;
+  }
+  return 'http://127.0.0.1:8000';
+})();
 
 // ── Zone depuis score ─────────────────────────────────────────
 window.zoneFromScore = function(score) {
@@ -92,27 +107,32 @@ window.fu = function() {
 
 // ── Toast ─────────────────────────────────────────────────────
 window.showToast = function(msg, type = 'ok') {
-  const COLORS = {
-    ok:   { bg:'rgba(16,185,129,.1)',  border:'rgba(16,185,129,.25)',  text:'#10b981' },
-    warn: { bg:'rgba(245,158,11,.1)',  border:'rgba(245,158,11,.25)',  text:'#f59e0b' },
-    err:  { bg:'rgba(239,68,68,.1)',   border:'rgba(239,68,68,.25)',   text:'#ef4444' },
-    info: { bg:'rgba(125,211,252,.1)', border:'rgba(125,211,252,.25)', text:'#7DD3FC' },
+  const typeMap = {
+    ok:   'success',
+    warn: 'warning',
+    err:  'error',
+    info: 'info'
   };
-  const c = COLORS[type] ?? COLORS.info;
-  const t = document.createElement('div');
-  t.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-    z-index:10000;padding:10px 22px;border-radius:9px;
-    background:${c.bg};border:1px solid ${c.border};color:${c.text};
-    font-family:'Syne',sans-serif;font-size:11px;font-weight:700;
-    backdrop-filter:blur(14px);white-space:nowrap;
-    animation:mIn .28s var(--spring);`;
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => {
-    t.style.opacity='0'; t.style.transition='opacity .28s';
-    setTimeout(() => t.remove(), 300);
-  }, 3500);
+  const dsType = typeMap[type] || 'info';
+  if (window.Toast) {
+    window.Toast.show(msg, { type: dsType });
+  } else {
+    console.log(`[Toast Fallback] ${type}: ${msg}`);
+  }
 };
+
+// Ajouter l'animation toastIn au head
+if (!document.getElementById('ds-toast-anim')) {
+  const s = document.createElement('style');
+  s.id = 'ds-toast-anim';
+  s.textContent = `
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(40px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+  `;
+  document.head.appendChild(s);
+}
 
 // ── Background canvas animé ───────────────────────────────────
 window.initBgCanvas = function() {
@@ -123,15 +143,11 @@ window.initBgCanvas = function() {
   const rsz = () => { W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; };
   window.addEventListener('resize', rsz); rsz();
 
-  const pts = Array.from({ length: 100 }, () => ({
-    x: Math.random()*2000, y: Math.random()*1200,
-    r: .3+Math.random()*1.1, vx:(Math.random()-.5)*.07, vy:(Math.random()-.5)*.07,
-    a: Math.random()*.28, g: Math.random()>.75,
-  }));
+  const pts = [];
   const orbs = [
-    { x:.14, y:.22, r:.38, c:'rgba(125,211,252,', s:.0009 },
+    { x:.14, y:.22, r:.38, c:'rgba(139,127,240,', s:.0009 },
     { x:.8,  y:.6,  r:.3,  c:'rgba(255,215,0,',  s:.0007 },
-    { x:.48, y:.88, r:.24, c:'rgba(139,92,246,',  s:.001  },
+    { x:.48, y:.88, r:.24, c:'rgba(139,127,240,',  s:.001  },
   ];
   let tt = 0;
   (function bgL() {
@@ -142,7 +158,7 @@ window.initBgCanvas = function() {
       g.addColorStop(0,o.c+'0.035)'); g.addColorStop(1,'transparent');
       ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
     });
-    ctx.save(); ctx.strokeStyle='rgba(125,211,252,.016)'; ctx.lineWidth=1;
+    ctx.save(); ctx.strokeStyle='rgba(139,127,240,.016)'; ctx.lineWidth=1;
     for(let x=0;x<W;x+=56){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
     for(let y=0;y<H;y+=56){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
     ctx.restore();
@@ -151,7 +167,7 @@ window.initBgCanvas = function() {
       if(p.x<0)p.x=W; if(p.x>W)p.x=0; if(p.y<0)p.y=H; if(p.y>H)p.y=0;
       const a=p.a*(.5+.5*Math.sin(tt+p.r*7));
       ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fillStyle=p.g?`rgba(255,215,0,${a})`:`rgba(125,211,252,${a})`;
+      ctx.fillStyle=p.g?`rgba(255,215,0,${a})`:`rgba(139,127,240,${a})`;
       ctx.fill();
     });
   })();
@@ -159,30 +175,156 @@ window.initBgCanvas = function() {
 
 // ── Curseur personnalisé ──────────────────────────────────────
 window.initCursor = function() {
-  const cur=document.getElementById('cur');
-  const curR=document.getElementById('curR');
-  if (!cur||!curR) return;
-  let mx=0, my=0;
-  document.addEventListener('mousemove', e => {
-    mx=e.clientX; my=e.clientY;
-    cur.style.left=mx+'px'; cur.style.top=my+'px';
-  });
-  setInterval(() => { curR.style.left=mx+'px'; curR.style.top=my+'px'; }, 11);
-  const SEL='button,a,.nav-item,.kpi,.ac,.reco,.oauth-btn,.tab-btn,.plan-btn';
-  document.addEventListener('mouseover', e => {
-    if(e.target.closest(SEL)){
-      curR.style.width='42px'; curR.style.height='42px';
-      curR.style.borderColor='rgba(255,215,0,.45)';
-    }
-  });
-  document.addEventListener('mouseout', e => {
-    if(e.target.closest(SEL)){
-      curR.style.width='30px'; curR.style.height='30px';
-      curR.style.borderColor='rgba(125,211,252,.35)';
-    }
-  });
-  document.addEventListener('mouseleave', () => { cur.style.opacity='0'; curR.style.opacity='0'; });
-  document.addEventListener('mouseenter', () => { cur.style.opacity='1'; curR.style.opacity='1'; });
+  // Désactivé pour des raisons de performance (lag cursor supprimé dans le CSS)
+  return;
 };
 
 console.log('[ds-core] ✓ Chargé');
+
+// ── Mode accessibilité / contraste élevé (toggle global) ─────
+window._ds_injectHighContrast = function() {
+  if (document.getElementById('_ds_high_contrast')) return;
+  const s = document.createElement('style');
+  s.id = '_ds_high_contrast';
+  s.textContent = `
+:root.ds-high-contrast { 
+  --text: #ffffff;
+  --text-2: #eeeeee;
+  --text-hint: #cccccc;
+  --bg: #000000;
+  --surface: #111111;
+  --border: rgba(255,255,255,0.4);
+}
+:root.ds-high-contrast body { background: #000 !important; color: #fff !important; }
+:root.ds-high-contrast .card, :root.ds-high-contrast .chat-card, :root.ds-high-contrast .ppq-window { 
+  background: #111 !important; 
+  border: 2px solid #fff !important; 
+}
+:root.ds-high-contrast button, :root.ds-high-contrast .msg-act-btn { 
+  background: #fff !important; 
+  color: #000 !important; 
+  font-weight: 900 !important;
+}
+:root.ds-high-contrast input, :root.ds-high-contrast textarea {
+  background: #000 !important;
+  color: #fff !important;
+  border: 1px solid #fff !important;
+}
+`;
+  document.head.appendChild(s);
+};
+
+window.toggleHighContrast = function(on) {
+  try {
+    if (!document.getElementById('_ds_high_contrast')) window._ds_injectHighContrast();
+    const root = document.documentElement;
+    if (typeof on === 'boolean') {
+      root.classList.toggle('ds-high-contrast', on);
+      return on;
+    }
+    const newState = !root.classList.contains('ds-high-contrast');
+    root.classList.toggle('ds-high-contrast', newState);
+    return newState;
+  } catch (e) { console.error('toggleHighContrast', e); return false; }
+};
+
+// Floating toggle button (non-intrusive) — injection à l'init
+window._ds_injectContrastToggleUI = function() {
+  if (document.getElementById('_ds_ac_toggle')) return;
+  const btn = document.createElement('button');
+  btn.id = '_ds_ac_toggle';
+  btn.title = 'Mode contraste élevé';
+  btn.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:12000;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.06);font-weight:700;cursor:pointer;backdrop-filter:blur(6px);';
+  btn.textContent = 'Contraste';
+  btn.addEventListener('click', () => {
+    const on = window.toggleHighContrast();
+    btn.style.background = on ? '#fff' : 'rgba(255,255,255,.08)';
+    btn.style.color = on ? '#000' : '#fff';
+  });
+  document.body.appendChild(btn);
+};
+
+// Appeler l'inject UI après chargement (si body déjà disponible)
+if (document.readyState !== 'loading') window._ds_injectContrastToggleUI();
+else document.addEventListener('DOMContentLoaded', window._ds_injectContrastToggleUI);
+
+// ── Délégation pour boutons "Appeler IA" (capture clics et déclenche le chat)
+window._ds_attachCallIA = function() {
+  if (window.__ds_callia_attached) return;
+  window.__ds_callia_attached = true;
+
+  // Queue pour actions demandées avant initialisation du chat
+  window.__ds_callia_queue = window.__ds_callia_queue || [];
+
+  const tryExecute = (el) => {
+    // Choisir l'input disponible
+    const inpMain = document.getElementById('chat-inp');
+    const inpFull = document.getElementById('chat-inp-full');
+    const cid = inpMain ? 'chat-msgs' : (inpFull ? 'chat-msgs-full' : null);
+    if (!cid || !window.DS_CHAT) return false;
+    const inp = cid === 'chat-msgs' ? inpMain : inpFull;
+    if (inp && !inp.value) inp.value = '';
+    if (typeof window.DS_CHAT._sendMsg === 'function') {
+      window.DS_CHAT._sendMsg(cid);
+      return true;
+    }
+    if (typeof window.DS_CHAT.sendChat === 'function') {
+      window.DS_CHAT.sendChat();
+      return true;
+    }
+    return false;
+  };
+
+  // Attempt to flush queue periodically
+  const _flushQueue = () => {
+    if (!window.__ds_callia_queue.length) return;
+    while (window.__ds_callia_queue.length) {
+      const el = window.__ds_callia_queue.shift();
+      if (!tryExecute(el)) {
+        // push back and stop trying for now
+        window.__ds_callia_queue.unshift(el);
+        break;
+      }
+    }
+  };
+  window.__ds_callia_flushInt = window.__ds_callia_flushInt || setInterval(_flushQueue, 600);
+
+  document.body.addEventListener('click', function(e) {
+    try {
+      const el = e.target.closest && e.target.closest('[data-action],[data-call],[role="button"],button,a,[class]');
+      // Fallback to any button/anchor if above fails
+      const candidate = e.target.closest && (e.target.closest('button') || e.target.closest('a'));
+      const node = el || candidate;
+      if (!node) return;
+
+      // Boutons TTS / appel vocal gérés par ds-call.js
+      if (node.id === 'tts-call' || node.id === 'tts-auto' || node.closest?.('#tts-call,#tts-auto,.tts-btn,#_cmod')) return;
+
+      const txt = (node.textContent || node.innerText || '').trim();
+      const da = (node.dataset && (node.dataset.action || node.dataset.call)) || '';
+      const cls = node.className || '';
+
+      const isCall = /appel(?:er)?\s*ia/i.test(txt)
+                     || /call\s*ia/i.test(txt)
+                     || /\bcall-?ia\b/i.test(da)
+                     || /\bappeler-?ia\b/i.test(da)
+                     || /\bcall-?ia\b/i.test(cls)
+                     || /\bcallia\b/i.test(cls)
+                     || /\bappeleria\b/i.test(cls)
+                     || /data-call\=(?:\")?call-?ia/i.test(node.outerHTML || '');
+
+      if (!isCall) return;
+      e.preventDefault();
+
+      // Try immediately, else queue
+      const executed = tryExecute(node);
+      if (!executed) {
+        window.__ds_callia_queue.push(node);
+        window.showToast && window.showToast('Chat non prêt — action mise en file', 'info');
+      }
+    } catch (err) { console.error('callIA handler', err); }
+  }, true);
+};
+
+if (document.readyState !== 'loading') window._ds_attachCallIA();
+else document.addEventListener('DOMContentLoaded', window._ds_attachCallIA);

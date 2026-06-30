@@ -1,43 +1,40 @@
-# FastAPI & Server
-fastapi>=0.109
-uvicorn[standard]>=0.27
-python-multipart>=0.0.6
+fastapi
+uvicorn
+python-multipart
+slowapi
+limits
+pytest
+pytest-asyncio
+httpx
 
-# Data Processing
-pandas>=2.0
-numpy>=1.24
-openpyxl>=3.1
-python-docx>=1.1
+pandas
+numpy
+openpyxl
+python-docx
 
-# Machine Learning
-scikit-learn>=1.4
-xgboost>=2.0
-lightgbm>=4.0
-imbalanced-learn>=0.12
-shap>=0.45
-joblib>=1.3
+scikit-learn
+joblib
 
-# LLM & AI
-openai>=1.10
-langchain>=0.1
-langchain-openai>=0.1
-langchain-community>=0.0
+openai
+anthropic
+groq
+google-generativeai
+elevenlabs
 
-# Firebase Admin
-firebase-admin>=6.4
+firebase-admin
 
-# Utilities
-python-dotenv>=1.0
-pydantic>=2.5
-pydantic-settings>=2.1
-jinja2>=3.1
-httpx>=0.26
+python-dotenv
+pydantic
+pydantic-settings
+jinja2
 
-# Logging
-loguru>=0.7
+loguru
+stripe
+reportlab
+watchfiles
 
-# Caching
-redis>=5.0
-
-# Emails
+# Email - Brevo (ex-Sendinblue)
+sib-api-v3-sdk>=7.6.0
 resend>=2.0.0
+sendgrid>=6.10.0
+email-validator

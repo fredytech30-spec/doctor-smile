@@ -24,7 +24,7 @@
 
   document.querySelectorAll('a,button,.feat-card,.testi-card,.tech-cat,.metric-box').forEach(el=>{
     el.addEventListener('mouseenter',()=>{ring.style.width='64px';ring.style.height='64px';ring.style.borderColor='rgba(255,215,0,0.6)';});
-    el.addEventListener('mouseleave',()=>{ring.style.width='40px';ring.style.height='40px';ring.style.borderColor='rgba(125,211,252,0.5)';});
+    el.addEventListener('mouseleave',()=>{ring.style.width='40px';ring.style.height='40px';ring.style.borderColor='rgba(139,127,240,0.5)';});
   });
 })();
 
@@ -102,12 +102,25 @@ function closeMobile(){
 // THEME TOGGLE
 // ══════════════════════════════════════════
 const themeToggle=document.getElementById('themeToggle');
-const thumb=themeToggle.querySelector('.toggle-thumb');
-let isDark=true;
-themeToggle.addEventListener('click',()=>{
-  isDark=!isDark;
-  document.body.classList.toggle('light-mode',!isDark);
-  thumb.innerHTML=isDark?'<i class="fa-solid fa-moon" style="font-size:12px;line-height:1;"></i>':'<i class="fa-solid fa-sun" style="font-size:12px;line-height:1;"></i>';
+const thumb=themeToggle?.querySelector('.toggle-thumb');
+
+if (themeToggle) {
+  themeToggle.addEventListener('click', () => {
+    if (typeof window.toggleTheme === 'function') {
+      window.toggleTheme();
+    }
+  });
+}
+
+// Mettre à jour l'état visuel du toggle au changement de thème
+window.addEventListener('ds-theme-change', (e) => {
+  const theme = e.detail.theme;
+  const isDark = theme === 'dark';
+  if (thumb) {
+    thumb.innerHTML = isDark 
+      ? '<i class="fa-solid fa-moon" style="font-size:12px;line-height:1;"></i>' 
+      : '<i class="fa-solid fa-sun" style="font-size:12px;line-height:1;"></i>';
+  }
 });
 
 // ══════════════════════════════════════════

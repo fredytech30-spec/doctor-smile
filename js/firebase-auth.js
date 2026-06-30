@@ -12,7 +12,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  sendPasswordResetEmail,
+  // sendPasswordResetEmail supprimé (remplacé par Brevo),
   sendEmailVerification,
   updateProfile,
   onAuthStateChanged,
@@ -55,7 +55,7 @@ async function registerUser(userData) {
 
     // 1d. Calculer trialEnd pour les plans payants
     const plan       = userData.plan || "standard";
-    const trialDays  = plan !== "standard" ? (userData.trialDays || 45) : 0;
+    const trialDays  = plan !== "standard" ? (userData.trialDays || 14) : 0;
     const trialEnd   = plan !== "standard"
       ? new Date(Date.now() + trialDays * 24 * 3600 * 1000)
       : null;
@@ -70,6 +70,7 @@ async function registerUser(userData) {
       poste:       userData.poste  || "",
       plan:        plan,
       source:      userData.source || "",
+      profileComplete: true, // ← Ajouté
       trialStatus, trialEnd, trialDays,
       entreprise: {
         nom:     userData.entreprise.nom,
@@ -137,7 +138,7 @@ async function loginWithGoogle() {
     if (isNew) {
       // Crée le profil minimal — l'utilisateur complétera à l'étape 2
       const nameParts = (user.displayName || "").split(" ");
-      await saveUserProfile(user.uid, {
+      const profile = {
         prenom:        nameParts[0] || "",
         nom:           nameParts.slice(1).join(" ") || "",
         email:         user.email,
@@ -150,12 +151,14 @@ async function loginWithGoogle() {
         createdAt:     new Date(),
         lastLogin:     new Date(),
         profileComplete: false   // ← indique que l'étape 2 n'est pas faite
-      });
+      };
+      await saveUserProfile(user.uid, profile);
+      return { success: true, user, isNew, profile };
     } else {
+      const profile = await getUserProfile(user.uid);
       await saveUserProfile(user.uid, { lastLogin: new Date() }, true);
+      return { success: true, user, isNew, profile };
     }
-
-    return { success: true, user, isNew };
 
   } catch (error) {
     // L'utilisateur a fermé la popup — ne pas traiter comme une erreur
@@ -186,13 +189,32 @@ async function logoutUser() {
 // ════════════════════════════════════════════════════════════════
 async function resetPassword(email) {
   try {
-    await sendPasswordResetEmail(auth, email, {
-      // URL de redirection après reset (optionnel)
-      url: window.location.origin + "/auth.html"
+    // 🔐 Envoi via notre backend (qui utilise Brevo)
+    const API_BASE = window.API_BASE || ((window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost')
+      ? 'http://127.0.0.1:8000'
+      : 'https://votre-api-render.onrender.com');
+    const response = await fetch(`${API_BASE}/reset-password/forgot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
     });
+
+    let data = {};
+    try { data = await response.json(); } catch (_) {}
+
+    if (!response.ok) {
+      const errMsg = data.detail || data.message || `Erreur serveur (${response.status})`;
+      throw new Error(errMsg);
+    }
+
     return { success: true };
+
   } catch (error) {
-    return { success: false, error: parseAuthError(error.code) };
+    console.error('[resetPassword]', error);
+    // Fournir un message lisible même si error.message est vide
+    const msg = error.message
+      || (error instanceof TypeError ? 'Serveur inaccessible — vérifiez votre connexion' : 'Erreur inconnue');
+    return { success: false, error: msg };
   }
 }
 

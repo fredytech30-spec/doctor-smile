@@ -35,7 +35,7 @@ function _injectCSS() {
 #_onb_splash .sp-bg {
   position: absolute; inset: 0; pointer-events: none;
   background:
-    radial-gradient(ellipse 60% 50% at 20% 30%, rgba(125,211,252,.07) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 20% 30%, rgba(139,127,240,.07) 0%, transparent 70%),
     radial-gradient(ellipse 45% 40% at 80% 70%, rgba(255,215,0,.06) 0%, transparent 65%);
   animation: _onbBgPulse 5s ease-in-out infinite alternate;
 }
@@ -45,8 +45,8 @@ function _injectCSS() {
 #_onb_splash .sp-grid {
   position: absolute; inset: 0; pointer-events: none;
   background-image:
-    linear-gradient(rgba(125,211,252,.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(125,211,252,.04) 1px, transparent 1px);
+    linear-gradient(rgba(139,127,240,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139,127,240,.04) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 70%);
 }
@@ -65,7 +65,7 @@ function _injectCSS() {
 #_onb_splash .sp-logo {
   position: relative; z-index: 2;
   width: 80px; height: 80px; border-radius: 22px;
-  background: linear-gradient(135deg, #FFD700, #7DD3FC);
+  background: linear-gradient(135deg, #FFD700, #8B7FF0);
   display: flex; align-items: center; justify-content: center;
   font-size: 36px;
   box-shadow: 0 0 0 0 rgba(255,215,0,.4);
@@ -83,7 +83,7 @@ function _injectCSS() {
   position: relative; z-index: 2;
 }
 #_onb_splash .sp-title span {
-  background: linear-gradient(135deg, #FFD700, #7DD3FC);
+  background: linear-gradient(135deg, #FFD700, #8B7FF0);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
 }
@@ -110,7 +110,7 @@ function _injectCSS() {
   letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.5);
   display: flex; align-items: center; gap: 6px;
 }
-#_onb_splash .sp-chip i { font-size: 10px; color: #7DD3FC; }
+#_onb_splash .sp-chip i { font-size: 10px; color: #8B7FF0; }
 #_onb_splash .sp-cta {
   position: relative; z-index: 2;
   animation: _onbFadeUp .7s .7s both;
@@ -143,7 +143,7 @@ function _injectCSS() {
 }
 #_onb_splash .sp-progress-bar {
   height: 100%; width: 0;
-  background: linear-gradient(90deg, #FFD700, #7DD3FC);
+  background: linear-gradient(90deg, #FFD700, #8B7FF0);
   transition: width 4s linear;
 }
 #_onb_splash .sp-stats {
@@ -156,7 +156,7 @@ function _injectCSS() {
 }
 #_onb_splash .sp-stat-val {
   font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 900;
-  background: linear-gradient(135deg, #FFD700, #7DD3FC);
+  background: linear-gradient(135deg, #FFD700, #8B7FF0);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text; line-height: 1;
 }
@@ -179,15 +179,15 @@ function _injectCSS() {
 }
 #_onb_hl_ring {
   position: fixed; z-index: 18002; pointer-events: none;
-  border: 2px solid #7DD3FC;
+  border: 2px solid #8B7FF0;
   border-radius: 14px;
-  box-shadow: 0 0 0 4000px rgba(2,4,11,.75), 0 0 32px rgba(125,211,252,.45);
+  box-shadow: 0 0 0 4000px rgba(2,4,11,.75), 0 0 32px rgba(139,127,240,.45);
   transition: all .42s cubic-bezier(.4,0,.2,1);
   animation: _onbRingPulse 2s ease-in-out infinite;
 }
 @keyframes _onbRingPulse {
-  0%, 100% { box-shadow: 0 0 0 4000px rgba(2,4,11,.75), 0 0 24px rgba(125,211,252,.35); }
-  50%       { box-shadow: 0 0 0 4000px rgba(2,4,11,.75), 0 0 40px rgba(125,211,252,.65); }
+  0%, 100% { box-shadow: 0 0 0 4000px rgba(2,4,11,.75), 0 0 24px rgba(139,127,240,.35); }
+  50%       { box-shadow: 0 0 0 4000px rgba(2,4,11,.75), 0 0 40px rgba(139,127,240,.65); }
 }
 #_onb_hl_ring.gold {
   border-color: #FFD700;
@@ -201,9 +201,9 @@ function _injectCSS() {
   position: fixed; z-index: 18003;
   width: min(340px, 90vw);
   background: rgba(6,10,20,.98);
-  border: 1px solid rgba(125,211,252,.2);
+  border: 1px solid rgba(139,127,240,.2);
   border-radius: 18px; padding: 24px 22px 18px;
-  box-shadow: 0 32px 80px rgba(0,0,0,.75), 0 0 60px rgba(125,211,252,.07);
+  box-shadow: 0 32px 80px rgba(0,0,0,.75), 0 0 60px rgba(139,127,240,.07);
   animation: _onbBubbleIn .35s cubic-bezier(.34,1.56,.64,1);
   transition: top .42s cubic-bezier(.4,0,.2,1), left .42s cubic-bezier(.4,0,.2,1);
 }
@@ -234,8 +234,8 @@ function _injectCSS() {
 }
 #_onb_bubble .onb-tip {
   padding: 10px 12px; border-radius: 9px; margin-bottom: 16px;
-  background: rgba(125,211,252,.06); border: 1px solid rgba(125,211,252,.14);
-  font-size: 10px; color: rgba(125,211,252,.8); line-height: 1.55;
+  background: rgba(139,127,240,.06); border: 1px solid rgba(139,127,240,.14);
+  font-size: 10px; color: rgba(139,127,240,.8); line-height: 1.55;
   display: flex; align-items: flex-start; gap: 8px;
 }
 #_onb_bubble .onb-tip i { font-size: 10px; flex-shrink: 0; margin-top: 1px; }
@@ -249,7 +249,7 @@ function _injectCSS() {
   cursor: pointer;
 }
 #_onb_bubble .onb-dot.done { background: rgba(16,185,129,.55); }
-#_onb_bubble .onb-dot.active { background: #7DD3FC; }
+#_onb_bubble .onb-dot.active { background: #8B7FF0; }
 #_onb_bubble .onb-dot.active { width: 24px !important; }
 #_onb_bubble .onb-nav {
   display: flex; align-items: center; justify-content: space-between;
@@ -280,13 +280,13 @@ function _injectCSS() {
   padding: 8px 18px; border-radius: 9px; border: none; cursor: pointer;
   font-family: 'Syne', sans-serif; font-size: 9px; font-weight: 900;
   letter-spacing: .09em; text-transform: uppercase;
-  background: linear-gradient(135deg, #7DD3FC, #38BDF8);
-  color: #02040B;
-  box-shadow: 0 0 16px rgba(125,211,252,.28);
+  background: linear-gradient(135deg, #8B7FF0, #6C5CE7);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(139,127,240,.28);
   transition: all .2s cubic-bezier(.34,1.56,.64,1);
   display: flex; align-items: center; gap: 6px;
 }
-.onb-btn-next:hover { transform: translateY(-2px); box-shadow: 0 4px 22px rgba(125,211,252,.4); }
+.onb-btn-next:hover { transform: translateY(-2px); box-shadow: 0 4px 22px rgba(139,127,240,.4); }
 .onb-btn-next.final {
   background: linear-gradient(135deg, #FFD700, #FFC107);
   color: #02040B;
@@ -306,9 +306,9 @@ function _injectCSS() {
 #_onb_badge {
   position: fixed; z-index: 18004;
   padding: 5px 12px; border-radius: 100px;
-  background: rgba(125,211,252,.1); border: 1px solid rgba(125,211,252,.25);
+  background: rgba(139,127,240,.1); border: 1px solid rgba(139,127,240,.25);
   font-family: 'Syne', sans-serif; font-size: 9px; font-weight: 800;
-  color: #7DD3FC; letter-spacing: .1em; text-transform: uppercase;
+  color: #8B7FF0; letter-spacing: .1em; text-transform: uppercase;
   pointer-events: none;
   display: flex; align-items: center; gap: 5px;
   animation: _onbBadgeBounce 1.2s ease-in-out infinite;
@@ -350,13 +350,13 @@ const STEPS = [
     target: '#upload-zone',
     nav:    null,
     icon:   '☁️',
-    iconBg: 'rgba(125,211,252,.1)',
-    pill:   { label: 'ÉTAPE 1 · DÉMARRAGE', col: '#7DD3FC', bg: 'rgba(125,211,252,.1)' },
+    iconBg: 'rgba(139,127,240,.1)',
+    pill:   { label: 'ÉTAPE 1 · DÉMARRAGE', col: '#8B7FF0', bg: 'rgba(139,127,240,.1)' },
     title:  'Importez vos données financières',
     body:   'Glissez-déposez un fichier Excel, CSV ou PDF. Doctor Smile extrait automatiquement tous vos chiffres et les transforme en insights actionables.',
     tip:    '💡 Formats supportés : .xlsx · .xls · .csv · .pdf · .json — Même un fichier mal structuré sera normalisé par notre IA.',
     pos:    'right',
-    accentCol: '#7DD3FC',
+    accentCol: '#8B7FF0',
     ringClass: '',
   },
   {
@@ -391,14 +391,13 @@ const STEPS = [
     id:     'chat',
     target: '[data-view="chat"]',
     nav:    null,
-    icon:   '🤖',
-    iconBg: 'rgba(139,92,246,.12)',
-    pill:   { label: 'ÉTAPE 4 · IA', col: '#a78bfa', bg: 'rgba(139,92,246,.1)' },
+    iconBg: 'rgba(139,127,240,.12)',
+    pill:   { label: 'ÉTAPE 4 · IA', col: '#8B7FF0', bg: 'rgba(139,127,240,.1)' },
     title:  'Votre analyste IA — disponible 24h/24',
     body:   'Posez n\'importe quelle question sur votre analyse en français naturel. "Pourquoi mon score est-il faible ?" · "Comment améliorer ma trésorerie ?" · "Quels risques me guettent ?"',
     tip:    '💬 L\'IA connaît toute votre analyse. Elle répond avec le contexte exact de votre entreprise, pas des généralités.',
     pos:    'right',
-    accentCol: '#a78bfa',
+    accentCol: '#8B7FF0',
     ringClass: '',
   },
   {
@@ -448,7 +447,7 @@ const STEPS = [
     target: null,
     nav:    null,
     icon:   '🚀',
-    iconBg: 'linear-gradient(135deg,rgba(255,215,0,.2),rgba(125,211,252,.15))',
+    iconBg: 'linear-gradient(135deg,rgba(255,215,0,.2),rgba(139,127,240,.15))',
     pill:   { label: 'PRÊT À DÉMARRER', col: '#FFD700', bg: 'rgba(255,215,0,.12)' },
     title:  'Vous êtes prêt pour votre première analyse !',
     body:   'Doctor Smile est votre copilote financier. Importez dès maintenant un fichier pour obtenir votre Doctor Score™ et vos recommandations personnalisées.',
@@ -666,7 +665,7 @@ function _complete() {
 }
 
 function _launchConfetti() {
-  const colors = ['#FFD700','#7DD3FC','#10b981','#a78bfa','#f97316','#fff'];
+  const colors = ['#FFD700','#8B7FF0','#10b981','#8B7FF0','#f97316','#fff'];
   for (let i = 0; i < 80; i++) {
     const el = document.createElement('div');
     el.className = 'onb-confetti';
@@ -712,9 +711,9 @@ function _showSplash(prenom, onStart) {
     <div class="sp-grid"></div>
 
     <!-- Orbes de fond -->
-    <div class="sp-orb" style="width:420px;height:420px;background:rgba(125,211,252,.04);top:-80px;left:-100px;animation-duration:18s;"></div>
+    <div class="sp-orb" style="width:420px;height:420px;background:rgba(139,127,240,.04);top:-80px;left:-100px;animation-duration:18s;"></div>
     <div class="sp-orb" style="width:340px;height:340px;background:rgba(255,215,0,.04);bottom:-60px;right:-80px;animation-duration:14s;animation-delay:-5s;"></div>
-    <div class="sp-orb" style="width:220px;height:220px;background:rgba(139,92,246,.03);top:40%;left:60%;animation-duration:22s;animation-delay:-8s;"></div>
+    <div class="sp-orb" style="width:220px;height:220px;background:rgba(139,127,240,.03);top:40%;left:60%;animation-duration:22s;animation-delay:-8s;"></div>
 
     <!-- Logo -->
     <div class="sp-logo">💊</div>
@@ -843,4 +842,4 @@ function replay() {
 export const DS_ONBOARDING = { start, skip, checkAndStart, replay };
 window.DS_ONBOARDING = DS_ONBOARDING;
 
-console.log('%c[DS Onboarding] ✅ Chargé', 'color:#7DD3FC;font-weight:bold');
+console.log('%c[DS Onboarding] ✅ Chargé', 'color:#8B7FF0;font-weight:bold');

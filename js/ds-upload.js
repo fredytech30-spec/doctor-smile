@@ -4,6 +4,8 @@
 //  Dépend de : ds-core.js, dashboard.js (window.DS)
 // ════════════════════════════════════════════════════════════════
 
+const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
+
 // ── Données démo ──────────────────────────────────────────────
 window.DEMO_DATA = {
   id:'demo', entreprise:'Exemple SAS', score:72, zone:'vigilance',
@@ -95,10 +97,16 @@ window.DS_UPLOAD = {
     if (f) window.DS_UPLOAD.handleFile(f);
   },
 
+  // ── Toast robuste ─────────────────────────────────────────────
+  _showToast(msg, type = 'ok') {
+    if (window.showToast) window.showToast(msg, type);
+    else console.log(`[Toast ${type}] ${msg}`);
+  },
+
   async handleFile(file) {
     if (!file) return;
     const ext = file.name.split('.').pop().toLowerCase();
-    showToast(`📂 Lecture de ${file.name}…`, 'info');
+    this._showToast(`📂 Lecture de ${file.name}…`, 'info');
     try {
       let parsed;
       if (['xlsx','xls','ods'].includes(ext)) parsed = await this._parseExcel(file);
@@ -108,11 +116,11 @@ window.DS_UPLOAD = {
         // Proposer le choix : extraction tableau OU OCR/IA
         this._showPDFModeModal(file);
         return;
-      } else { showToast('Format non supporté','err'); return; }
+      } else { this._showToast('Format non supporté','err'); return; }
       S.rawFileData = { filename: file.name, data: parsed };
       this.openDataViewer(file.name, parsed);
     } catch(err) {
-      showToast('Erreur de lecture : '+err.message,'err');
+      this._showToast('Erreur de lecture : '+err.message,'err');
       console.error('Parse error:',err);
     }
   },
@@ -128,7 +136,7 @@ window.DS_UPLOAD = {
       background:rgba(0,0,0,.75);backdrop-filter:blur(14px);`;
     m.innerHTML = `
     <div style="background:linear-gradient(160deg,rgba(10,14,26,.98),rgba(15,25,41,.98));
-      border:1px solid rgba(125,211,252,.15);border-radius:18px;padding:28px;
+      border:1px solid rgba(139,127,240,.15);border-radius:18px;padding:28px;
       width:min(480px,92vw);box-shadow:0 28px 70px rgba(0,0,0,.7);">
       <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:900;color:#fff;margin-bottom:6px;">
         <i class="fa-solid fa-file-pdf" style="color:#ef4444;margin-right:9px;"></i>${file.name}
@@ -138,12 +146,12 @@ window.DS_UPLOAD = {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
         <div onclick="DS_UPLOAD._launchPDF('table',this._file)" id="_pdf-btn-table"
-          style="padding:16px;border-radius:12px;border:2px solid rgba(125,211,252,.2);
-          background:rgba(125,211,252,.04);cursor:pointer;transition:all .2s;"
-          onmouseenter="this.style.borderColor='rgba(125,211,252,.5)';this.style.background='rgba(125,211,252,.1)'"
-          onmouseleave="this.style.borderColor='rgba(125,211,252,.2)';this.style.background='rgba(125,211,252,.04)'">
+          style="padding:16px;border-radius:12px;border:2px solid rgba(139,127,240,.2);
+          background:rgba(139,127,240,.04);cursor:pointer;transition:all .2s;"
+          onmouseenter="this.style.borderColor='rgba(139,127,240,.5)';this.style.background='rgba(139,127,240,.1)'"
+          onmouseleave="this.style.borderColor='rgba(139,127,240,.2)';this.style.background='rgba(139,127,240,.04)'">
           <div style="font-size:20px;margin-bottom:8px;">📊</div>
-          <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:800;color:#7DD3FC;margin-bottom:5px;">
+          <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:800;color:#8B7FF0;margin-bottom:5px;">
             Tableaux natifs
           </div>
           <div style="font-size:9px;color:rgba(255,255,255,.4);line-height:1.6;">
@@ -156,7 +164,7 @@ window.DS_UPLOAD = {
           onmouseenter="this.style.borderColor='rgba(167,139,250,.5)';this.style.background='rgba(167,139,250,.1)'"
           onmouseleave="this.style.borderColor='rgba(167,139,250,.2)';this.style.background='rgba(167,139,250,.04)'">
           <div style="font-size:20px;margin-bottom:8px;">🔬</div>
-          <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:800;color:#a78bfa;margin-bottom:5px;">
+          <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:800;color:#8B7FF0;margin-bottom:5px;">
             OCR / IA
           </div>
           <div style="font-size:9px;color:rgba(255,255,255,.4);line-height:1.6;">
@@ -316,7 +324,7 @@ window.DS_UPLOAD = {
     const badge = document.getElementById('_llm-badge');
     if (btn) {
       if (cb.checked) {
-        btn.style.background = 'linear-gradient(135deg,rgba(167,139,250,.7),rgba(139,92,246,.5))';
+        btn.style.background = 'linear-gradient(135deg,rgba(167,139,250,.7),rgba(139,127,240,.5))';
         btn.style.boxShadow  = '0 0 20px rgba(167,139,250,.35)';
         btn.innerHTML = '<i class="fa-solid fa-brain" style="margin-right:5px;"></i>Lancer avec IA Avancée';
       } else {
@@ -456,16 +464,16 @@ window.DS_UPLOAD = {
         const llmMsg = this._useLLM
           ? `🧠 Modération IA — confiance ${res.score_confiance || '?'}% · ${res.corrections_count || 0} corrections`
           : '⚡ Pipeline lancé — résultat dans quelques secondes…';
-        showToast(llmMsg, this._useLLM ? 'ok' : 'info');
+        this._showToast(llmMsg, this._useLLM ? 'ok' : 'info');
       }
     } catch(err) {
       if (err.name === 'AbortError' || this._isCancelled) return; // annulation silencieuse
       this.stopPipelineUI();
       if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError') || err.message?.includes('0')) {
-        showToast('⚠️ API hors ligne — démo chargée', 'warn');
+        this._showToast('⚠️ API hors ligne — démo chargée', 'warn');
         this.runDemoPipeline();
       } else {
-        showToast('Erreur : ' + (err.message || 'Inconnue'), 'err');
+        this._showToast('Erreur : ' + (err.message || 'Inconnue'), 'err');
       }
     } finally {
       this._abortCtrl = null;
@@ -588,7 +596,7 @@ window.DS_UPLOAD = {
         deltaEl.style.color=delta>=0?'var(--emerald)':'var(--ruby)';
         deltaEl.style.animation='none'; deltaEl.offsetHeight; deltaEl.style.animation='mIn .4s ease';
       }
-      showToast(`Score simulé : ${res.simulatedScore}/100`,delta>=0?'ok':'warn');
+      this._showToast(`Score simulé : ${res.simulatedScore}/100`,delta>=0?'ok':'warn');
     } catch { this._simulateLocal(wi); }
   },
 

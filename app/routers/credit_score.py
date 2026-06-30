@@ -101,7 +101,7 @@ BANK_RATIO_WEIGHTS: dict[str, dict] = {
 RATING_BANDS = [
     {"min":85, "label":"AAA", "desc":"Excellent — Financement très probable",            "color":"#10b981"},
     {"min":70, "label":"AA",  "desc":"Très bon — Financement probable",                   "color":"#2DD4BF"},
-    {"min":55, "label":"A",   "desc":"Bon — Favorable sous conditions standards",         "color":"#7DD3FC"},
+    {"min":55, "label":"A",   "desc":"Bon — Favorable sous conditions standards",         "color":"#8B7FF0"},
     {"min":40, "label":"BBB", "desc":"Satisfaisant — Garanties supplémentaires requises", "color":"#f59e0b"},
     {"min":25, "label":"BB",  "desc":"Fragile — Restructuration conseillée avant prêt",   "color":"#f97316"},
     {"min":0,  "label":"B",   "desc":"Risqué — Refus probable sans plan de redressement", "color":"#ef4444"},

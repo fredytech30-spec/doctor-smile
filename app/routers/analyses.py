@@ -18,6 +18,7 @@ NOUVEAU v3 :
 ════════════════════════════════════════════════════════════════
 """
 from __future__ import annotations
+import asyncio
 import base64, json, logging, math, uuid, os, time, hmac, hashlib
 from typing import Any
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -27,6 +28,7 @@ from firebase_admin import firestore as fs
 from app.middleware.firebase_verify import verify_token
 from app.services.analyse_service   import get_analyse_service
 from app.services.firebase_service  import firebase_service
+from app.services.email_service     import email_service
 
 # ── LLM Moderator — import silencieux ────────────────────────
 try:
@@ -53,29 +55,36 @@ router = APIRouter(prefix="/analyses", tags=["Analyses"])
 
 # ── Schemas ──────────────────────────────────────────────────
 
-class AnalyseRequest(BaseModel):
-    filename:            str
-    data:                list[dict[str, Any]]
-    userId:              str
-    plan:                str             = Field("standard", pattern="^(standard|premium|extra)$")
-    entreprise:          dict[str, Any]  = {}
-    use_llm_moderator:   bool            = False   # ← Mode IA avancé (optionnel)
-    llm_context:         dict[str, Any]  = {}      # secteur, pays, devise pour le LLM
+class EntrepriseInfo(BaseModel):
+    nom:        str | None = None
+    secteur:    str | None = None
+    pays:       str | None = "Cameroun"
+    taille:     str | None = None
+    devise:     str | None = "FCFA"
 
+class AnalyseRequest(BaseModel):
+    filename:            str = Field(..., min_length=1, max_length=255)
+    data:                list[dict[str, Any]] = Field(..., min_items=1)
+    userId:              str = Field(..., min_length=5)
+    plan:                str = Field("standard", pattern="^(standard|premium|extra)$")
+    entreprise:          EntrepriseInfo = EntrepriseInfo()
+    use_llm_moderator:   bool = False
+    llm_context:         dict[str, Any] = {}
 
 class WhatIfRequest(BaseModel):
-    analyseId:      str
+    analyseId:      str = Field(..., min_length=10)
     ratioOverrides: dict[str, float]
 
 class AnalyseResponse(BaseModel):
     analyseId:          str
     status:             str
     score:              int
-    score_confiance:    int   = 100   # 100 = pas de modération LLM
-    llm_used:           str   = ""    # "groq_llama3.3" | "gemini_flash" | ""
-    synthese_llm:       str   = ""
-    corrections_count:  int   = 0
-    anomalies_count:    int   = 0
+    score_confiance:    int = 100
+    llm_used:           str = ""
+    synthese_llm:       str = ""
+    corrections_count:  int = 0
+    anomalies_count:    int = 0
+    processingMs:       int = 0
 
 class WhatIfResponse(BaseModel):
     simulatedScore:    int
@@ -147,9 +156,9 @@ def _build_doc(
         "radarDimensions":   result["radarDimensions"],
         "recommendations":   result["recommendations"],
         "scoreHistory":      result["scoreHistory"],
-        "secteur":           body.entreprise.get("secteur", ""),
-        "taille":            body.entreprise.get("taille", ""),
-        "pays":              body.entreprise.get("pays", "Cameroun"),
+        "secteur":           (body.entreprise.secteur or ""),
+        "taille":            (body.entreprise.taille or ""),
+        "pays":              (body.entreprise.pays or "Cameroun"),
         "whatifParams":      [],
         "modelProbs":        result.get("modelProbs", {}),
         "llm_moderator":     False,
@@ -202,7 +211,7 @@ async def create_analyse(
              body.use_llm_moderator)
 
     entreprise_nom = (
-        body.entreprise.get("nom")
+        body.entreprise.nom
         or body.filename.rsplit(".", 1)[0].replace("_", " ").replace("-", " ").strip()
     )
 
@@ -224,9 +233,9 @@ async def create_analyse(
 
             # Contexte utilisateur pour le LLM
             ctx = body.llm_context or {}
-            secteur = ctx.get("secteur") or body.entreprise.get("secteur") or "autre"
-            pays    = ctx.get("pays")    or body.entreprise.get("pays")    or "Cameroun"
-            devise  = ctx.get("devise")  or body.entreprise.get("devise")  or "FCFA"
+            secteur = ctx.get("secteur") or body.entreprise.secteur or "autre"
+            pays    = ctx.get("pays")    or body.entreprise.pays    or "Cameroun"
+            devise  = ctx.get("devise")  or body.entreprise.devise  or "FCFA"
 
             log.info("[LLM Moderator] Lancement pour %s — secteur=%s pays=%s",
                      entreprise_nom, secteur, pays)
@@ -275,9 +284,9 @@ async def create_analyse(
             if llm_result.get("entreprise") and llm_result["entreprise"] != "Inconnue":
                 entreprise_nom = llm_result["entreprise"]
             if llm_result.get("secteur"):
-                body.entreprise["secteur"] = llm_result["secteur"]
+                body.entreprise.secteur = llm_result["secteur"]
             if llm_result.get("pays"):
-                body.entreprise["pays"] = llm_result["pays"]
+                body.entreprise.pays = llm_result["pays"]
 
             log.info("[LLM Moderator] ✓ confiance=%d%% llm=%s corrections=%d anomalies=%d",
                      score_confiance,
@@ -320,6 +329,39 @@ async def create_analyse(
         "score_confiance": llm_meta.get("score_confiance", 100) if llm_meta else 100,
     })
 
+    # Envoi de l'email "Analyse prête" via Brevo
+    try:
+        # Récupérer les infos utilisateur
+        user_profile = firebase_service.get_user_profile(body.userId)
+        user_email = user_profile.get("email") if user_profile else None
+        user_name = user_profile.get("prenom") or user_profile.get("displayName") or "Cher client" if user_profile else "Cher client"
+        
+        # Mapping zone → couleur, emoji
+        zone_config = {
+            "Zone Saine":     ("#10b981", "🟢"),
+            "Zone Vigilance": ("#f59e0b", "🟡"),
+            "Zone Risque":    ("#f97316", "🟠"),
+            "Zone Critique":  ("#ef4444", "🔴"),
+        }
+        zone_color, zone_emoji = zone_config.get(result["zone"], ("#8B7FF0", "🔵"))
+        
+        if user_email:
+            asyncio.create_task(email_service.send_analyse_ready(
+                email=user_email,
+                name=user_name,
+                entreprise=entreprise_nom,
+                score=result["score"],
+                zone_label=result["zone"],
+                zone_color=zone_color,
+                zone_emoji=zone_emoji,
+                analyse_id=analyse_id
+            ))
+            log.info(f"📧 Email 'Analyse prête' programmé pour {user_email}")
+        else:
+            log.warning(f"⚠️ Aucun email trouvé pour l'utilisateur {body.userId}")
+    except Exception as e:
+        log.error(f"❌ Erreur lors de l'envoi de l'email 'Analyse prête': {e}")
+
     log.info("[POST /analyses] ✓ %s score=%d zone=%s ms=%d",
              analyse_id, result["score"], result["zone"], result["processingMs"])
 
@@ -332,6 +374,7 @@ async def create_analyse(
         synthese_llm    = llm_meta.get("synthese", "") if llm_meta else "",
         corrections_count = len(llm_meta.get("corrections", [])) if llm_meta else 0,
         anomalies_count   = len(llm_meta.get("anomalies", [])) if llm_meta else 0,
+        processingMs      = result.get("processingMs", 0),
     )
 
 
@@ -532,7 +575,83 @@ async def whatif(
     )
 
 
-# ════════ DELETE /analyses/{analyse_id} ══════════════════════
+from fastapi.responses import JSONResponse, StreamingResponse, Response
+import io
+from app.services.pdf_service import pdf_service
+
+# ... (reste des imports)
+
+@router.get("/{analyse_id}/export")
+async def export_analyse(
+    analyse_id: str,
+    format: str = "json", 
+    token: dict = Depends(verify_token),
+):
+    uid     = token.get("uid", "")
+    analyse = firebase_service.get_analysis(analyse_id)
+    if not analyse:
+        raise HTTPException(404, "Analyse introuvable")
+    
+    if uid and uid != "dev-uid-000" and analyse.get("userId") != uid:
+        raise HTTPException(403, "Accès non autorisé")
+
+    # Normaliser le format (supporte "analyse", "risque" comme alias de "json")
+    format_lower = format.lower()
+    if format_lower in ["analyse", "risque", "json"]:
+        actual_format = "json"
+    elif format_lower == "pdf":
+        actual_format = "pdf"
+    else:
+        raise HTTPException(400, f"Format d'export non supporté: {format}. Formats supportés: json, pdf, analyse, risque")
+
+    # Préparation des données d'export communes
+    export_data = {
+        "metadata": {
+            "id": analyse_id,
+            "entreprise": analyse.get("entreprise"),
+            "date": str(analyse.get("createdAt")),
+            "score": analyse.get("score"),
+            "zone": analyse.get("zone"),
+            "confidence": analyse.get("confidence"),
+            "probabiliteDefaut": analyse.get("probabiliteDefaut")
+        },
+        "ratios": analyse.get("ratios", []),
+        "recommandations": analyse.get("recommendations", []),
+        "shapValues": analyse.get("shapValues", []),
+        "radarDimensions": analyse.get("radarDimensions", []),
+        "scoreHistory": analyse.get("scoreHistory", []),
+        "model": analyse.get("model"),
+        "auc": analyse.get("auc")
+    }
+
+    if actual_format == "json":
+        return JSONResponse(
+            content=export_data,
+            headers={"Content-Disposition": f"attachment; filename=doctor_smile_{analyse_id}.json"}
+        )
+    
+    if actual_format == "pdf":
+        try:
+            pdf_bytes = pdf_service.generate_report(export_data)
+            
+            # Action WOW : Envoyer aussi par email si demandé
+            email, name = await _get_user_email(uid)
+            if email:
+                import asyncio
+                # On lance l'envoi en arrière-plan pour ne pas bloquer le téléchargement
+                asyncio.create_task(email_service.send_report_pdf(email, name, export_data["metadata"]["entreprise"], pdf_bytes))
+                log.info(f"🚀 Email de rapport PDF programmé pour {email}")
+
+            return Response(
+                content=pdf_bytes,
+                media_type="application/pdf",
+                headers={"Content-Disposition": f"attachment; filename=doctor_smile_{analyse_id}.pdf"}
+            )
+        except Exception as e:
+            log.error(f"Erreur génération PDF: {e}")
+            raise HTTPException(500, "Erreur lors de la génération du rapport PDF")
+    
+    raise HTTPException(400, "Format d'export non supporté")
 
 @router.delete("/{analyse_id}", status_code=200)
 async def delete_analyse(

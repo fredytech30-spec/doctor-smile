@@ -21,6 +21,9 @@
   const st = document.createElement('style');
   st.textContent = `
 
+/* Cacher les groupes Phase 2 & 3 de la nav (gérés par ce panneau) */
+#p2-nav-group, #p3-nav-group { display:none !important; }
+
 /* ══ Bouton ··· dans la nav ═══════════════════════════════════ */
 #ds-more-btn {
   width:44px;height:44px;border-radius:11px;
@@ -31,7 +34,7 @@
   font-family:'Syne',sans-serif;user-select:none;
 }
 #ds-more-btn:hover {
-  color:#7DD3FC;background:rgba(125,211,252,.08);
+  color:#8B7FF0;background:rgba(139,127,240,.08);
 }
 #ds-more-btn.open {
   color:#FFD700;background:rgba(255,215,0,.1);
@@ -42,7 +45,7 @@
 }
 #ds-more-btn .nav-tip {
   position:absolute;left:calc(100% + 10px);background:#0E1628;
-  border:1px solid rgba(125,211,252,.18);border-radius:6px;
+  border:1px solid rgba(139,127,240,.18);border-radius:6px;
   padding:5px 10px;font-family:'Syne',sans-serif;font-size:9px;
   font-weight:700;letter-spacing:.12em;text-transform:uppercase;
   color:#fff;white-space:nowrap;pointer-events:none;opacity:0;
@@ -65,7 +68,7 @@
   position:fixed;left:64px;top:0;bottom:0;
   width:300px;z-index:9000;
   background:linear-gradient(180deg,rgba(8,12,22,.99),rgba(10,16,28,.99));
-  border-right:1px solid rgba(125,211,252,.1);
+  border-right:1px solid rgba(139,127,240,.1);
   transform:translateX(-12px);opacity:0;pointer-events:none;
   transition:transform .3s cubic-bezier(.16,1,.3,1), opacity .25s ease;
   display:flex;flex-direction:column;overflow:hidden;
@@ -92,11 +95,11 @@
 #ds-more-panel-body {
   flex:1;overflow-y:auto;padding:12px 12px 20px;
   scrollbar-width:thin;
-  scrollbar-color:rgba(125,211,252,.15) transparent;
+  scrollbar-color:rgba(139,127,240,.15) transparent;
 }
 #ds-more-panel-body::-webkit-scrollbar { width:3px; }
 #ds-more-panel-body::-webkit-scrollbar-thumb {
-  background:rgba(125,211,252,.15);border-radius:3px;
+  background:rgba(139,127,240,.15);border-radius:3px;
 }
 
 /* Sections */
@@ -121,8 +124,8 @@
   border:1px solid transparent;
 }
 .ds-more-item:hover {
-  background:rgba(125,211,252,.05);
-  border-color:rgba(125,211,252,.08);
+  background:rgba(139,127,240,.05);
+  border-color:rgba(139,127,240,.08);
   transform:translateX(3px);
 }
 .ds-more-item.active {
@@ -222,8 +225,8 @@
           icon:  'fa-chart-pie',
           name:  'Visuels 3D',
           desc:  'Radar · SHAP · Graphes interactifs',
-          color: '#7DD3FC',
-          bg:    'rgba(125,211,252,.1)',
+          color: '#8B7FF0',
+          bg:    'rgba(139,127,240,.1)',
         },
         {
           view:  'benchmark',
@@ -249,15 +252,6 @@
           badge: { label:'IA', cls:'ds-more-badge-ai' },
         },
         {
-          view:  'peers',
-          icon:  'fa-users',
-          name:  'Réseau de Pairs',
-          desc:  'Benchmark vivant anonymisé',
-          color: '#34D399',
-          bg:    'rgba(52,211,153,.1)',
-          badge: { label:'NOUVEAU', cls:'ds-more-badge-new' },
-        },
-        {
           view:  'chat',
           icon:  'fa-comments',
           name:  'Chat IA',
@@ -281,13 +275,13 @@
           badge: { label:'PRO', cls:'ds-more-badge-pro' },
         },
         {
-          view:  'cabinet',
-          icon:  'fa-briefcase',
-          name:  'Cabinet Comptable',
-          desc:  'Workspace multi-entreprises',
-          color: '#7DD3FC',
-          bg:    'rgba(125,211,252,.1)',
-          badge: { label:'PRO', cls:'ds-more-badge-pro' },
+          view:  'peers',
+          icon:  'fa-users',
+          name:  'Réseau de Pairs',
+          desc:  'Benchmark vivant anonymisé',
+          color: '#34D399',
+          bg:    'rgba(52,211,153,.1)',
+          badge: { label:'NOUVEAU', cls:'ds-more-badge-new' },
         },
         {
           view:  'cosign',
@@ -307,12 +301,21 @@
           badge: { label:'NOUVEAU', cls:'ds-more-badge-new' },
         },
         {
+          view:  'cabinet',
+          icon:  'fa-briefcase',
+          name:  'Cabinet Comptable',
+          desc:  'Workspace multi-entreprises',
+          color: '#8B7FF0',
+          bg:    'rgba(139,127,240,.1)',
+          badge: { label:'PRO', cls:'ds-more-badge-pro' },
+        },
+        {
           view:  'rapports',
           icon:  'fa-chart-column',
           name:  'Rapports PDF',
           desc:  'Exportez vos analyses',
-          color: '#7DD3FC',
-          bg:    'rgba(125,211,252,.1)',
+          color: '#8B7FF0',
+          bg:    'rgba(139,127,240,.1)',
         },
       ],
     },
@@ -327,9 +330,10 @@
   function _createMoreBtn() {
     const btn = document.createElement('div');
     btn.id = 'ds-more-btn';
+    btn.className = 'nav-item';
     btn.innerHTML = `
       <i class="fa-solid fa-ellipsis"></i>
-      <span class="nav-tip">Plus de fonctionnalités</span>
+      <span class="nav-label">Plus de fonctions</span>
       <div id="ds-more-active-dot"></div>
     `;
     btn.onclick = togglePanel;
@@ -459,6 +463,11 @@
     const p3 = document.getElementById('p3-nav-group');
     if (p2) p2.style.display = 'none';
     if (p3) p3.style.display = 'none';
+    
+    // Aussi masquer les items individuels s'ils ne sont pas groupés
+    document.querySelectorAll('.p3-nav-item, .p2-nav-item').forEach(el => {
+      el.style.display = 'none';
+    });
   }
 
   // ── Détecter si une vue overflow est active (point jaune) ──
@@ -531,6 +540,6 @@
   // API publique
   window.DS_NAV_MORE = { open: openPanel, close: closePanel, toggle: togglePanel };
 
-  console.log('%c[ds-nav-overflow.js] ✓ Chargé — Bouton ··· injecté', 'color:#7DD3FC;font-weight:bold');
+  console.log('%c[ds-nav-overflow.js] ✓ Chargé — Bouton ··· injecté', 'color:#8B7FF0;font-weight:bold');
 
 })();

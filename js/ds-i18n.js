@@ -293,7 +293,7 @@ window.DS_I18N = {
     document.querySelectorAll('#lang-grid button[data-lang]').forEach(btn => {
       const active = btn.dataset.lang === lang;
       btn.style.background  = active ? 'rgba(56,189,248,.08)' : 'rgba(255,255,255,.04)';
-      btn.style.borderColor = active ? 'rgba(56,189,248,.4)'  : 'rgba(125,211,252,.1)';
+      btn.style.borderColor = active ? 'rgba(56,189,248,.4)'  : 'rgba(139,127,240,.1)';
       const lbl = btn.querySelector('span:nth-child(2)');
       if (lbl) lbl.style.color = active ? 'var(--ice)' : 'rgba(255,255,255,.45)';
       btn.querySelector('.lang-chk')?.remove();
@@ -301,7 +301,7 @@ window.DS_I18N = {
         const chk = document.createElement('span');
         chk.className = 'lang-chk';
         chk.style.cssText = 'position:absolute;top:5px;right:5px;width:14px;height:14px;' +
-          'border-radius:50%;background:var(--ice-2);color:#02040B;font-size:7px;' +
+          'border-radius:50%;background:var(--ice-2);color:var(--color-bg-inverse);font-size:7px;' +
           'display:flex;align-items:center;justify-content:center;';
         chk.innerHTML = '<i class="fa-solid fa-check"></i>';
         btn.appendChild(chk);

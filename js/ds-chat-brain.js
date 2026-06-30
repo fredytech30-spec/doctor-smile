@@ -37,15 +37,15 @@ const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
   transition:all .18s cubic-bezier(.34,1.56,.64,1);
 }
 .ct-btn:hover{
-  background:rgba(125,211,252,.1);border-color:rgba(125,211,252,.28);
-  color:#7DD3FC;transform:translateY(-1px);
+  background:rgba(139,127,240,.1);border-color:rgba(139,127,240,.28);
+  color:var(--color-ice);transform:translateY(-1px);
 }
 .ct-btn.on{
-  background:rgba(125,211,252,.14);border-color:rgba(125,211,252,.45);
-  color:#7DD3FC;
+  background:rgba(139,127,240,.14);border-color:rgba(139,127,240,.45);
+  color:var(--color-ice);
 }
 .ct-btn.action-mode{
-  background:rgba(255,215,0,.06);border-color:rgba(255,215,0,.2);color:#FFD700;
+  background:rgba(255,215,0,.06);border-color:rgba(255,215,0,.2);color:var(--color-gold);
 }
 .ct-btn.action-mode:hover{background:rgba(255,215,0,.14);}
 .ct-score-pill{
@@ -61,8 +61,8 @@ const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
 .ct-model{
   padding:2px 7px;border-radius:100px;
   font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:700;
-  background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.16);
-  color:rgba(139,92,246,.8);letter-spacing:.04em;
+  background:rgba(139,127,240,.08);border:1px solid rgba(139,127,240,.16);
+  color:rgba(139,127,240,.8);letter-spacing:.04em;
 }
 
 /* ── Mode badge dans les messages ───────────────────────────── */
@@ -87,7 +87,7 @@ const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
 .brain-action-btn{
   padding:6px 13px;border-radius:8px;
   background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);
-  color:#FFD700;font-family:'Syne',sans-serif;font-size:8.5px;font-weight:800;
+  color:var(--color-gold);font-family:'Syne',sans-serif;font-size:8.5px;font-weight:800;
   letter-spacing:.05em;cursor:pointer;flex-shrink:0;
   transition:all .18s cubic-bezier(.34,1.56,.64,1);
 }
@@ -102,20 +102,20 @@ const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
   display:flex;align-items:center;gap:5px;
   padding:6px 12px;border-radius:18px;
   font-family:'Syne',sans-serif;font-size:8.5px;font-weight:700;
-  background:rgba(125,211,252,.06);border:1px solid rgba(125,211,252,.16);
-  color:#7DD3FC;cursor:pointer;white-space:nowrap;
+  background:rgba(139,127,240,.06);border:1px solid rgba(139,127,240,.16);
+  color:var(--color-ice);cursor:pointer;white-space:nowrap;
   transition:all .2s cubic-bezier(.34,1.56,.64,1);
 }
 .chat-sug-btn:hover{
-  background:rgba(125,211,252,.14);border-color:rgba(125,211,252,.38);
-  transform:translateY(-1px);box-shadow:0 3px 10px rgba(125,211,252,.1);
+  background:rgba(139,127,240,.14);border-color:rgba(139,127,240,.38);
+  transform:translateY(-1px);box-shadow:0 3px 10px rgba(139,127,240,.1);
 }
 .chat-sug-btn.sug-action{
-  background:rgba(255,215,0,.05);border-color:rgba(255,215,0,.18);color:#FFD700;
+  background:rgba(255,215,0,.05);border-color:rgba(255,215,0,.18);color:var(--color-gold);
 }
 .chat-sug-btn.sug-action:hover{background:rgba(255,215,0,.12);border-color:rgba(255,215,0,.35);}
 .chat-sug-btn.sug-alert{
-  background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.18);color:#ef4444;
+  background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.18);color:var(--color-error);
 }
 .chat-sug-btn.sug-alert:hover{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);}
 .chat-sug-btn i{font-size:9px;opacity:.75;}
@@ -136,13 +136,13 @@ const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
 //  MODES DE CONVERSATION
 // ════════════════════════════════════════════════════════════════
 const MODES = {
-  auto:       { icon:'🧠', label:'Auto',        color:'rgba(125,211,252,.8)',  key:'auto'    },
-  diagnostic: { icon:'🩺', label:'Diagnostic',  color:'rgba(255,215,0,.8)',    key:'diagnostic' },
-  plan:       { icon:'📋', label:'Plan action', color:'rgba(16,185,129,.8)',   key:'plan'    },
-  banquier:   { icon:'🏦', label:'Banquier',    color:'rgba(139,92,246,.8)',   key:'banquier'},
-  simulateur: { icon:'🎮', label:'Simulateur',  color:'rgba(245,158,11,.8)',   key:'simulateur'},
-  alerte:     { icon:'🔔', label:'Alertes',     color:'rgba(239,68,68,.8)',    key:'alerte'  },
-  pedagogique:{ icon:'🎓', label:'Débutant',    color:'rgba(45,212,191,.8)',   key:'pedagogique'},
+  auto:       { icon:'fa-brain',       label:'Auto',        color:'rgba(139,127,240,.8)',  key:'auto'    },
+  diagnostic: { icon:'fa-stethoscope', label:'Diagnostic',  color:'rgba(240,208,120,.8)',    key:'diagnostic' },
+  plan:       { icon:'fa-clipboard-list', label:'Plan action', color:'rgba(16,185,129,.8)',   key:'plan'    },
+  banquier:   { icon:'fa-building-columns', label:'Banquier',    color:'rgba(139,127,240,.8)',   key:'banquier'},
+  simulateur: { icon:'fa-gamepad',     label:'Simulateur',  color:'rgba(245,158,11,.8)',   key:'simulateur'},
+  alerte:     { icon:'fa-bell',        label:'Alertes',     color:'rgba(239,68,68,.8)',    key:'alerte'  },
+  pedagogique:{ icon:'fa-graduation-cap', label:'Débutant',    color:'rgba(240,208,120,.8)',   key:'pedagogique'},
 };
 
 // Mode actif courant
@@ -495,15 +495,15 @@ function _detectAction(msg) {
 
 function _buildActionCard(action) {
   const cards = {
-    whatif:    { icon:'🎮', text:'Ouvrir le <strong>simulateur What-If</strong> pour tester ce scénario ?', btn:'Ouvrir simulateur', fn:`window.DS_VIEWS?.navTo('dashboard');setTimeout(()=>document.getElementById('wi-sec')?.scrollIntoView({behavior:'smooth'}),400)` },
-    rapport:   { icon:'📄', text:'<strong>Télécharger le rapport PDF</strong> de cette analyse ?',          btn:'Télécharger PDF',  fn:`window.DS_EXTRA?.exportReport(window.S?.currentAnalyse)||window.DS_VIEWS?.navTo('rapports')` },
-    visual:    { icon:'📊', text:'Voir les <strong>visualisations 3D</strong> pour cette analyse ?',       btn:'Voir les graphes', fn:`window.DS_VIEWS?.navTo('visualisations')` },
-    benchmark: { icon:'⚖️', text:'Afficher le <strong>benchmark sectoriel</strong> ?',                    btn:'Voir benchmark',   fn:`window.DS_EXTRA?.showComparator?.()||window.DS_VIEWS?.navTo('visualisations')` },
+    whatif:    { icon:'fa-gamepad', text:'Ouvrir le <strong>simulateur What-If</strong> pour tester ce scénario ?', btn:'Ouvrir simulateur', fn:`window.DS_VIEWS?.navTo('dashboard');setTimeout(()=>document.getElementById('wi-sec')?.scrollIntoView({behavior:'smooth'}),400)` },
+    rapport:   { icon:'fa-file-pdf', text:'<strong>Télécharger le rapport PDF</strong> de cette analyse ?',          btn:'Télécharger PDF',  fn:`window.DS_EXTRA?.exportReport(window.S?.currentAnalyse)||window.DS_VIEWS?.navTo('rapports')` },
+    visual:    { icon:'fa-chart-column', text:'Voir les <strong>visualisations 3D</strong> pour cette analyse ?',       btn:'Voir les graphes', fn:`window.DS_VIEWS?.navTo('visualisations')` },
+    benchmark: { icon:'fa-scale-balanced', text:'Afficher le <strong>benchmark sectoriel</strong> ?',                    btn:'Voir benchmark',   fn:`window.DS_EXTRA?.showComparator?.()||window.DS_VIEWS?.navTo('visualisations')` },
   };
   const c = cards[action];
   if (!c) return '';
   return `<div class="brain-action-card">
-    <span class="brain-action-icon">${c.icon}</span>
+    <span class="brain-action-icon"><i class="fa-solid ${c.icon}"></i></span>
     <span class="brain-action-text">${c.text}</span>
     <button class="brain-action-btn" onclick="${c.fn}">${c.btn}</button>
   </div>`;
@@ -580,12 +580,12 @@ function _injectToolbar() {
   bar.innerHTML = Object.values(MODES).map(m =>
     `<button class="ct-btn${_activeMode===m.key?' on':''}" data-mode="${m.key}"
        onclick="window._brainSetMode('${m.key}')" title="${m.label}">
-       ${m.icon} ${m.label}
+       <i class="fa-solid ${m.icon}" style="margin-right:4px;"></i> ${m.label}
      </button>`
   ).join('') +
   `<div id="ct-model-wrap" class="ct-model" title="Modèle LLM actif">⚡ —</div>
    <div class="ct-score-pill" id="ct-score-pill" style="display:none;">
-     <span class="ct-dot" style="background:#10b981;"></span>
+     <span class="ct-dot" style="background:var(--color-success);"></span>
      <span id="ct-score-val">—</span>
    </div>`;
 
@@ -607,7 +607,7 @@ function _updateToolbarScore() {
   const a    = window.S?.currentAnalyse;
   if (!pill || !val || !a?.score) return;
   const zone  = a.zone ?? _zoneFromScore(a.score);
-  const color = {saine:'#10b981',vigilance:'#f59e0b',risque:'#f97316',critique:'#ef4444'}[zone] ?? '#7DD3FC';
+  const color = {saine:'var(--color-success)',vigilance:'var(--color-accent)',risque:'var(--color-risque)',critique:'var(--color-error)'}[zone] ?? 'var(--color-ice)';
   const dot   = pill.querySelector('.ct-dot');
   if (dot) dot.style.background = color;
   val.textContent = `${a.entreprise?.slice(0,14) ?? '—'} · ${a.score}/100`;
@@ -671,7 +671,7 @@ function _patchDSChat() {
     if (hasAnom && !isFollowUp) {
       const banner = document.createElement('div');
       banner.className = 'brain-anomaly-banner';
-      banner.innerHTML = `<span class="brain-anomaly-icon">⚠️</span>
+      banner.innerHTML = `<span class="brain-anomaly-icon"><i class="fa-solid fa-triangle-exclamation" style="color:var(--error);"></i></span>
         <span>${analyse.anomalies.n_critical ?? 0} anomalie(s) critique(s) détectée(s) dans les données. 
         <button class="chat-sug-btn sug-alert" style="margin-top:4px;font-size:8px;"
           onclick="document.getElementById('${inpId}').value='Explique les anomalies détectées';window.DS_CHAT._sendMsg('${containerId}')">

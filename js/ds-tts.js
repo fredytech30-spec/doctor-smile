@@ -1,34 +1,126 @@
 // ════════════════════════════════════════════════════════════════
 //  DS_TTS — Moteur Text-to-Speech Doctor Smile
-//  Web Speech API (natif, gratuit, aucune clé API)
-//  Voix naturelle FR + contrôles lecture + mode "appel assistant"
+//  Web Speech API OU ElevenLabs API (si disponible)
+//  Voix naturelle + contrôles lecture + mode "appel assistant"
 // ════════════════════════════════════════════════════════════════
 
 window.DS_TTS = (() => {
 
   // ── État ────────────────────────────────────────────────────
-  let _synth      = window.speechSynthesis;
-  let _voices     = [];
-  let _bestVoice  = null;
-  let _utterance  = null;
-  let _playing    = false;
-  let _paused     = false;
-  let _callMode   = false;       // mode "appel assistant vocal"
-  let _autoRead   = false;       // lecture auto des nouvelles réponses IA
-  let _queue      = [];          // file de textes à lire
-  let _currentBtn = null;        // bouton play actif (pour reset icône)
+  let _synth          = window.speechSynthesis;
+  let _webVoices      = [];
+  let _elevenVoices   = [];
+  let _bestVoice      = null;
+  let _currentVoiceId = "EXAVITQu4vr4xnSDxMaL"; // Rachel, default ElevenLabs voice
+  let _utterance      = null;
+  let _audioElement   = null;
+  let _playing        = false;
+  let _paused         = false;
+  let _useElevenLabs  = false;
+  let _callMode       = false;       // mode "appel assistant vocal"
+  let _autoRead       = false;       // lecture auto des nouvelles réponses IA
+  let _queue          = [];          // file de textes à lire
+  let _currentBtn     = null;        // bouton play actif (pour reset icône)
 
-  // ── Charger les voix disponibles ────────────────────────────
-  function _loadVoices() {
-    _voices = _synth.getVoices();
-    _bestVoice = _pickBestVoice();
+  // ── Vérifier si ElevenLabs est disponible via API ───────────
+  async function _checkElevenLabs() {
+    try {
+      const apiBase = window.API_BASE || 'http://127.0.0.1:8000';
+      const res = await fetch(`${apiBase}/api/speech/status`);
+      const data = await res.json();
+      const savedPref = localStorage.getItem('ds-tts-use-elevenlabs');
+      if (savedPref !== null) {
+        _useElevenLabs = data.available && (savedPref === 'true');
+      } else {
+        _useElevenLabs = data.available;
+      }
+      if (_useElevenLabs) {
+        await _loadElevenVoices();
+      }
+      setTimeout(() => {
+        const checkbox = document.getElementById('_tts_use_elevenlabs');
+        if (checkbox) checkbox.checked = _useElevenLabs;
+        const voiceSec = document.getElementById('_tts_voice_section');
+        if (voiceSec) voiceSec.style.display = _useElevenLabs ? 'flex' : 'none';
+      }, 100);
+      return _useElevenLabs;
+    } catch (e) {
+      _useElevenLabs = false;
+      return false;
+    }
   }
-  _synth.onvoiceschanged = _loadVoices;
-  _loadVoices();
 
-  // ── Choisir la meilleure voix française disponible ───────────
-  // Priorité : Google français > Microsoft français > toute voix FR
-  function _pickBestVoice() {
+  async function toggleElevenLabs(enabled) {
+    _useElevenLabs = !!enabled;
+    localStorage.setItem('ds-tts-use-elevenlabs', _useElevenLabs ? 'true' : 'false');
+    if (_useElevenLabs) {
+      await _loadElevenVoices();
+    } else {
+      _loadWebVoices();
+    }
+    _updateVoiceSelect();
+    const voiceSec = document.getElementById('_tts_voice_section');
+    if (voiceSec) voiceSec.style.display = _useElevenLabs ? 'flex' : 'none';
+    if (window.showToast) {
+      showToast(_useElevenLabs ? '🎙️ Mode ElevenLabs activé' : '🔊 Mode Web Speech activé', 'info');
+    }
+  }
+
+  // ── Charger les voix ElevenLabs ──────────────────────────────
+  async function _loadElevenVoices() {
+    try {
+      const apiBase = window.API_BASE || 'http://127.0.0.1:8000';
+      const res = await fetch(`${apiBase}/api/speech/voices`);
+      _elevenVoices = await res.json();
+      const savedVoiceId = localStorage.getItem('ds-tts-voice-id');
+      if (savedVoiceId) _currentVoiceId = savedVoiceId;
+      _updateVoiceSelect();
+    } catch (e) {
+      console.warn('[DS_TTS] Could not load ElevenLabs voices', e);
+    }
+  }
+
+  // ── Charger les voix Web Speech API ──────────────────────────
+  function _loadWebVoices() {
+    _webVoices = _synth.getVoices();
+    _bestVoice = _pickBestWebVoice();
+    _updateVoiceSelect();
+  }
+  _synth.onvoiceschanged = _loadWebVoices;
+
+  // ── Mettre à jour le sélecteur de voix ───────────────────────
+  function _updateVoiceSelect() {
+    ['tts-voice-select', '_tts_voice_select'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (_useElevenLabs) {
+        el.innerHTML = _elevenVoices.map(voice => 
+          `<option value="${voice.voice_id}" ${voice.voice_id === _currentVoiceId ? 'selected' : ''}>${voice.name} (${voice.language.toUpperCase()}) - ${voice.style}</option>`
+        ).join('');
+      } else {
+        el.innerHTML = _webVoices.map(voice => 
+          `<option value="${voice.name}" ${voice.name === _bestVoice?.name ? 'selected' : ''}>${voice.name} (${voice.lang})</option>`
+        ).join('');
+      }
+    });
+  }
+
+  // ── Sélectionner une voix ────────────────────────────────────
+  function selectVoice(voiceIdOrName) {
+    if (_useElevenLabs) {
+      _currentVoiceId = voiceIdOrName;
+      localStorage.setItem('ds-tts-voice-id', voiceIdOrName);
+      const voice = _elevenVoices.find(v => v.voice_id === voiceIdOrName);
+      showToast(`Voix sélectionnée: ${voice?.name || 'Par défaut'}`, 'ok');
+    } else {
+      _bestVoice = _webVoices.find(v => v.name === voiceIdOrName) || _pickBestWebVoice();
+      localStorage.setItem('ds-tts-voice', voiceIdOrName);
+      showToast(`Voix sélectionnée: ${_bestVoice?.name || 'Par défaut'}`, 'ok');
+    }
+  }
+
+  // ── Choisir la meilleure voix française Web Speech ───────────
+  function _pickBestWebVoice() {
     const all = _synth.getVoices();
     if (!all.length) return null;
 
@@ -41,7 +133,7 @@ window.DS_TTS = (() => {
       v => v.lang === 'fr-FR',
       v => v.lang.startsWith('fr'),
       v => v.lang.startsWith('en') && v.name.includes('Google'),
-      v => true,  // fallback absolu
+      v => true,
     ];
     for (const test of priority) {
       const match = all.find(test);
@@ -55,26 +147,72 @@ window.DS_TTS = (() => {
     const tmp = document.createElement('div');
     tmp.innerHTML = html;
     let text = tmp.textContent || tmp.innerText || '';
-    // Supprimer les URLs, les chiffres isolés, "Doctor Smile IA"
     text = text
       .replace(/Doctor Smile IA/gi, '')
       .replace(/https?:\/\/\S+/g, '')
       .replace(/\s{2,}/g, ' ')
       .trim();
-    // Limiter à 1500 chars pour éviter les très longs textes
     if (text.length > 1500) text = text.slice(0, 1500) + '…';
     return text;
   }
 
-  // ── Lire un texte ────────────────────────────────────────────
-  function speak(text, opts = {}) {
+  // ── Lire un texte avec ElevenLabs ────────────────────────────
+  async function _speakElevenLabs(text, opts = {}) {
+    const cleaned = _cleanText(text);
+    if (!cleaned) return;
+
+    stop(); // stopper ce qui est en cours
+
+    try {
+      const apiBase = window.API_BASE || 'http://127.0.0.1:8000';
+      const audioUrl = `${apiBase}/api/speech/synthesize?text=${encodeURIComponent(cleaned)}&voice_id=${_currentVoiceId}`;
+      _audioElement = new Audio(audioUrl);
+
+      _audioElement.onplay = () => {
+        _playing = true;
+        _paused = false;
+        _updateBar(true);
+        opts.onStart?.();
+      };
+
+      _audioElement.onended = () => {
+        _playing = false;
+        _paused = false;
+        _resetBtn(opts.btn);
+        _updateBar(false);
+        opts.onEnd?.();
+        _processQueue();
+      };
+
+      _audioElement.onerror = () => {
+        _playing = false;
+        _resetBtn(opts.btn);
+        _updateBar(false);
+      };
+
+      if (opts.btn) {
+        _currentBtn = opts.btn;
+        opts.btn.innerHTML = '<i class="fa-solid fa-stop"></i>';
+        opts.btn.style.color = '#ef4444';
+      }
+
+      await _audioElement.play();
+    } catch (e) {
+      console.error('[DS_TTS] ElevenLabs playback error', e);
+      // Fallback to Web Speech API if ElevenLabs fails
+      _speakWebSpeech(text, opts);
+    }
+  }
+
+  // ── Lire un texte avec Web Speech API ─────────────────────────
+  function _speakWebSpeech(text, opts = {}) {
     if (!_synth) return;
     const cleaned = _cleanText(text);
     if (!cleaned) return;
 
     stop(); // stopper ce qui est en cours
 
-    if (!_bestVoice) _bestVoice = _pickBestVoice();
+    if (!_bestVoice) _bestVoice = _pickBestWebVoice();
 
     _utterance = new SpeechSynthesisUtterance(cleaned);
     _utterance.voice  = _bestVoice;
@@ -111,16 +249,42 @@ window.DS_TTS = (() => {
     _synth.speak(_utterance);
   }
 
+  // ── Fonction speak publique ───────────────────────────────────
+  async function speak(text, opts = {}) {
+    if (_useElevenLabs) {
+      await _speakElevenLabs(text, opts);
+    } else {
+      _speakWebSpeech(text, opts);
+    }
+  }
+
   // ── Pause / Resume ───────────────────────────────────────────
   function pause() {
-    if (!_synth.speaking) return;
-    if (_paused) { _synth.resume(); _paused = false; _updateBar(true); }
-    else         { _synth.pause();  _paused = true;  _updateBar(false, true); }
+    if (_useElevenLabs && _audioElement) {
+      if (_audioElement.paused) {
+        _audioElement.play();
+        _paused = false;
+        _updateBar(true);
+      } else {
+        _audioElement.pause();
+        _paused = true;
+        _updateBar(false, true);
+      }
+    } else if (_synth.speaking) {
+      if (_paused) { _synth.resume(); _paused = false; _updateBar(true); }
+      else         { _synth.pause();  _paused = true;  _updateBar(false, true); }
+    }
   }
 
   // ── Stop ─────────────────────────────────────────────────────
   function stop() {
-    _synth.cancel();
+    if (_useElevenLabs && _audioElement) {
+      _audioElement.pause();
+      _audioElement.currentTime = 0;
+      _audioElement = null;
+    } else if (_synth) {
+      _synth.cancel();
+    }
     _playing = false; _paused = false;
     _queue   = [];
     _resetBtn(_currentBtn);
@@ -188,7 +352,7 @@ window.DS_TTS = (() => {
   transform: translateX(-50%) translateY(12px);
   z-index: 8000;
   background: rgba(6,10,20,.96);
-  border: 1px solid rgba(125,211,252,.25);
+  border: 1px solid rgba(139,127,240,.25);
   border-radius: 50px;
   padding: 9px 18px;
   display: flex;
@@ -197,7 +361,7 @@ window.DS_TTS = (() => {
   opacity: 0;
   pointer-events: none;
   transition: opacity .28s ease, transform .28s cubic-bezier(.34,1.56,.64,1);
-  box-shadow: 0 8px 32px rgba(0,0,0,.5), 0 0 0 1px rgba(125,211,252,.07);
+  box-shadow: 0 8px 32px rgba(0,0,0,.5), 0 0 0 1px rgba(139,127,240,.07);
   backdrop-filter: blur(20px);
   min-width: 240px;
 }
@@ -218,7 +382,7 @@ window.DS_TTS = (() => {
 ._tts_wave {
   width: 2.5px;
   border-radius: 2px;
-  background: linear-gradient(180deg, #7DD3FC, #38BDF8);
+  background: linear-gradient(180deg, #8B7FF0, #6C5CE7);
   animation: _tts_wave_anim .7s ease-in-out infinite alternate;
 }
 ._tts_wave:nth-child(1){height:6px;  animation-delay:0s;}
@@ -233,17 +397,17 @@ window.DS_TTS = (() => {
 #_tts_bar ._tts_ctrl {
   width: 26px; height: 26px;
   border-radius: 50%;
-  border: 1px solid rgba(125,211,252,.2);
-  background: rgba(125,211,252,.06);
-  color: #7DD3FC;
+  border: 1px solid rgba(139,127,240,.2);
+  background: rgba(139,127,240,.06);
+  color: #8B7FF0;
   font-size: 10px;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all .15s;
 }
 #_tts_bar ._tts_ctrl:hover {
-  background: rgba(125,211,252,.15);
-  border-color: rgba(125,211,252,.4);
+  background: rgba(139,127,240,.15);
+  border-color: rgba(139,127,240,.4);
 }
 #_tts_bar ._tts_ctrl.stop { color: #ef4444; border-color: rgba(239,68,68,.3); }
 #_tts_bar ._tts_ctrl.stop:hover { background: rgba(239,68,68,.1); }
@@ -252,7 +416,7 @@ window.DS_TTS = (() => {
 ._tts_msg_btn {
   background: transparent;
   border: none;
-  color: rgba(125,211,252,.35);
+  color: rgba(139,127,240,.35);
   font-size: 10px;
   cursor: pointer;
   padding: 3px 5px;
@@ -261,7 +425,7 @@ window.DS_TTS = (() => {
   margin-left: auto;
   flex-shrink: 0;
 }
-._tts_msg_btn:hover { color: #7DD3FC; background: rgba(125,211,252,.08); }
+._tts_msg_btn:hover { color: #8B7FF0; background: rgba(139,127,240,.08); }
 
 /* ── Toolbar TTS dans le header chat ── */
 #_tts_toolbar {
@@ -273,8 +437,8 @@ window.DS_TTS = (() => {
   display: flex; align-items: center; gap: 5px;
   padding: 5px 10px;
   border-radius: 8px;
-  border: 1px solid rgba(125,211,252,.15);
-  background: rgba(125,211,252,.04);
+  border: 1px solid rgba(139,127,240,.15);
+  background: rgba(139,127,240,.04);
   color: rgba(255,255,255,.5);
   font-family: 'Syne', sans-serif;
   font-size: 8.5px;
@@ -285,9 +449,9 @@ window.DS_TTS = (() => {
   white-space: nowrap;
 }
 ._tts_tool_btn:hover, ._tts_tool_btn.active {
-  background: rgba(125,211,252,.12);
-  border-color: rgba(125,211,252,.35);
-  color: #7DD3FC;
+  background: rgba(139,127,240,.12);
+  border-color: rgba(139,127,240,.35);
+  color: #8B7FF0;
 }
 ._tts_tool_btn.active._call_mode {
   background: rgba(16,185,129,.1);
@@ -313,7 +477,7 @@ window.DS_TTS = (() => {
 #_tts_call_box {
   width: min(90vw, 360px);
   background: rgba(6,10,20,.98);
-  border: 1px solid rgba(125,211,252,.2);
+  border: 1px solid rgba(139,127,240,.2);
   border-radius: 24px;
   padding: 36px 28px;
   text-align: center;
@@ -324,16 +488,16 @@ window.DS_TTS = (() => {
 ._call_avatar {
   width: 80px; height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg,rgba(125,211,252,.15),rgba(16,185,129,.1));
-  border: 2px solid rgba(125,211,252,.25);
+  background: linear-gradient(135deg,rgba(139,127,240,.15),rgba(16,185,129,.1));
+  border: 2px solid rgba(139,127,240,.25);
   display: flex; align-items: center; justify-content: center;
   font-size: 36px;
   margin: 0 auto 16px;
   animation: _call_ring 2s ease-in-out infinite;
 }
 @keyframes _call_ring {
-  0%,100%{ box-shadow: 0 0 0 0 rgba(125,211,252,.4), 0 0 0 0 rgba(125,211,252,.2); }
-  50%    { box-shadow: 0 0 0 12px rgba(125,211,252,.1), 0 0 0 24px rgba(125,211,252,.05); }
+  0%,100%{ box-shadow: 0 0 0 0 rgba(139,127,240,.4), 0 0 0 0 rgba(139,127,240,.2); }
+  50%    { box-shadow: 0 0 0 12px rgba(139,127,240,.1), 0 0 0 24px rgba(139,127,240,.05); }
 }
 ._call_name {
   font-family: 'Syne', sans-serif;
@@ -347,7 +511,7 @@ window.DS_TTS = (() => {
 ._call_timer {
   font-family: 'JetBrains Mono', monospace;
   font-size: 24px; font-weight: 700;
-  color: #7DD3FC; margin-bottom: 28px;
+  color: #8B7FF0; margin-bottom: 28px;
   letter-spacing: .05em;
 }
 ._call_waves {
@@ -356,7 +520,7 @@ window.DS_TTS = (() => {
 }
 ._call_wave {
   width: 3px; border-radius: 2px;
-  background: linear-gradient(180deg,#7DD3FC,#10b981);
+  background: linear-gradient(180deg,#8B7FF0,#10b981);
   animation: _tts_wave_anim .6s ease-in-out infinite alternate;
 }
 ._call_wave:nth-child(1){height:8px; animation-delay:0s;}
@@ -389,7 +553,7 @@ window.DS_TTS = (() => {
     bar.id = '_tts_bar';
     bar.innerHTML = `
       <div class="_tts_label">
-        <i class="fa-solid fa-waveform-lines" style="color:#7DD3FC;margin-right:5px;"></i>
+        <i class="fa-solid fa-waveform-lines" style="color:#8B7FF0;margin-right:5px;"></i>
         Lecture IA
       </div>
       <div class="_tts_waves">
@@ -452,6 +616,14 @@ window.DS_TTS = (() => {
       showToast(_autoRead ? '🔊 Lecture auto activée' : '🔇 Lecture auto désactivée', 'ok');
     });
 
+    // Sélecteur de voix
+    const voiceSelect = document.createElement('select');
+    voiceSelect.id = 'tts-voice-select';
+    voiceSelect.className = '_tts_tool_btn';
+    voiceSelect.style.padding = '5px 8px';
+    voiceSelect.style.cursor = 'pointer';
+    voiceSelect.addEventListener('change', (e) => selectVoice(e.target.value));
+
     // Bouton appel vocal
     const btnCall = document.createElement('button');
     btnCall.className = '_tts_tool_btn';
@@ -461,11 +633,15 @@ window.DS_TTS = (() => {
     btnCall.addEventListener('click', () => startCall());
 
     toolbar.appendChild(btnAuto);
+    toolbar.appendChild(voiceSelect);
     toolbar.appendChild(btnCall);
 
     // Insérer dans le header
     const headerRow = document.querySelector('#view-chat .view-header');
     if (headerRow) headerRow.appendChild(toolbar);
+
+    // Mettre à jour les options du selecteur
+    _updateVoiceSelect();
   }
 
   // ── Ajouter bouton 🔊 sur une bulle IA ───────────────────────
@@ -583,13 +759,25 @@ window.DS_TTS = (() => {
   }
 
   // ── Init global ──────────────────────────────────────────────
-  function init() {
-    if (!window.speechSynthesis) {
-      console.warn('[DS_TTS] Web Speech API non disponible dans ce navigateur');
+  async function init() {
+    // First check if ElevenLabs is available
+    await _checkElevenLabs();
+
+    if (!_useElevenLabs && !window.speechSynthesis) {
+      console.warn('[DS_TTS] Ni ElevenLabs ni Web Speech API disponibles dans ce navigateur');
       return;
     }
+
     _injectUI();
     _observeMessages();
+
+    if (!_useElevenLabs) {
+      _loadWebVoices();
+      const savedVoice = localStorage.getItem('ds-tts-voice');
+      if (savedVoice) {
+        _bestVoice = _webVoices.find(v => v.name === savedVoice) || _bestVoice;
+      }
+    }
 
     // Attacher aux bulles déjà présentes dans le DOM
     document.querySelectorAll('.msg.ai').forEach(attachToMsg);
@@ -609,17 +797,17 @@ window.DS_TTS = (() => {
     }
 
     injectToolbar();
-    console.log('[DS_TTS] ✓ TTS initialisé — voix:', _bestVoice?.name || 'par défaut');
+    console.log('[DS_TTS] ✓ TTS initialisé —', _useElevenLabs ? 'ElevenLabs activé' : 'Web Speech API');
   }
 
   // API publique
-  return { init, speak, stop, pause, toggleMsg, startCall, endCall, attachToMsg, injectToolbar };
+  return { init, speak, stop, pause, toggleMsg, startCall, endCall, attachToMsg, injectToolbar, toggleElevenLabs, toggleEngine: toggleElevenLabs, selectVoice };
 
 })();
 
 // ── Démarrer après chargement ────────────────────────────────
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => DS_TTS.init());
+  document.addEventListener('DOMContentLoaded', async () => await DS_TTS.init());
 } else {
-  DS_TTS.init();
+  (async () => await DS_TTS.init())();
 }

@@ -1,37 +1,7 @@
 // ════════════════════════════════════════════════════════════════
 //  ds-preprocess.js — Doctor Smile · Power Query IA v1
-//  ─────────────────────────────────────────────────────────────
-//  Remplace le modal basique par un éditeur de données complet :
-//
-//  ① ÉDITEUR POWER BI
-//     • Ajout / suppression lignes ET colonnes
-//     • Renommage colonnes (double-clic)
-//     • Filtre par colonne (dropdown)
-//     • Sélection multiple lignes → bulk delete
-//     • Freeze header + scroll horizontal
-//     • Recherche globale dans les données
-//     • Pagination (50 lignes/page)
-//     • Undo / Redo (10 niveaux)
-//
-//  ② ANALYSE IA GROQ (llama-3.3-70b)
-//     Avant d'afficher le tableau, le LLM analyse en JSON :
-//     • Détection pays / secteur / devise / exercice
-//     • Mapping colonnes → clés OHADA internes
-//     • Valeurs suspectes avec explication
-//     • Champs critiques manquants
-//     • Score de qualité 0-100
-//
-//  ③ DIALOGUE DE VALIDATION
-//     Pour chaque incertitude : card interactive avec
-//     proposition IA + bouton Valider / Corriger / Ignorer
-//
-//  ④ APERÇU DIFF BEFORE/AFTER
-//     Comparaison visuelle original vs corrigé
-//     Highlight rouge/vert des changements
-//
-//  INTÉGRATION : ajouter après ds-upload.js dans dashboard.html
-//  <script type="module" src="./js/ds-preprocess.js"></script>
-//  Aucune modification des fichiers existants.
+//  Palette harmonisée : violet (standard), cyan (premium), ambre (extra)
+//  Tous les styles inline remplacés par des classes CSS ou variables CSS.
 // ════════════════════════════════════════════════════════════════
 
 const _API  = window.API_BASE || 'http://127.0.0.1:8000';
@@ -39,7 +9,7 @@ const _esc  = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(
 const _toast = (m,t='ok',d=3500) => window.showToast?.(m,t,d);
 
 // ════════════════════════════════════════════════════════════════
-//  CSS — Power Query UI
+//  CSS — Power Query UI (utilise les variables globales)
 // ════════════════════════════════════════════════════════════════
 (function _css(){
   if(document.getElementById('_ppq_css')) return;
@@ -49,7 +19,7 @@ const _toast = (m,t='ok',d=3500) => window.showToast?.(m,t,d);
 /* ── Modal full-screen ─────────────────────────────────────── */
 #ppq-overlay{
   position:fixed;inset:0;z-index:8500;
-  background:rgba(2,4,11,.96);backdrop-filter:blur(22px);
+  background:rgba(196, 194, 194, 0.85);backdrop-filter:blur(22px);
   display:none;flex-direction:column;
   animation:ppqIn .3s ease;
 }
@@ -59,68 +29,68 @@ const _toast = (m,t='ok',d=3500) => window.showToast?.(m,t,d);
 /* ── Topbar ────────────────────────────────────────────────── */
 #ppq-topbar{
   display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-  padding:10px 18px;background:rgba(4,6,14,.98);
-  border-bottom:1px solid rgba(125,211,252,.1);flex-shrink:0;
+  padding:10px 18px;background:var(--bg-elevated);
+  border-bottom:1px solid var(--border-v);flex-shrink:0;
 }
 #ppq-title{
-  font-family:'Syne',sans-serif;font-size:13px;font-weight:900;
-  color:#fff;display:flex;align-items:center;gap:8px;
+  font-family:'Syne',sans-serif;font-size:14px;font-weight:900;
+  color:var(--text);display:flex;align-items:center;gap:8px;
 }
 #ppq-file-badge{
-  font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;
-  color:rgba(125,211,252,.7);background:rgba(125,211,252,.08);
-  border:1px solid rgba(125,211,252,.18);border-radius:6px;
-  padding:2px 9px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;
+  color:var(--color-primary-dark);background:var(--violet-bg);
+  border:1px solid var(--violet-border);border-radius:6px;
+  padding:3px 10px;
 }
 #ppq-stats-bar{
-  display:flex;gap:10px;margin-left:auto;
-  font-family:'JetBrains Mono',monospace;font-size:8.5px;color:rgba(255,255,255,.3);
+  display:flex;gap:12px;margin-left:auto;
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-2);
 }
-.ppq-stat{display:flex;align-items:center;gap:4px;}
-.ppq-stat-dot{width:5px;height:5px;border-radius:50%;}
+.ppq-stat{display:flex;align-items:center;gap:6px;}
+.ppq-stat-dot{width:6px;height:6px;border-radius:50%;}
 
 /* ── Toolbar ────────────────────────────────────────────────── */
 #ppq-toolbar{
-  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
-  padding:7px 18px;background:rgba(5,8,16,.96);
-  border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:10px 18px;background:var(--bg-elevated);
+  border-bottom:1px solid var(--border);flex-shrink:0;
 }
 .ppq-btn{
-  display:inline-flex;align-items:center;gap:5px;
-  padding:5px 11px;border-radius:7px;font-family:'Syne',sans-serif;
-  font-size:8px;font-weight:800;letter-spacing:.06em;cursor:pointer;
-  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);
-  color:rgba(255,255,255,.55);transition:all .15s;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:8px;font-family:'Syne',sans-serif;
+  font-size:10px;font-weight:800;letter-spacing:.06em;cursor:pointer;
+  background:var(--surface-3);border:1px solid var(--border);
+  color:var(--text-2);transition:all .15s;white-space:nowrap;
 }
-.ppq-btn:hover{background:rgba(125,211,252,.1);border-color:rgba(125,211,252,.28);color:#7DD3FC;}
-.ppq-btn.danger:hover{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.28);color:#ef4444;}
-.ppq-btn.primary{background:rgba(125,211,252,.12);border-color:rgba(125,211,252,.3);color:#7DD3FC;}
-.ppq-btn.gold{background:rgba(255,215,0,.1);border-color:rgba(255,215,0,.25);color:#FFD700;}
+.ppq-btn:hover{background:var(--violet-hover);border-color:var(--violet-border-strong);color:var(--violet-3);}
+.ppq-btn.danger:hover{background:var(--error-bg);border-color:var(--error-border);color:var(--color-error);}
+.ppq-btn.primary{background:var(--violet-bg);border-color:var(--violet-border);color:var(--violet-3);}
+.ppq-btn.gold{background:var(--accent-bg);border-color:var(--accent-border);color:var(--color-accent);}
 .ppq-btn.disabled{opacity:.35;pointer-events:none;}
-.ppq-sep{width:1px;height:20px;background:rgba(255,255,255,.08);margin:0 2px;}
+.ppq-sep{width:1px;height:20px;background:var(--border);margin:0 2px;}
 #ppq-search{
   margin-left:auto;padding:5px 11px;border-radius:7px;
-  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
-  color:#fff;font-family:'Instrument Sans',sans-serif;font-size:9px;
+  background:var(--surface-2);border:1px solid var(--border);
+  color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:9px;
   outline:none;min-width:160px;transition:border-color .2s;
 }
-#ppq-search:focus{border-color:rgba(125,211,252,.4);}
-#ppq-search::placeholder{color:rgba(255,255,255,.25);}
+#ppq-search:focus{border-color:var(--violet-2);}
+#ppq-search::placeholder{color:var(--text-hint);}
 
 /* ── Main body ──────────────────────────────────────────────── */
 #ppq-body{display:flex;flex:1;min-height:0;overflow:hidden;}
 
 /* ── Sidebar IA ─────────────────────────────────────────────── */
 #ppq-sidebar{
-  width:290px;flex-shrink:0;background:rgba(4,6,14,.98);
-  border-right:1px solid rgba(125,211,252,.08);
+  width:290px;flex-shrink:0;background:var(--bg-elevated);
+  border-right:1px solid var(--border-v);
   display:flex;flex-direction:column;overflow:hidden;
   transition:width .3s ease;
 }
 #ppq-sidebar.collapsed{width:0;}
 #ppq-sidebar-inner{flex:1;overflow-y:auto;padding:14px;}
 #ppq-sidebar-inner::-webkit-scrollbar{width:3px;}
-#ppq-sidebar-inner::-webkit-scrollbar-thumb{background:rgba(125,211,252,.2);border-radius:2px;}
+#ppq-sidebar-inner::-webkit-scrollbar-thumb{background:var(--border-v);border-radius:2px;}
 
 /* ── IA Score qualité ────────────────────────────────────────── */
 #ppq-dqs-ring{
@@ -129,84 +99,84 @@ const _toast = (m,t='ok',d=3500) => window.showToast?.(m,t,d);
 }
 .ppq-ring-wrap{position:relative;width:80px;height:80px;}
 .ppq-ring-wrap svg{transform:rotate(-90deg);width:80px;height:80px;}
-.ppq-ring-bg{fill:none;stroke:rgba(255,255,255,.06);stroke-width:8;}
+.ppq-ring-bg{fill:none;stroke:var(--border-v);stroke-width:8;opacity:0.3;}
 .ppq-ring-fill{fill:none;stroke-width:8;stroke-linecap:round;stroke-dasharray:226;transition:stroke-dashoffset .8s ease;}
 .ppq-ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 .ppq-ring-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:900;line-height:1;}
-.ppq-ring-lbl{font-size:7.5px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;}
+.ppq-ring-lbl{font-size:7.5px;font-weight:700;color:var(--text-hint);letter-spacing:.08em;text-transform:uppercase;}
 
 /* ── Sections sidebar ────────────────────────────────────────── */
 .ppq-section{margin-bottom:16px;}
 .ppq-section-title{
-  font-family:'Syne',sans-serif;font-size:8px;font-weight:800;
+  font-family:'Syne',sans-serif;font-size:10px;font-weight:800;
   letter-spacing:.14em;text-transform:uppercase;
-  color:rgba(255,255,255,.28);margin-bottom:8px;
-  display:flex;align-items:center;gap:6px;
+  color:var(--text-hint);margin-bottom:10px;
+  display:flex;align-items:center;gap:8px;
 }
-.ppq-section-title i{font-size:10px;}
+.ppq-section-title i{font-size:12px;color:var(--violet-3);}
 
 /* ── Validation cards ────────────────────────────────────────── */
 .ppq-val-card{
-  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
-  border-radius:10px;padding:11px 12px;margin-bottom:8px;
+  background:var(--surface-3);border:1px solid var(--border);
+  border-radius:10px;padding:12px 14px;margin-bottom:10px;
   transition:all .2s;
 }
-.ppq-val-card.urgent{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.04);}
-.ppq-val-card.suggestion{border-color:rgba(125,211,252,.2);background:rgba(125,211,252,.03);}
-.ppq-val-card.info{border-color:rgba(16,185,129,.2);background:rgba(16,185,129,.03);}
+.ppq-val-card.urgent{border-color:var(--error-border);background:var(--error-bg);}
+.ppq-val-card.suggestion{border-color:var(--violet-border);background:var(--violet-bg);}
+.ppq-val-card.info{border-color:var(--success-border);background:var(--success-bg);}
 .ppq-val-card-title{
-  font-family:'Syne',sans-serif;font-size:9px;font-weight:800;
-  color:#fff;margin-bottom:4px;display:flex;align-items:center;gap:6px;
+  font-family:'Syne',sans-serif;font-size:11px;font-weight:800;
+  color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;
 }
-.ppq-val-card-body{font-size:9px;color:rgba(255,255,255,.5);line-height:1.55;margin-bottom:8px;}
-.ppq-val-card-body strong{color:#fff;font-weight:600;}
-.ppq-val-btns{display:flex;gap:5px;flex-wrap:wrap;}
+.ppq-val-card-body{font-size:11px;color:var(--text-2);line-height:1.6;margin-bottom:10px;}
+.ppq-val-card-body strong{color:var(--text);font-weight:700;}
+.ppq-val-btns{display:flex;gap:6px;flex-wrap:wrap;}
 .ppq-vbtn{
-  padding:4px 10px;border-radius:6px;font-family:'Syne',sans-serif;
-  font-size:7.5px;font-weight:800;letter-spacing:.05em;cursor:pointer;
+  padding:5px 12px;border-radius:8px;font-family:'Syne',sans-serif;
+  font-size:10px;font-weight:800;letter-spacing:.05em;cursor:pointer;
   transition:all .15s;
 }
-.ppq-vbtn-ok{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.28);color:#10b981;}
+.ppq-vbtn-ok{background:var(--success-bg);border:1px solid var(--success-border);color:var(--color-success);}
 .ppq-vbtn-ok:hover{background:rgba(16,185,129,.22);}
-.ppq-vbtn-edit{background:rgba(125,211,252,.1);border:1px solid rgba(125,211,252,.25);color:#7DD3FC;}
-.ppq-vbtn-edit:hover{background:rgba(125,211,252,.2);}
-.ppq-vbtn-skip{background:transparent;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.3);}
-.ppq-vbtn-skip:hover{border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.5);}
+.ppq-vbtn-edit{background:var(--violet-bg);border:1px solid var(--violet-border);color:var(--violet-3);}
+.ppq-vbtn-edit:hover{background:var(--violet-hover);}
+.ppq-vbtn-skip{background:transparent;border:1px solid var(--border);color:var(--text-hint);}
+.ppq-vbtn-skip:hover{border-color:var(--text-2);color:var(--text-2);}
 
 /* ── Mapping colonnes ────────────────────────────────────────── */
 .ppq-col-map{
   display:flex;align-items:center;gap:6px;
-  padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);
+  padding:6px 0;border-bottom:1px solid var(--border);
   font-size:9px;
 }
 .ppq-col-map:last-child{border-bottom:none;}
 .ppq-col-orig{
-  font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.5);
+  font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text-2);
   flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
-.ppq-col-arrow{color:rgba(125,211,252,.4);font-size:10px;flex-shrink:0;}
+.ppq-col-arrow{color:var(--violet-3);font-size:10px;flex-shrink:0;}
 .ppq-col-target{
   font-family:'Syne',sans-serif;font-size:8px;font-weight:700;
-  color:#7DD3FC;flex:1;overflow:hidden;text-overflow:ellipsis;
+  color:var(--violet-3);flex:1;overflow:hidden;text-overflow:ellipsis;
 }
-.ppq-col-status{font-size:9px;flex-shrink:0;}
+.ppq-col-status{font-size:9px;flex-shrink:0;color:var(--color-success);}
 
 /* ── Meta détectée ───────────────────────────────────────────── */
 .ppq-meta-row{
   display:flex;align-items:center;justify-content:space-between;
-  padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);
+  padding:5px 0;border-bottom:1px solid var(--border);
   font-size:9px;
 }
 .ppq-meta-row:last-child{border-bottom:none;}
-.ppq-meta-lbl{color:rgba(255,255,255,.35);font-weight:600;}
-.ppq-meta-val{color:#fff;font-family:'Syne',sans-serif;font-weight:700;}
+.ppq-meta-lbl{color:var(--text-2);font-weight:600;}
+.ppq-meta-val{color:var(--text);font-family:'Syne',sans-serif;font-weight:700;}
 .ppq-meta-conf{
   font-size:7px;padding:1px 6px;border-radius:4px;
   font-family:'Syne',sans-serif;font-weight:800;letter-spacing:.06em;
 }
-.ppq-meta-high{background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.2);}
-.ppq-meta-med{background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.2);}
-.ppq-meta-low{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);}
+.ppq-meta-high{background:var(--success-bg);color:var(--color-success);border:1px solid var(--success-border);}
+.ppq-meta-med{background:var(--accent-bg);color:var(--color-accent);border:1px solid var(--accent-border);}
+.ppq-meta-low{background:var(--error-bg);color:var(--color-error);border:1px solid var(--error-border);}
 
 /* ── Spinner IA ──────────────────────────────────────────────── */
 #ppq-ai-loader{
@@ -216,21 +186,21 @@ const _toast = (m,t='ok',d=3500) => window.showToast?.(m,t,d);
 .ppq-ai-dots{display:flex;gap:6px;}
 .ppq-ai-dot{
   width:7px;height:7px;border-radius:50%;
-  background:rgba(125,211,252,.5);
+  background:var(--violet-3);
   animation:ppqDot .9s ease-in-out infinite;
 }
 .ppq-ai-dot:nth-child(2){animation-delay:.15s;}
 .ppq-ai-dot:nth-child(3){animation-delay:.3s;}
 @keyframes ppqDot{0%,60%,100%{transform:translateY(0);opacity:.35}30%{transform:translateY(-7px);opacity:1}}
-.ppq-ai-label{font-family:'Syne',sans-serif;font-size:9px;font-weight:700;color:rgba(125,211,252,.6);}
+.ppq-ai-label{font-family:'Syne',sans-serif;font-size:9px;font-weight:700;color:var(--violet-3);}
 
 /* ── Table zone ─────────────────────────────────────────────── */
 #ppq-table-wrap{
   flex:1;overflow:auto;position:relative;
 }
 #ppq-table-wrap::-webkit-scrollbar{width:5px;height:5px;}
-#ppq-table-wrap::-webkit-scrollbar-track{background:rgba(255,255,255,.02);}
-#ppq-table-wrap::-webkit-scrollbar-thumb{background:rgba(125,211,252,.2);border-radius:3px;}
+#ppq-table-wrap::-webkit-scrollbar-track{background:transparent;}
+#ppq-table-wrap::-webkit-scrollbar-thumb{background:var(--border-v);border-radius:3px;}
 
 #ppq-table{
   border-collapse:separate;border-spacing:0;
@@ -241,9 +211,9 @@ const _toast = (m,t='ok',d=3500) => window.showToast?.(m,t,d);
 /* ── Table header ────────────────────────────────────────────── */
 #ppq-table thead th{
   position:sticky;top:0;z-index:10;
-  background:rgba(4,6,14,.99);
-  border-bottom:2px solid rgba(125,211,252,.15);
-  border-right:1px solid rgba(255,255,255,.05);
+  background:var(--bg-elevated);
+  border-bottom:2px solid var(--border-v);
+  border-right:1px solid var(--border);
   padding:0;min-width:140px;white-space:nowrap;user-select:none;
 }
 .ppq-th-inner{
@@ -251,20 +221,20 @@ const _toast = (m,t='ok',d=3500) => window.showToast?.(m,t,d);
   padding:8px 10px;cursor:pointer;
   transition:background .15s;
 }
-.ppq-th-inner:hover{background:rgba(125,211,252,.06);}
+.ppq-th-inner:hover{background:var(--violet-hover);}
 .ppq-th-name{
   font-family:'Syne',sans-serif;font-size:9px;font-weight:800;
-  letter-spacing:.06em;color:rgba(255,255,255,.75);flex:1;
+  letter-spacing:.06em;color:var(--text);flex:1;
   overflow:hidden;text-overflow:ellipsis;
   outline:none;
 }
 .ppq-th-name[contenteditable=true]:focus{
-  color:#7DD3FC;border-bottom:1px solid rgba(125,211,252,.5);
+  color:var(--violet-3);border-bottom:1px solid var(--violet-2);
 }
 .ppq-th-mapped{
   font-size:7px;padding:1px 5px;border-radius:4px;
-  background:rgba(16,185,129,.1);color:#10b981;
-  border:1px solid rgba(16,185,129,.2);flex-shrink:0;
+  background:var(--success-bg);color:var(--color-success);
+  border:1px solid var(--success-border);flex-shrink:0;
   font-family:'Syne',sans-serif;font-weight:800;letter-spacing:.04em;
   white-space:nowrap;
 }
@@ -276,100 +246,100 @@ const _toast = (m,t='ok',d=3500) => window.showToast?.(m,t,d);
   width:18px;height:18px;border-radius:4px;
   display:flex;align-items:center;justify-content:center;
   font-size:8px;cursor:pointer;transition:all .15s;
-  background:transparent;color:rgba(255,255,255,.25);
+  background:transparent;color:var(--text-hint);
 }
-.ppq-th-act:hover{background:rgba(239,68,68,.15);color:#ef4444;}
+.ppq-th-act:hover{background:var(--error-bg);color:var(--color-error);}
 
 /* ── Row number col ─────────────────────────────────────────── */
 th.ppq-rn,td.ppq-rn{
   position:sticky;left:0;z-index:5;
-  background:rgba(4,6,14,.98);
+  background:var(--bg-elevated);
   width:40px;min-width:40px;max-width:40px;
   text-align:center;
-  border-right:1px solid rgba(125,211,252,.1);
-  font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);
+  border-right:1px solid var(--border-v);
+  font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text-hint);
 }
 td.ppq-rn{cursor:pointer;transition:background .15s;}
-td.ppq-rn:hover{background:rgba(125,211,252,.06);}
-tr.selected td.ppq-rn{background:rgba(125,211,252,.12);color:#7DD3FC;}
-tr.selected td{background:rgba(125,211,252,.04)!important;}
+td.ppq-rn:hover{background:var(--violet-hover);}
+tr.selected td.ppq-rn{background:var(--violet-bg);color:var(--violet-3);}
+tr.selected td{background:var(--violet-bg)!important;}
 
 /* ── Table cells ─────────────────────────────────────────────── */
 #ppq-table tbody td{
   padding:6px 10px;
-  border-bottom:1px solid rgba(255,255,255,.04);
-  border-right:1px solid rgba(255,255,255,.03);
-  color:rgba(255,255,255,.78);
+  border-bottom:1px solid var(--border);
+  border-right:1px solid var(--border-v);
+  color:var(--text);
   transition:background .1s;
   position:relative;
   min-height:32px;
 }
 #ppq-table tbody td:focus{
-  outline:2px solid rgba(125,211,252,.5);
+  outline:2px solid var(--violet-2);
   outline-offset:-1px;
-  background:rgba(125,211,252,.05)!important;
+  background:var(--violet-bg)!important;
   z-index:2;
 }
-#ppq-table tbody tr:hover td{background:rgba(255,255,255,.025);}
+#ppq-table tbody tr:hover td{background:var(--surface-2);}
 td.ppq-missing{
-  color:rgba(255,255,255,.2)!important;
-  background:rgba(239,68,68,.03)!important;
+  color:var(--text-hint)!important;
+  background:var(--error-bg)!important;
   font-style:italic;
 }
 td.ppq-anomaly{
-  background:rgba(239,68,68,.06)!important;
-  border-bottom:2px solid rgba(239,68,68,.3)!important;
+  background:var(--error-bg)!important;
+  border-bottom:2px solid var(--error-border)!important;
 }
 td.ppq-corrected{
-  background:rgba(16,185,129,.06)!important;
-  border-bottom:2px solid rgba(16,185,129,.3)!important;
+  background:var(--success-bg)!important;
+  border-bottom:2px solid var(--success-border)!important;
 }
 td.ppq-modified{
-  background:rgba(255,215,0,.05)!important;
-  border-bottom:1px solid rgba(255,215,0,.25)!important;
+  background:var(--accent-bg)!important;
+  border-bottom:1px solid var(--accent-border)!important;
 }
 
 /* ── Footer / Pagination ─────────────────────────────────────── */
 #ppq-footer{
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  padding:8px 18px;background:rgba(4,6,14,.98);
-  border-top:1px solid rgba(255,255,255,.06);flex-shrink:0;
+  padding:8px 18px;background:var(--bg-elevated);
+  border-top:1px solid var(--border);flex-shrink:0;
 }
 #ppq-pagination{display:flex;gap:4px;align-items:center;}
 .ppq-page-btn{
   width:26px;height:26px;border-radius:6px;
-  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);
-  color:rgba(255,255,255,.45);font-family:'Syne',sans-serif;font-size:8px;
+  background:var(--surface-3);border:1px solid var(--border);
+  color:var(--text-2);font-family:'Syne',sans-serif;font-size:8px;
   font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;
   transition:all .15s;
 }
 .ppq-page-btn:hover,.ppq-page-btn.active{
-  background:rgba(125,211,252,.12);border-color:rgba(125,211,252,.3);color:#7DD3FC;
+  background:var(--violet-bg);border-color:var(--violet-border);color:var(--violet-3);
 }
 #ppq-row-info{
-  font-family:'JetBrains Mono',monospace;font-size:8.5px;color:rgba(255,255,255,.28);
+  font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--text-hint);
 }
 #ppq-launch-wrap{margin-left:auto;display:flex;gap:8px;align-items:center;}
 #ppq-launch-btn{
   padding:10px 24px;border-radius:9px;font-family:'Syne',sans-serif;
   font-size:10px;font-weight:900;letter-spacing:.1em;
-  background:linear-gradient(135deg,#7DD3FC,#38BDF8);border:none;
-  color:#02040B;cursor:pointer;box-shadow:0 0 20px rgba(125,211,252,.3);
+  background:linear-gradient(135deg,var(--violet),var(--violet-2));border:none;
+  color:var(--bg-base);cursor:pointer;box-shadow:0 0 20px var(--violet-glow);
   transition:all .2s cubic-bezier(.34,1.56,.64,1);
 }
-#ppq-launch-btn:hover{transform:translateY(-2px);box-shadow:0 4px 28px rgba(125,211,252,.45);}
+#ppq-launch-btn:hover{transform:translateY(-2px);box-shadow:0 4px 28px rgba(124,58,237,.45);}
 #ppq-diff-btn{
   padding:10px 18px;border-radius:9px;font-family:'Syne',sans-serif;
   font-size:9px;font-weight:800;letter-spacing:.08em;
-  background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.22);
-  color:#FFD700;cursor:pointer;transition:all .2s;
+  background:var(--accent-bg);border:1px solid var(--accent-border);
+  color:var(--color-accent);cursor:pointer;transition:all .2s;
 }
-#ppq-diff-btn:hover{background:rgba(255,215,0,.16);}
+#ppq-diff-btn:hover{background:var(--accent-hover);}
 
 /* ── Diff view ───────────────────────────────────────────────── */
 #ppq-diff-view{
   display:none;position:absolute;inset:0;z-index:20;
-  background:rgba(2,4,11,.98);overflow:auto;padding:20px;
+  background:var(--bg-base);overflow:auto;padding:20px;
 }
 #ppq-diff-view.open{display:block;}
 .ppq-diff-header{
@@ -380,45 +350,45 @@ td.ppq-modified{
   font-family:'Syne',sans-serif;font-size:11px;font-weight:800;
   padding:8px 14px;border-radius:8px;
 }
-.ppq-diff-before{background:rgba(239,68,68,.08);color:#ef4444;border:1px solid rgba(239,68,68,.2);}
-.ppq-diff-after{background:rgba(16,185,129,.08);color:#10b981;border:1px solid rgba(16,185,129,.2);}
+.ppq-diff-before{background:var(--error-bg);color:var(--color-error);border:1px solid var(--error-border);}
+.ppq-diff-after{background:var(--success-bg);color:var(--color-success);border:1px solid var(--success-border);}
 .ppq-diff-table{width:100%;border-collapse:collapse;font-size:10px;}
 .ppq-diff-table th{
-  background:rgba(255,255,255,.05);padding:6px 10px;
-  font-family:'Syne',sans-serif;font-size:8px;font-weight:800;color:rgba(255,255,255,.6);
-  text-align:left;border-bottom:1px solid rgba(255,255,255,.08);
+  background:var(--surface-3);padding:6px 10px;
+  font-family:'Syne',sans-serif;font-size:8px;font-weight:800;color:var(--text-2);
+  text-align:left;border-bottom:1px solid var(--border);
 }
 .ppq-diff-table td{
-  padding:5px 10px;border-bottom:1px solid rgba(255,255,255,.04);
-  color:rgba(255,255,255,.65);
+  padding:5px 10px;border-bottom:1px solid var(--border);
+  color:var(--text-2);
 }
-.ppq-diff-del{background:rgba(239,68,68,.08);color:#ef4444;text-decoration:line-through;}
-.ppq-diff-add{background:rgba(16,185,129,.08);color:#10b981;}
-.ppq-diff-unch{color:rgba(255,255,255,.35);}
+.ppq-diff-del{background:var(--error-bg);color:var(--color-error);text-decoration:line-through;}
+.ppq-diff-add{background:var(--success-bg);color:var(--color-success);}
+.ppq-diff-unch{color:var(--text-hint);}
 
 /* ── Column filter dropdown ─────────────────────────────────── */
 .ppq-filter-dd{
   position:absolute;top:100%;left:0;z-index:50;
-  background:rgba(5,8,18,.99);border:1px solid rgba(125,211,252,.2);
+  background:var(--bg-elevated);border:1px solid var(--border-v);
   border-radius:10px;padding:8px;min-width:180px;
-  box-shadow:0 12px 40px rgba(0,0,0,.6);
+  box-shadow:var(--shadow-lg);
 }
 .ppq-filter-inp{
-  width:100%;padding:5px 9px;background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.1);border-radius:6px;
-  color:#fff;font-size:9px;outline:none;margin-bottom:6px;box-sizing:border-box;
+  width:100%;padding:5px 9px;background:var(--surface-3);
+  border:1px solid var(--border);border-radius:6px;
+  color:var(--text);font-size:9px;outline:none;margin-bottom:6px;box-sizing:border-box;
 }
 .ppq-filter-option{
-  padding:4px 8px;border-radius:5px;font-size:9px;color:rgba(255,255,255,.6);
+  padding:4px 8px;border-radius:5px;font-size:9px;color:var(--text-2);
   cursor:pointer;transition:background .12s;display:flex;align-items:center;gap:5px;
 }
 .ppq-filter-option:hover,.ppq-filter-option.selected{
-  background:rgba(125,211,252,.1);color:#7DD3FC;
+  background:var(--violet-bg);color:var(--violet-3);
 }
 .ppq-filter-clear{
   width:100%;margin-top:4px;padding:4px;border-radius:5px;
-  background:transparent;border:1px solid rgba(255,255,255,.08);
-  color:rgba(255,255,255,.3);font-size:8px;cursor:pointer;font-family:'Syne',sans-serif;
+  background:transparent;border:1px solid var(--border);
+  color:var(--text-hint);font-size:8px;cursor:pointer;font-family:'Syne',sans-serif;
   font-weight:700;
 }
 
@@ -427,6 +397,110 @@ td.ppq-modified{
   #ppq-sidebar{width:0;}
   #ppq-sidebar.mobile-open{width:260px;position:absolute;z-index:15;height:100%;}
 }
+
+/* ── AGENT CHAT PANEL ─────────────────────────────────────── */
+#ppq-agent-panel{
+  position:absolute;bottom:0;left:0;right:0;
+  background:var(--bg-elevated);border-top:1px solid var(--border-v);
+  display:flex;flex-direction:column;
+  transition:height .3s cubic-bezier(.16,1,.3,1);
+  z-index:30;overflow:hidden;
+}
+#ppq-agent-panel.closed{height:44px;}
+#ppq-agent-panel.open{height:340px;}
+#ppq-agent-header{
+  display:flex;align-items:center;gap:8px;padding:0 14px;height:44px;flex-shrink:0;
+  cursor:pointer;border-bottom:1px solid var(--border);
+  background:var(--violet-hover);
+}
+#ppq-agent-header:hover{background:var(--violet-bg);}
+#ppq-agent-title{
+  font-family:'Syne',sans-serif;font-size:10px;font-weight:900;
+  color:var(--violet-3);letter-spacing:.04em;display:flex;align-items:center;gap:6px;
+}
+.ppq-agent-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--color-success);
+  box-shadow:0 0 8px var(--success-glow);animation:adot 2s ease-in-out infinite;
+}
+@keyframes adot{0%,100%{opacity:.5;}50%{opacity:1;}}
+#ppq-agent-badge{
+  font-size:7.5px;padding:1px 7px;border-radius:100px;
+  background:var(--success-bg);border:1px solid var(--success-border);
+  color:var(--color-success);font-family:'Syne',sans-serif;font-weight:800;
+}
+#ppq-agent-shortcuts{
+  display:flex;gap:5px;margin-left:auto;
+}
+.ppq-shortcut{
+  font-family:'JetBrains Mono',monospace;font-size:7.5px;
+  padding:2px 7px;border-radius:4px;border:1px solid var(--border);
+  color:var(--text-hint);cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.ppq-shortcut:hover{background:var(--violet-bg);border-color:var(--violet-border);color:var(--violet-3);}
+#ppq-agent-msgs{
+  flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:8px;
+}
+#ppq-agent-msgs::-webkit-scrollbar{width:3px;}
+#ppq-agent-msgs::-webkit-scrollbar-thumb{background:var(--border-v);border-radius:2px;}
+.ppq-msg{display:flex;gap:8px;align-items:flex-start;animation:msgIn .2s ease;}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.ppq-msg.user{flex-direction:row-reverse;}
+.ppq-msg-av{
+  width:24px;height:24px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;
+}
+.ppq-av-ai{background:linear-gradient(135deg,var(--violet),var(--violet-2));color:var(--bg-base);}
+.ppq-av-user{background:linear-gradient(135deg,var(--color-accent),var(--amber-2));color:var(--bg-base);}
+.ppq-msg-bubble{
+  padding:8px 12px;border-radius:11px;font-size:10px;line-height:1.6;
+  max-width:88%;
+}
+.ppq-bubble-ai{background:var(--violet-bg);border:1px solid var(--violet-border);color:var(--text);border-bottom-left-radius:3px;}
+.ppq-bubble-user{background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--text);border-bottom-right-radius:3px;}
+.ppq-bubble-system{background:var(--success-bg);border:1px solid var(--success-border);color:var(--color-success);font-family:'JetBrains Mono',monospace;font-size:8.5px;width:100%;box-sizing:border-box;}
+.ppq-bubble-error{background:var(--error-bg);border:1px solid var(--error-border);color:var(--color-error);}
+.ppq-tool-call{
+  display:flex;align-items:center;gap:6px;padding:4px 9px;border-radius:6px;
+  background:var(--surface-3);border:1px solid var(--border);
+  font-family:'JetBrains Mono',monospace;font-size:7.5px;color:var(--text-2);
+  margin:2px 0;
+}
+.ppq-tool-call.ok{border-color:var(--success-border);color:var(--color-success);}
+.ppq-tool-call.err{border-color:var(--error-border);color:var(--color-error);}
+.ppq-tool-icon{width:14px;height:14px;flex-shrink:0;}
+.ppq-thinking{display:flex;gap:4px;align-items:center;padding:6px 10px;}
+.ppq-think-dot{width:5px;height:5px;border-radius:50%;background:var(--violet-3);animation:pdot .7s ease-in-out infinite;}
+.ppq-think-dot:nth-child(2){animation-delay:.1s;}
+.ppq-think-dot:nth-child(3){animation-delay:.2s;}
+#ppq-agent-input-row{
+  display:flex;gap:8px;padding:8px 14px;border-top:1px solid var(--border);flex-shrink:0;
+}
+#ppq-agent-inp{
+  flex:1;padding:8px 14px;border-radius:10px;
+  background:var(--surface-3);border:1px solid var(--border);
+  color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:10px;outline:none;
+  transition:border-color .2s;
+}
+#ppq-agent-inp:focus{border-color:var(--violet-2);background:var(--violet-hover);}
+#ppq-agent-inp::placeholder{color:var(--text-hint);}
+#ppq-agent-send{
+  padding:8px 16px;border-radius:10px;font-family:'Syne',sans-serif;font-size:8.5px;
+  font-weight:800;letter-spacing:.06em;
+  background:linear-gradient(135deg,var(--violet),var(--violet-2));
+  border:none;color:var(--bg-base);cursor:pointer;
+  transition:all .18s;white-space:nowrap;
+}
+#ppq-agent-send:hover{transform:translateY(-1px);box-shadow:0 4px 16px var(--violet-glow);}
+#ppq-agent-send:disabled{opacity:.4;pointer-events:none;}
+#ppq-agent-send.thinking{animation:btnPulse 1.2s ease-in-out infinite;}
+@keyframes btnPulse{0%,100%{opacity:.5}50%{opacity:1}}
+/* Highlight de cellule depuis l'agent */
+td.agent-highlight{
+  outline:2px solid var(--color-accent)!important;
+  background:var(--accent-bg)!important;
+  animation:hlPulse 1s ease-in-out 3;
+}
+@keyframes hlPulse{0%,100%{outline-color:var(--accent-border)}50%{outline-color:var(--color-accent)}}
   `;
   document.head.appendChild(s);
 })();
@@ -490,7 +564,7 @@ function _undo() {
   const snap = ST.history[ST.historyIdx];
   ST.data = JSON.parse(JSON.stringify(snap.data));
   ST.columns = [...snap.columns];
-  _render(); _toast('↩ Annulé','info');
+  _render(); _toast('Annulation réussie','info');
 }
 function _redo() {
   if (ST.historyIdx >= ST.history.length - 1) return;
@@ -498,7 +572,7 @@ function _redo() {
   const snap = ST.history[ST.historyIdx];
   ST.data = JSON.parse(JSON.stringify(snap.data));
   ST.columns = [...snap.columns];
-  _render(); _toast('↪ Rétabli','info');
+  _render(); _toast('Rétablissement réussi','info');
 }
 function _updateUndoRedo() {
   document.getElementById('ppq-undo')?.classList.toggle('disabled', ST.historyIdx <= 0);
@@ -509,165 +583,49 @@ function _updateUndoRedo() {
 //  CONSTRUCTION DU MODAL
 // ════════════════════════════════════════════════════════════════
 
-// ════════════════════════════════════════════════════════════════════════
-//  MODAL — Power Query IA v4 avec AGENT CHAT INTÉGRÉ
-// ════════════════════════════════════════════════════════════════════════
 function _buildModal() {
   if (document.getElementById('ppq-overlay')) return;
-
-  // CSS Agent
-  if (!document.getElementById('_ppq_agent_css')) {
-    const s = document.createElement('style'); s.id = '_ppq_agent_css';
-    s.textContent = `
-/* ── AGENT CHAT PANEL ── */
-#ppq-agent-panel{
-  position:absolute;bottom:0;left:0;right:0;
-  background:rgba(3,5,14,.98);border-top:1px solid rgba(125,211,252,.15);
-  display:flex;flex-direction:column;
-  transition:height .3s cubic-bezier(.16,1,.3,1);
-  z-index:30;overflow:hidden;
-}
-#ppq-agent-panel.closed{height:44px;}
-#ppq-agent-panel.open{height:340px;}
-#ppq-agent-header{
-  display:flex;align-items:center;gap:8px;padding:0 14px;height:44px;flex-shrink:0;
-  cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);
-  background:rgba(125,211,252,.03);
-}
-#ppq-agent-header:hover{background:rgba(125,211,252,.06);}
-#ppq-agent-title{
-  font-family:'Syne',sans-serif;font-size:10px;font-weight:900;
-  color:#7DD3FC;letter-spacing:.04em;display:flex;align-items:center;gap:6px;
-}
-.ppq-agent-dot{
-  width:7px;height:7px;border-radius:50%;background:#10b981;
-  box-shadow:0 0 8px #10b981;animation:adot 2s ease-in-out infinite;
-}
-@keyframes adot{0%,100%{opacity:.5;}50%{opacity:1;}}
-#ppq-agent-badge{
-  font-size:7.5px;padding:1px 7px;border-radius:100px;
-  background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);
-  color:#10b981;font-family:'Syne',sans-serif;font-weight:800;
-}
-#ppq-agent-shortcuts{
-  display:flex;gap:5px;margin-left:auto;
-}
-.ppq-shortcut{
-  font-family:'JetBrains Mono',monospace;font-size:7.5px;
-  padding:2px 7px;border-radius:4px;border:1px solid rgba(255,255,255,.1);
-  color:rgba(255,255,255,.3);cursor:pointer;transition:all .15s;white-space:nowrap;
-}
-.ppq-shortcut:hover{background:rgba(125,211,252,.1);border-color:rgba(125,211,252,.3);color:#7DD3FC;}
-#ppq-agent-msgs{
-  flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:8px;
-}
-#ppq-agent-msgs::-webkit-scrollbar{width:3px;}
-#ppq-agent-msgs::-webkit-scrollbar-thumb{background:rgba(125,211,252,.2);border-radius:2px;}
-.ppq-msg{display:flex;gap:8px;align-items:flex-start;animation:msgIn .2s ease;}
-@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.ppq-msg.user{flex-direction:row-reverse;}
-.ppq-msg-av{
-  width:24px;height:24px;border-radius:50%;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;
-}
-.ppq-av-ai{background:linear-gradient(135deg,#7DD3FC,#38BDF8);color:#02040B;}
-.ppq-av-user{background:linear-gradient(135deg,#FFD700,#FFC107);color:#02040B;}
-.ppq-msg-bubble{
-  padding:8px 12px;border-radius:11px;font-size:10px;line-height:1.6;
-  max-width:88%;
-}
-.ppq-bubble-ai{background:rgba(125,211,252,.07);border:1px solid rgba(125,211,252,.12);color:rgba(255,255,255,.82);border-bottom-left-radius:3px;}
-.ppq-bubble-user{background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.14);color:rgba(255,255,255,.75);border-bottom-right-radius:3px;}
-.ppq-bubble-system{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.14);color:#10b981;font-family:'JetBrains Mono',monospace;font-size:8.5px;width:100%;box-sizing:border-box;}
-.ppq-bubble-error{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.14);color:#ef4444;}
-.ppq-tool-call{
-  display:flex;align-items:center;gap:6px;padding:4px 9px;border-radius:6px;
-  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
-  font-family:'JetBrains Mono',monospace;font-size:7.5px;color:rgba(255,255,255,.4);
-  margin:2px 0;
-}
-.ppq-tool-call.ok{border-color:rgba(16,185,129,.2);color:#10b981;}
-.ppq-tool-call.err{border-color:rgba(239,68,68,.2);color:#ef4444;}
-.ppq-tool-icon{width:14px;height:14px;flex-shrink:0;}
-.ppq-thinking{display:flex;gap:4px;align-items:center;padding:6px 10px;}
-.ppq-think-dot{width:5px;height:5px;border-radius:50%;background:rgba(125,211,252,.4);animation:pdot .7s ease-in-out infinite;}
-.ppq-think-dot:nth-child(2){animation-delay:.1s;}
-.ppq-think-dot:nth-child(3){animation-delay:.2s;}
-#ppq-agent-input-row{
-  display:flex;gap:8px;padding:8px 14px;border-top:1px solid rgba(255,255,255,.05);flex-shrink:0;
-}
-#ppq-agent-inp{
-  flex:1;padding:8px 14px;border-radius:10px;
-  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
-  color:#fff;font-family:'Instrument Sans',sans-serif;font-size:10px;outline:none;
-  transition:border-color .2s;
-}
-#ppq-agent-inp:focus{border-color:rgba(125,211,252,.4);background:rgba(125,211,252,.04);}
-#ppq-agent-inp::placeholder{color:rgba(255,255,255,.22);}
-#ppq-agent-send{
-  padding:8px 16px;border-radius:10px;font-family:'Syne',sans-serif;font-size:8.5px;
-  font-weight:800;letter-spacing:.06em;
-  background:linear-gradient(135deg,rgba(125,211,252,.18),rgba(56,189,248,.12));
-  border:1px solid rgba(125,211,252,.3);color:#7DD3FC;cursor:pointer;
-  transition:all .18s;white-space:nowrap;
-}
-#ppq-agent-send:hover{background:rgba(125,211,252,.25);transform:translateY(-1px);}
-#ppq-agent-send:disabled{opacity:.4;pointer-events:none;}
-#ppq-agent-send.thinking{animation:btnPulse 1.2s ease-in-out infinite;}
-@keyframes btnPulse{0%,100%{opacity:.5}50%{opacity:1}}
-/* Highlight de cellule depuis l'agent */
-td.agent-highlight{
-  outline:2px solid rgba(255,215,0,.7)!important;
-  background:rgba(255,215,0,.08)!important;
-  animation:hlPulse 1s ease-in-out 3;
-}
-@keyframes hlPulse{0%,100%{outline-color:rgba(255,215,0,.3)}50%{outline-color:rgba(255,215,0,.9)}}
-/* Table zone réduite quand agent ouvert */
-#ppq-body{transition:height .3s;}
-`;
-    document.head.appendChild(s);
-  }
 
   const el = document.createElement('div'); el.id = 'ppq-overlay';
   el.innerHTML = `
 <!-- TOPBAR -->
 <div id="ppq-topbar">
   <div id="ppq-title">
-    <i class="fa-solid fa-wand-magic-sparkles" style="color:#7DD3FC;font-size:14px;"></i>
+    <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--violet-3);font-size:14px;"></i>
     Éditeur de données
     <span id="ppq-file-badge">—</span>
   </div>
   <div id="ppq-stats-bar">
-    <div class="ppq-stat"><div class="ppq-stat-dot" style="background:#10b981"></div><span id="ppq-stat-rows">0 lignes</span></div>
-    <div class="ppq-stat"><div class="ppq-stat-dot" style="background:#7DD3FC"></div><span id="ppq-stat-cols">0 colonnes</span></div>
-    <div class="ppq-stat"><div class="ppq-stat-dot" style="background:#f59e0b"></div><span id="ppq-stat-miss">0 manquants</span></div>
+    <div class="ppq-stat"><div class="ppq-stat-dot" style="background:var(--success)"></div><span id="ppq-stat-rows">0 lignes</span></div>
+    <div class="ppq-stat"><div class="ppq-stat-dot" style="background:var(--violet-3)"></div><span id="ppq-stat-cols">0 colonnes</span></div>
+    <div class="ppq-stat"><div class="ppq-stat-dot" style="background:var(--amber)"></div><span id="ppq-stat-miss">0 manquants</span></div>
   </div>
   <button class="ppq-btn" onclick="PPQ.toggleSidebar()" title="Panneau IA">
-    <i class="fa-solid fa-robot"></i> IA
+    <i class="fa-solid fa-robot"></i> Assistant IA
   </button>
   <button class="ppq-btn danger" onclick="PPQ.close()" style="margin-left:4px;">
-    <i class="fa-solid fa-xmark"></i>
+    <i class="fa-solid fa-xmark"></i> Fermer
   </button>
 </div>
 
 <!-- TOOLBAR -->
 <div id="ppq-toolbar">
-  <button class="ppq-btn" onclick="PPQ.addRow()"><i class="fa-solid fa-plus"></i> Ligne</button>
-  <button class="ppq-btn" onclick="PPQ.addColumn()"><i class="fa-solid fa-columns"></i> Colonne</button>
-  <button class="ppq-btn danger" onclick="PPQ.deleteSelected()"><i class="fa-solid fa-trash"></i> Supprimer</button>
+  <button class="ppq-btn" onclick="PPQ.addRow()"><i class="fa-solid fa-plus"></i> Nouvelle ligne</button>
+  <button class="ppq-btn" onclick="PPQ.addColumn()"><i class="fa-solid fa-columns"></i> Nouvelle colonne</button>
+  <button class="ppq-btn danger" onclick="PPQ.deleteSelected()"><i class="fa-solid fa-trash"></i> Supprimer la sélection</button>
   <div class="ppq-sep"></div>
-  <button class="ppq-btn disabled" id="ppq-undo" onclick="PPQ.undo()"><i class="fa-solid fa-rotate-left"></i></button>
-  <button class="ppq-btn disabled" id="ppq-redo" onclick="PPQ.redo()"><i class="fa-solid fa-rotate-right"></i></button>
+  <button class="ppq-btn disabled" id="ppq-undo" onclick="PPQ.undo()"><i class="fa-solid fa-rotate-left"></i> Annuler</button>
+  <button class="ppq-btn disabled" id="ppq-redo" onclick="PPQ.redo()"><i class="fa-solid fa-rotate-right"></i> Rétablir</button>
   <div class="ppq-sep"></div>
   <button class="ppq-btn gold" onclick="PPQ.runAI()" id="ppq-ai-btn">
-    <i class="fa-solid fa-brain"></i> Analyser
+    <i class="fa-solid fa-brain"></i> Analyser avec Llama 3.3
   </button>
   <button class="ppq-btn" onclick="PPQ.applyAllSuggestions()" id="ppq-apply-btn" style="display:none;">
     <i class="fa-solid fa-check-double"></i> Appliquer tout
   </button>
   <div class="ppq-sep"></div>
-  <button class="ppq-btn danger" onclick="PPQ.resetAll()"><i class="fa-solid fa-arrow-rotate-right"></i> Reset</button>
-  <input id="ppq-search" type="text" placeholder="🔍 Rechercher…" oninput="PPQ.onSearch(this.value)">
+  <button class="ppq-btn danger" onclick="PPQ.resetAll()"><i class="fa-solid fa-arrow-rotate-right"></i> Réinitialiser tout</button>
+  <input id="ppq-search" type="text" placeholder="Rechercher dans les données…" oninput="PPQ.onSearch(this.value)">
 </div>
 
 <!-- BODY -->
@@ -677,13 +635,13 @@ td.agent-highlight{
     <div id="ppq-sidebar-inner">
       <div id="ppq-ai-loader" style="display:none;">
         <div class="ppq-ai-dots"><div class="ppq-ai-dot"></div><div class="ppq-ai-dot"></div><div class="ppq-ai-dot"></div></div>
-        <div class="ppq-ai-label">Llama 3.3 analyse…</div>
-        <div style="font-size:8px;color:rgba(255,255,255,.2);margin-top:4px;">Détection · Mapping · Cohérence</div>
+        <div class="ppq-ai-label">Llama 3.3 analyse vos données…</div>
+        <div style="font-size:10px;color:var(--text-hint);margin-top:6px;">Détection · Mapping · Cohérence comptable</div>
       </div>
       <div id="ppq-dqs-ring" style="display:none;">
         <div class="ppq-ring-wrap">
-          <svg viewBox="0 0 80 80"><circle class="ppq-ring-bg" cx="40" cy="40" r="36"/><circle class="ppq-ring-fill" id="ppq-ring-fill" cx="40" cy="40" r="36" stroke="#10b981" stroke-dashoffset="226"/></svg>
-          <div class="ppq-ring-center"><span class="ppq-ring-val" id="ppq-dqs-val">—</span><span class="ppq-ring-lbl">DQS</span></div>
+          <svg viewBox="0 0 80 80"><circle class="ppq-ring-bg" cx="40" cy="40" r="36"/><circle class="ppq-ring-fill" id="ppq-ring-fill" cx="40" cy="40" r="36" stroke="var(--success)" stroke-dashoffset="226"/></svg>
+          <div class="ppq-ring-center"><span class="ppq-ring-val" id="ppq-dqs-val">—</span><span class="ppq-ring-lbl">Qualité</span></div>
         </div>
       </div>
       <div id="ppq-ai-content"></div>
@@ -697,9 +655,9 @@ td.agent-highlight{
     </div>
     <!-- Diff overlay -->
     <div id="ppq-diff-view">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:900;color:#fff;">⚡ Avant / Après</div>
-        <button class="ppq-btn" onclick="PPQ.closeDiff()"><i class="fa-solid fa-xmark"></i> Fermer</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:900;color:var(--text);"><i class="fa-solid fa-bolt" style="margin-right:8px;color:var(--amber);"></i> Comparaison Avant / Après</div>
+        <button class="ppq-btn" onclick="PPQ.closeDiff()"><i class="fa-solid fa-xmark"></i> Fermer le comparateur</button>
       </div>
       <div id="ppq-diff-content"></div>
     </div>
@@ -709,22 +667,22 @@ td.agent-highlight{
       <div id="ppq-agent-header" onclick="PPQ.toggleAgent()">
         <div id="ppq-agent-title">
           <div class="ppq-agent-dot"></div>
-          <i class="fa-solid fa-terminal" style="font-size:11px;"></i>
-          Agent IA · Copilot Data
-          <span id="ppq-agent-badge">ACTIF</span>
+          <i class="fa-solid fa-terminal" style="font-size:12px;"></i>
+          Agent IA Copilot
+          <span id="ppq-agent-badge">OPÉRATIONNEL</span>
         </div>
         <div id="ppq-agent-shortcuts">
-          <span class="ppq-shortcut" onclick="event.stopPropagation();PPQ.agentShortcut('pivot')">⟳ Pivoter</span>
-          <span class="ppq-shortcut" onclick="event.stopPropagation();PPQ.agentShortcut('clean')">✦ Nettoyer</span>
-          <span class="ppq-shortcut" onclick="event.stopPropagation();PPQ.agentShortcut('map')">⇌ Mapper OHADA</span>
-          <span class="ppq-shortcut" onclick="event.stopPropagation();PPQ.agentShortcut('validate')">✓ Valider</span>
-          <span class="ppq-shortcut" onclick="event.stopPropagation();PPQ.agentShortcut('fix')">⚡ Tout corriger</span>
+          <span class="ppq-shortcut" onclick="event.stopPropagation();PPQ.agentShortcut('pivot')"><i class="fa-solid fa-arrows-rotate"></i> Pivoter</span>
+          <span class="ppq-shortcut" onclick="event.stopPropagation();PPQ.agentShortcut('clean')"><i class="fa-solid fa-sparkles"></i> Nettoyer</span>
+          <span class="ppq-shortcut" onclick="event.stopPropagation();PPQ.agentShortcut('map')"><i class="fa-solid fa-link"></i> Mapper OHADA</span>
+          <span class="ppq-shortcut" onclick="event.stopPropagation();PPQ.agentShortcut('validate')"><i class="fa-solid fa-check-circle"></i> Valider</span>
+          <span class="ppq-shortcut" onclick="event.stopPropagation();PPQ.agentShortcut('fix')"><i class="fa-solid fa-bolt"></i> Tout corriger</span>
         </div>
-        <i class="fa-solid fa-chevron-up" id="ppq-agent-chevron" style="color:rgba(125,211,252,.4);font-size:10px;margin-left:8px;transition:transform .3s;"></i>
+        <i class="fa-solid fa-chevron-up" id="ppq-agent-chevron" style="color:var(--violet-3);font-size:12px;margin-left:12px;transition:transform .3s;"></i>
       </div>
       <div id="ppq-agent-msgs"></div>
       <div id="ppq-agent-input-row">
-        <input id="ppq-agent-inp" type="text" placeholder="Ex: &quot;Pivote le tableau vertical&quot; · &quot;Renomme actif circulant en actif_courant&quot; · &quot;Supprime les lignes vides&quot; · &quot;Corrige toutes les anomalies&quot;…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();PPQ.agentSend();}">
+        <input id="ppq-agent-inp" type="text" placeholder="Demandez à l'IA : &quot;Pivote le tableau&quot;, &quot;Supprime les doublons&quot;, &quot;Corrige les anomalies&quot;..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();PPQ.agentSend();}">
         <button id="ppq-agent-send" onclick="PPQ.agentSend()">
           <i class="fa-solid fa-paper-plane"></i> Envoyer
         </button>
@@ -738,8 +696,8 @@ td.agent-highlight{
   <div id="ppq-pagination"></div>
   <div id="ppq-row-info">—</div>
   <div id="ppq-launch-wrap">
-    <button id="ppq-diff-btn" onclick="PPQ.showDiff()"><i class="fa-solid fa-code-compare"></i> Modifications</button>
-    <button id="ppq-launch-btn" onclick="PPQ.launch()"><i class="fa-solid fa-bolt"></i> Lancer l'analyse ML</button>
+    <button id="ppq-diff-btn" onclick="PPQ.showDiff()"><i class="fa-solid fa-code-compare"></i> Comparer modifications</button>
+    <button id="ppq-launch-btn" onclick="PPQ.launch()"><i class="fa-solid fa-bolt"></i> Finaliser et lancer l'analyse ML</button>
   </div>
 </div>
 `;
@@ -750,15 +708,12 @@ td.agent-highlight{
     if ((e.ctrlKey||e.metaKey) && e.key==='z') { e.preventDefault(); _undo(); }
     if ((e.ctrlKey||e.metaKey) && (e.key==='y'||(e.shiftKey&&e.key==='Z'))) { e.preventDefault(); _redo(); }
     if (e.key==='Escape') PPQ.close();
-    // Ctrl+K = focus agent
     if ((e.ctrlKey||e.metaKey) && e.key==='k') { e.preventDefault(); PPQ.openAgent(); }
   });
   document.addEventListener('click', e => {
     if (ST.filterDD && !ST.filterDD.contains(e.target)) { ST.filterDD.remove(); ST.filterDD = null; }
   });
 }
-
-
 
 // ════════════════════════════════════════════════════════════════
 //  RENDU TABLE
@@ -788,32 +743,42 @@ function _render() {
 function _renderHead() {
   const thead = document.getElementById('ppq-thead');
   if (!thead) return;
+  const mappedClass = (col) => {
+    const k = ST.colMap[col];
+    return k ? `<div class="ppq-th-mapped" title="OHADA: ${_esc(OHADA_KEYS[k]||k)}"><i class="fa-solid fa-link" style="font-size:6px;margin-right:3px;"></i>${_esc(OHADA_KEYS[k]||k)}</div>` : '';
+  };
+  const isCrit = (col) => {
+    const k = ST.colMap[col];
+    return k && CRITICAL_KEYS.has(k) ? 'border-top:2px solid var(--color-accent);' : '';
+  };
+  const filtActive = (col) => ST.filters[col]?.size > 0 ? 'style="color:var(--color-accent);"' : '';
+
   thead.innerHTML = `<tr>
     <th class="ppq-rn" style="z-index:11;">
       <div style="padding:8px;display:flex;align-items:center;justify-content:center;">
         <input type="checkbox" id="ppq-sel-all" title="Tout sélectionner"
           onchange="PPQ.selectAll(this.checked)"
-          style="width:13px;height:13px;cursor:pointer;accent-color:#7DD3FC;">
+          style="width:14px;height:14px;cursor:pointer;accent-color:var(--violet-3);">
       </div>
     </th>
     ${ST.columns.map((col, ci) => {
       const mapped = ST.colMap[col];
-      const isCrit = mapped && CRITICAL_KEYS.has(mapped);
-      const filtActive = ST.filters[col]?.size > 0;
-      return `<th data-col="${_esc(col)}" style="${isCrit?'border-top:2px solid rgba(255,215,0,.35)':''}">
+      const isCrit2 = mapped && CRITICAL_KEYS.has(mapped);
+      const filtActive2 = ST.filters[col]?.size > 0;
+      return `<th data-col="${_esc(col)}" style="${isCrit2?'border-top:2px solid var(--color-accent);':''}">
         <div class="ppq-th-inner">
           <div class="ppq-th-name" contenteditable="false"
             ondblclick="PPQ.startRenameCol(this,'${_esc(col)}')"
             title="Double-cliquer pour renommer">${_esc(col)}</div>
-          ${mapped ? `<div class="ppq-th-mapped" title="OHADA: ${_esc(OHADA_KEYS[mapped]||mapped)}">${_esc(OHADA_KEYS[mapped]||mapped)}</div>` : ''}
+          ${mapped ? `<div class="ppq-th-mapped" title="OHADA: ${_esc(OHADA_KEYS[mapped]||mapped)}"><i class="fa-solid fa-link" style="font-size:6px;margin-right:3px;"></i>${_esc(OHADA_KEYS[mapped]||mapped)}</div>` : ''}
           <div class="ppq-th-actions">
             <div class="ppq-th-act" onclick="PPQ.toggleFilter(event,'${_esc(col)}')" 
-              title="Filtrer" style="color:${filtActive?'#FFD700':''};">
-              <i class="fa-solid fa-filter" style="font-size:7px;"></i>
+              title="Filtrer la colonne" style="color:${filtActive2?'var(--color-accent)':''};">
+              <i class="fa-solid fa-filter"></i>
             </div>
             <div class="ppq-th-act" onclick="PPQ.deleteColumn('${_esc(col)}')" 
               title="Supprimer la colonne">
-              <i class="fa-solid fa-trash" style="font-size:7px;"></i>
+              <i class="fa-solid fa-trash-can"></i>
             </div>
           </div>
         </div>
@@ -850,7 +815,42 @@ function _renderBody() {
           data-abs="${absIdx}" data-col="${_esc(col)}"
           onblur="PPQ.onCellEdit(this)"
           onfocus="PPQ.onCellFocus(this)"
-          title="${isAnom?'⚠️ Valeur suspecte — voir panel IA':isCorrected?'✅ Corrigé par IA':''}"
+          title="${isAnom?'Valeur suspecte — voir panel IA':isCorrected?'Corrigé par IA':''}"
+          >${display}</td>`;
+      }).join('')}
+    </tr>`;
+  }).join('');
+}
+
+function _renderBody() {
+  const tbody = document.getElementById('ppq-tbody');
+  if (!tbody) return;
+  const filtered = _filteredData();
+  const start = ST.page * ST.pageSize;
+  const slice = filtered.slice(start, start + ST.pageSize);
+
+  tbody.innerHTML = slice.map((row, relIdx) => {
+    const absIdx = ST.data.indexOf(row);
+    const isSel = ST.selected.has(absIdx);
+    return `<tr data-idx="${absIdx}" class="${isSel?'selected':''}" onclick="PPQ.onRowClick(event,${absIdx})">
+      <td class="ppq-rn">${absIdx + 1}</td>
+      ${ST.columns.map(col => {
+        const val = row[col];
+        const isMissing = val === null || val === undefined || val === '';
+        const isAnom = ST.corrections.has(`${absIdx}-${col}`) && ST.corrections.get(`${absIdx}-${col}`).type === 'anomaly';
+        const isCorrected = ST.corrections.has(`${absIdx}-${col}`) && ST.corrections.get(`${absIdx}-${col}`).type === 'fixed';
+        const isModified = ST.modified.has(`${absIdx}-${col}`);
+        let cls = '';
+        if (isAnom) cls = 'ppq-anomaly';
+        else if (isCorrected) cls = 'ppq-corrected';
+        else if (isMissing) cls = 'ppq-missing';
+        else if (isModified) cls = 'ppq-modified';
+        const display = isMissing ? '—' : _esc(String(val));
+        return `<td class="${cls}" contenteditable="true" 
+          data-abs="${absIdx}" data-col="${_esc(col)}"
+          onblur="PPQ.onCellEdit(this)"
+          onfocus="PPQ.onCellFocus(this)"
+          title="${isAnom?'Valeur suspecte — voir panel IA':isCorrected?'Corrigé par IA':''}"
           >${display}</td>`;
       }).join('')}
     </tr>`;
@@ -1165,27 +1165,27 @@ function _renderAISidebar(r,isPreview){
     if(ve){ve.textContent=dqs;ve.style.color=col;}
   }
   let h='';
-  if(isPreview)h+=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:5px 9px;border-radius:6px;background:rgba(125,211,252,.05);border:1px solid rgba(125,211,252,.12);font-family:'Syne',sans-serif;font-size:7.5px;font-weight:800;color:rgba(125,211,252,.6);"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:8px;"></i>Llama analyse…</div>`;
+  if(isPreview)h+=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:5px 9px;border-radius:6px;background:rgba(139,127,240,.05);border:1px solid rgba(139,127,240,.12);font-family:'Syne',sans-serif;font-size:7.5px;font-weight:800;color:rgba(139,127,240,.6);"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:8px;"></i>Llama analyse…</div>`;
   if(r.synthese)h+=`<div class="ppq-section"><div style="font-size:8.5px;color:rgba(255,255,255,.5);line-height:1.6;font-style:italic;padding:8px 10px;background:rgba(255,255,255,.025);border-radius:7px;border:1px solid rgba(255,255,255,.06);">${_esc(r.synthese)}</div></div>`;
 
   // Agent CTA
-  h+=`<div class="ppq-section"><div style="padding:9px 11px;border-radius:9px;background:rgba(125,211,252,.05);border:1px solid rgba(125,211,252,.15);cursor:pointer;" onclick="PPQ.openAgent()">
-    <div style="font-family:'Syne',sans-serif;font-size:9px;font-weight:800;color:#7DD3FC;margin-bottom:4px;display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-terminal"></i>Agent IA — Copilot Data <span style="font-size:7px;padding:1px 5px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.25);color:#10b981;border-radius:3px;">ACTIF</span></div>
-    <div style="font-size:8px;color:rgba(255,255,255,.4);line-height:1.5;">Dites à l'agent quoi faire : <em style="color:rgba(125,211,252,.6);">"Pivote le tableau"</em>, <em style="color:rgba(125,211,252,.6);">"Corrige toutes les anomalies"</em>, <em style="color:rgba(125,211,252,.6);">"Renomme actif circulant"</em>…</div>
+  h+=`<div class="ppq-section"><div style="padding:9px 11px;border-radius:9px;background:rgba(139,127,240,.05);border:1px solid rgba(139,127,240,.15);cursor:pointer;" onclick="PPQ.openAgent()">
+    <div style="font-family:'Syne',sans-serif;font-size:9px;font-weight:800;color:#8B7FF0;margin-bottom:4px;display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-terminal"></i>Agent IA — Copilot Data <span style="font-size:7px;padding:1px 5px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.25);color:#10b981;border-radius:3px;">ACTIF</span></div>
+    <div style="font-size:8px;color:rgba(255,255,255,.4);line-height:1.5;">Dites à l'agent quoi faire : <em style="color:rgba(139,127,240,.6);">"Pivote le tableau"</em>, <em style="color:rgba(139,127,240,.6);">"Corrige toutes les anomalies"</em>, <em style="color:rgba(139,127,240,.6);">"Renomme actif circulant"</em>…</div>
     <div style="margin-top:6px;font-size:7.5px;color:rgba(255,255,255,.25);">Ctrl+K pour ouvrir · L'agent voit le tableau en temps réel</div>
   </div></div>`;
 
   // Structure
   if(r.structure){
     const fmt=r.structure.format||'tabular';
-    const fc={vertical:'125,211,252',tabular:'16,185,129',multi_period:'139,92,246',ghost_cols:'245,158,11',header_in_row1:'245,158,11'};
-    const fc2={vertical:'#7DD3FC',tabular:'#10b981',multi_period:'#8B5CF6',ghost_cols:'#f59e0b',header_in_row1:'#f59e0b'};
-    const c=fc[fmt]||'125,211,252',c2=fc2[fmt]||'#7DD3FC';
+    const fc={vertical:'139,127,240',tabular:'16,185,129',multi_period:'139,127,240',ghost_cols:'245,158,11',header_in_row1:'245,158,11'};
+    const fc2={vertical:'#8B7FF0',tabular:'#10b981',multi_period:'#8B7FF0',ghost_cols:'#f59e0b',header_in_row1:'#f59e0b'};
+    const c=fc[fmt]||'139,127,240',c2=fc2[fmt]||'#8B7FF0';
     h+=`<div class="ppq-section"><div class="ppq-section-title"><i class="fa-solid fa-diagram-project"></i>Structure</div>
     <div style="padding:8px 10px;border-radius:8px;background:rgba(${c},.05);border:1px solid rgba(${c},.18);">
       <div style="font-family:'Syne',sans-serif;font-size:10px;font-weight:800;color:${c2};margin-bottom:3px;">${fmt.replace(/_/g,' ').replace(/\b\w/g,x=>x.toUpperCase())}</div>
       <div style="font-size:8px;color:rgba(255,255,255,.4);">${_esc(r.structure.explication||'')}</div>
-      ${r.structure.pivot_possible?`<button onclick="PPQ.agentShortcut('pivot')" style="margin-top:6px;padding:4px 10px;border-radius:5px;background:rgba(125,211,252,.1);border:1px solid rgba(125,211,252,.25);color:#7DD3FC;font-family:'Syne',sans-serif;font-size:8px;font-weight:800;cursor:pointer;"><i class="fa-solid fa-rotate"></i> Pivoter maintenant</button>`:''}
+      ${r.structure.pivot_possible?`<button onclick="PPQ.agentShortcut('pivot')" style="margin-top:6px;padding:4px 10px;border-radius:5px;background:rgba(139,127,240,.1);border:1px solid rgba(139,127,240,.25);color:#8B7FF0;font-family:'Syne',sans-serif;font-size:8px;font-weight:800;cursor:pointer;"><i class="fa-solid fa-rotate"></i> Pivoter maintenant</button>`:''}
     </div></div>`;
   }
 
@@ -1222,8 +1222,8 @@ function _renderAISidebar(r,isPreview){
 
   // Améliorations
   const am=r.ameliorations||[];
-  if(am.length){const lc={err:'#ef4444',warn:'#f59e0b',info:'rgba(125,211,252,.7)',ok:'#10b981'},cc={err:'urgent',warn:'suggestion',info:'info',ok:'info'};
-  h+=`<div class="ppq-section"><div class="ppq-section-title"><i class="fa-solid fa-lightbulb"></i>Recommandations</div>${am.map(a=>`<div class="ppq-val-card ${cc[a.lvl]||'suggestion'}" style="border-left:3px solid ${lc[a.lvl]||'#7DD3FC'};">${a.cat?`<div style="font-size:7px;color:${lc[a.lvl]};font-family:'Syne',sans-serif;font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">${_esc(a.cat)}</div>`:''}<div class="ppq-val-card-body">${_esc(a.msg||'')}${a.action?`<br><span style="color:rgba(255,255,255,.35);font-size:7.5px;cursor:pointer;" onclick="PPQ.agentAsk('${_esc(a.action).replace(/'/g,'&#39;')}')">→ ${_esc(a.action)} <span style="color:rgba(125,211,252,.5);">[demander à l'agent]</span></span>`:''}</div></div>`).join('')}</div>`;}
+  if(am.length){const lc={err:'#ef4444',warn:'#f59e0b',info:'rgba(139,127,240,.7)',ok:'#10b981'},cc={err:'urgent',warn:'suggestion',info:'info',ok:'info'};
+  h+=`<div class="ppq-section"><div class="ppq-section-title"><i class="fa-solid fa-lightbulb"></i>Recommandations</div>${am.map(a=>`<div class="ppq-val-card ${cc[a.lvl]||'suggestion'}" style="border-left:3px solid ${lc[a.lvl]||'#8B7FF0'};">${a.cat?`<div style="font-size:7px;color:${lc[a.lvl]};font-family:'Syne',sans-serif;font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;">${_esc(a.cat)}</div>`:''}<div class="ppq-val-card-body">${_esc(a.msg||'')}${a.action?`<br><span style="color:rgba(255,255,255,.35);font-size:7.5px;cursor:pointer;" onclick="PPQ.agentAsk('${_esc(a.action).replace(/'/g,'&#39;')}')">→ ${_esc(a.action)} <span style="color:rgba(139,127,240,.5);">[demander à l'agent]</span></span>`:''}</div></div>`).join('')}</div>`;}
 
   // Mapping
   const maps=[...Object.entries(ST.colMap||{}),...Object.entries(ST._vertMap||r.mapping_vertical||{})];
@@ -2017,50 +2017,38 @@ function _buildPivotedObj() {
   return pivoted;
 }
 
-
 (function _patch() {
   function tryPatch() {
     if (!window.DS_UPLOAD) { setTimeout(tryPatch, 400); return; }
-
-    // Remplacer openDataViewer par notre Power Query
     window.DS_UPLOAD.openDataViewer = function(fname, data) {
       window.PPQ.open(fname, data);
     };
-
-    // Aussi patcher openCurrentDataViewer
     window.DS_UPLOAD.openCurrentDataViewer = function() {
       const d = window.S?.rawFileData;
       if (d) window.PPQ.open(d.filename, d.data);
     };
-
-    // Patcher resetDataTable
     window.DS_UPLOAD.resetDataTable = function() {
       window.PPQ.resetAll?.();
     };
-
-    // Patcher launchML pour passer par PPQ
     const origLaunch = window.DS_UPLOAD.launchML?.bind(window.DS_UPLOAD);
     window.DS_UPLOAD.launchML = function() {
-      // Si PPQ est ouvert, utiliser son launch
       if (document.getElementById('ppq-overlay')?.classList.contains('open')) {
         window.PPQ.launch();
       } else if (origLaunch) {
         origLaunch();
       }
     };
-
-    // Patcher DS (alias)
     if (window.DS) {
       window.DS.closeModal          = (e) => window.PPQ.close?.();
       window.DS.closeModalDirect    = ()  => window.PPQ.close?.();
-      window.DS.switchDataView      = (v,b) => {}; // no-op, géré par PPQ
+      window.DS.switchDataView      = (v,b) => {};
       window.DS.resetDataTable      = ()  => window.PPQ.resetAll?.();
       window.DS.launchML            = ()  => window.PPQ.launch?.();
       window.DS.openCurrentDataViewer= () => window.DS_UPLOAD.openCurrentDataViewer?.();
     }
-
     console.log('[ds-preprocess] ✅ Power Query IA patché sur DS_UPLOAD');
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tryPatch);
   else tryPatch();
 })();
+

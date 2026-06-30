@@ -1,1565 +1,500 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Doctor Smile v4 · Authentification</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800;900&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<style>
-/* ═══════════════════════════
-   TOKENS
-═══════════════════════════ */
-:root {
-  --gold:       #FFD700;
-  --gold-2:     #FFC107;
-  --gold-glow:  rgba(255,215,0,0.35);
-  --ice:        #7DD3FC;
-  --ice-2:      #38BDF8;
-  --ice-dark:   #0EA5E9;
-  --ice-glow:   rgba(125,211,252,0.30);
-  --emerald:    #10b981;
-  --ruby:       #ef4444;
-  --amber:      #f59e0b;
-  --bg:         #03060D;
-  --surface:    #070C18;
-  --surface-2:  #0B1525;
-  --border:     rgba(255,255,255,0.06);
-  --bice:       rgba(125,211,252,0.15);
-  --muted:      rgba(255,255,255,0.38);
-  --white:      #FFFFFF;
-  --fd:         'Syne', sans-serif;
-  --fb:         'Instrument Sans', sans-serif;
-  --spring:     cubic-bezier(0.34,1.56,0.64,1);
-  --ease:       cubic-bezier(0.4,0,0.2,1);
-  --eout:       cubic-bezier(0,0,0.2,1);
-}
-
-/* ═══════════════════════════
-   RESET
-═══════════════════════════ */
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-html,body{width:100%;min-height:100%;background:var(--bg);color:var(--white);font-family:var(--fb);-webkit-font-smoothing:antialiased;cursor:none;}
-
-/* ═══════════════════════════
-   CANVAS + GRAIN
-═══════════════════════════ */
-#bg-canvas{position:fixed;inset:0;z-index:0;}
-body::before{
-  content:'';position:fixed;inset:0;z-index:1;pointer-events:none;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
-  opacity:0.5;
-}
-
-/* scanline */
-.scanline{position:fixed;left:0;right:0;height:1px;z-index:2;pointer-events:none;
-  background:linear-gradient(90deg,transparent,rgba(125,211,252,0.15),transparent);
-  animation:scan 9s linear infinite;}
-@keyframes scan{0%{top:-1px;opacity:.7}100%{top:100vh;opacity:0}}
-
-/* corner brackets */
-.brk{position:fixed;z-index:3;width:36px;height:36px;pointer-events:none;}
-.brk.tl{top:18px;left:18px;border-top:1px solid rgba(125,211,252,0.28);border-left:1px solid rgba(125,211,252,0.28);}
-.brk.tr{top:18px;right:18px;border-top:1px solid rgba(125,211,252,0.28);border-right:1px solid rgba(125,211,252,0.28);}
-.brk.bl{bottom:18px;left:18px;border-bottom:1px solid rgba(125,211,252,0.28);border-left:1px solid rgba(125,211,252,0.28);}
-.brk.br{bottom:18px;right:18px;border-bottom:1px solid rgba(125,211,252,0.28);border-right:1px solid rgba(125,211,252,0.28);}
-
-/* progress */
-#prog{position:fixed;bottom:0;left:0;right:0;height:2px;z-index:50;background:rgba(255,255,255,0.03);}
-#prog-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--ice),var(--gold),var(--ice));background-size:200% 100%;
-  box-shadow:0 0 8px var(--ice-glow);animation:pshine 1.6s linear infinite;transition:width .12s ease;}
-@keyframes pshine{0%{background-position:200% 0}100%{background-position:-200% 0}}
-
-/* flash */
-#flash{position:fixed;inset:0;z-index:200;background:radial-gradient(ellipse at center,var(--ice-2) 0%,var(--bg) 70%);opacity:0;pointer-events:none;transition:opacity .6s ease;}
-
-/* cursors */
-#cur{position:fixed;width:8px;height:8px;border-radius:50%;background:var(--gold);pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:difference;}
-#curR{position:fixed;width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(125,211,252,0.4);pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:left .13s ease,top .13s ease,width .25s var(--spring),height .25s var(--spring),border-color .2s;}
-
-/* ═══════════════════════════
-   LAYOUT — full-height split
-═══════════════════════════ */
-#app{position:fixed;inset:0;z-index:10;display:flex;}
-
-/* ── LEFT PANEL ── */
-#panel-left{
-  width:40%;min-width:0;height:100%;
-  display:flex;flex-direction:column;justify-content:center;align-items:flex-start;
-  padding:40px 48px;
-  border-right:1px solid var(--bice);
-  position:relative;overflow:hidden;
-  opacity:0;transform:translateX(-32px);
-  transition:opacity .85s var(--eout),transform .85s var(--eout);
-}
-#panel-left.show{opacity:1;transform:translateX(0);}
-#panel-left::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(125,211,252,0.035) 0%,transparent 55%);pointer-events:none;}
-
-/* cube logo */
-.auth-logo{display:flex;align-items:center;gap:14px;margin-bottom:36px;}
-.cube-wrap{width:50px;height:50px;perspective:180px;flex-shrink:0;position:relative;}
-.cube-wrap::before{content:'';position:absolute;inset:-8px;border-radius:50%;background:radial-gradient(circle,rgba(255,215,0,0.2),rgba(125,211,252,0.1),transparent 68%);animation:aura 3.5s ease-in-out infinite;}
-@keyframes aura{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.28);opacity:1}}
-.cube{width:46px;height:46px;transform-style:preserve-3d;animation:spinC 8s linear infinite;position:relative;z-index:1;margin:2px;}
-@keyframes spinC{0%{transform:rotateX(-15deg) rotateY(0)}25%{transform:rotateX(10deg) rotateY(90deg)}50%{transform:rotateX(-15deg) rotateY(180deg)}75%{transform:rotateX(10deg) rotateY(270deg)}100%{transform:rotateX(-15deg) rotateY(360deg)}}
-.cf{position:absolute;width:46px;height:46px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.1);}
-.cf-front{transform:translateZ(23px);background:linear-gradient(135deg,rgba(255,215,0,.88),rgba(255,193,7,.95));}
-.cf-back{transform:rotateY(180deg) translateZ(23px);background:linear-gradient(135deg,rgba(125,211,252,.88),rgba(56,189,248,.95));}
-.cf-right{transform:rotateY(90deg) translateZ(23px);background:rgba(125,211,252,.35);}
-.cf-left{transform:rotateY(-90deg) translateZ(23px);background:rgba(255,215,0,.25);}
-.cf-top{transform:rotateX(90deg) translateZ(23px);background:rgba(255,215,0,.2);}
-.cf-bot{transform:rotateX(-90deg) translateZ(23px);background:rgba(125,211,252,.2);}
-.cf i{font-size:18px;color:#03060D;filter:drop-shadow(0 0 3px rgba(255,255,255,.5));}
-
-.logo-text span:first-child{display:block;font-family:var(--fd);font-size:clamp(18px,1.8vw,24px);font-weight:900;letter-spacing:-.02em;
-  background:linear-gradient(135deg,var(--gold),var(--ice));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.logo-text span:last-child{display:block;font-family:var(--fd);font-size:9px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-top:2px;}
-
-.left-title{font-family:var(--fd);font-size:clamp(26px,2.8vw,42px);font-weight:900;letter-spacing:-.03em;line-height:1.06;margin-bottom:14px;}
-.left-title .g{background:linear-gradient(135deg,var(--gold),var(--gold-2),var(--ice));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.left-sub{font-size:clamp(11px,1vw,13px);color:rgba(255,255,255,0.42);line-height:1.72;max-width:340px;margin-bottom:28px;}
-
-/* stat chips */
-.chips{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px;}
-.chip{background:var(--surface-2);border:1px solid var(--bice);border-radius:8px;padding:10px 14px;
-  display:flex;flex-direction:column;gap:2px;animation:cf var(--d,3s) var(--dl,0s) ease-in-out infinite alternate;}
-@keyframes cf{0%{transform:translateY(0)}100%{transform:translateY(-4px)}}
-.chip-val{font-family:var(--fd);font-size:clamp(15px,1.4vw,20px);font-weight:900;color:var(--ice);}
-.chip-val.g{color:var(--gold);}
-.chip-lbl{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);}
-
-/* features list */
-.feat-list{display:flex;flex-direction:column;gap:10px;}
-.feat{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,0.55);}
-.feat i{font-size:13px;color:var(--ice);width:18px;text-align:center;flex-shrink:0;}
-
-/* ECG svg */
-#ecg-mini{width:100%;max-width:300px;height:40px;opacity:.5;margin-top:24px;}
-
-/* ── RIGHT PANEL ── */
-#panel-right{
-  flex:1;
-  height:100%;
-  overflow-y:scroll; /* always show scrollbar track */
-  overflow-x:hidden;
-  opacity:0;transform:translateX(32px);
-  transition:opacity .85s var(--eout) .12s,transform .85s var(--eout) .12s;
-}
-#panel-right.show{opacity:1;transform:translateX(0);}
-#panel-right::-webkit-scrollbar{width:4px;}
-#panel-right::-webkit-scrollbar-track{background:rgba(125,211,252,0.05);border-radius:2px;}
-#panel-right::-webkit-scrollbar-thumb{background:rgba(125,211,252,0.35);border-radius:2px;}
-#panel-right::-webkit-scrollbar-thumb:hover{background:rgba(125,211,252,0.6);}
-
-/* inner wrapper — no centering, just top-down flow */
-.right-inner{
-  width:100%;
-  max-width:460px;
-  margin:0 auto;           /* horizontal center */
-  padding:36px 24px 60px; /* top padding + generous bottom */
-  display:flex;
-  flex-direction:column;
-  align-items:stretch;
-}
-
-/* tabs */
-.auth-tabs{display:flex;gap:0;margin-bottom:24px;background:var(--surface);border:1px solid var(--bice);border-radius:10px;padding:4px;width:100%;flex-shrink:0;}
-.tab-btn{flex:1;padding:11px 0;border:none;background:none;font-family:var(--fd);font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-radius:7px;cursor:pointer;transition:all .3s var(--spring);}
-.tab-btn.active{color:var(--bg);background:linear-gradient(135deg,var(--ice),var(--ice-2));box-shadow:0 0 18px var(--ice-glow);}
-.tab-btn:not(.active):hover{color:var(--ice);}
-
-/* form card */
-.form-card{
-  width:100%;
-  background:rgba(7,12,24,0.65);
-  backdrop-filter:blur(28px) saturate(150%);
-  -webkit-backdrop-filter:blur(28px) saturate(150%);
-  border:1px solid var(--bice);
-  border-radius:14px;padding:28px 26px 28px;
-  box-shadow:0 20px 56px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.04);
-  position:relative;
-}
-.form-card::before{content:'';position:absolute;top:-50px;right:-50px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(125,211,252,0.07),transparent 70%);pointer-events:none;}
-.form-card::after{content:'';position:absolute;bottom:-40px;left:-40px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(255,215,0,0.05),transparent 70%);pointer-events:none;}
-
-.form-title{font-family:var(--fd);font-size:clamp(18px,1.8vw,24px);font-weight:900;letter-spacing:-.02em;margin-bottom:4px;}
-.form-sub{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.5;}
-
-/* oauth */
-.oauth-row{display:flex;gap:8px;margin-bottom:4px;}
-.oauth-btn{
-  flex:1;padding:10px 8px;
-  background:var(--surface);border:1px solid var(--bice);border-radius:7px;
-  display:flex;align-items:center;justify-content:center;gap:7px;
-  font-family:var(--fd);font-size:10px;font-weight:700;letter-spacing:.05em;
-  color:var(--muted);cursor:pointer;
-  transition:all .25s var(--spring);
-}
-.oauth-btn:hover{border-color:var(--ice-2);color:var(--white);box-shadow:0 0 12px var(--ice-glow);transform:translateY(-1px);}
-.oauth-btn i{font-size:14px;}
-.oauth-btn .fa-google{color:#EA4335;}
-.oauth-btn .fa-linkedin{color:#0A66C2;}
-
-/* divider */
-.divider{display:flex;align-items:center;gap:10px;margin:14px 0;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,0.18);}
-.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--bice);}
-
-/* input group */
-.inp-group{margin-bottom:10px;position:relative;}
-.inp-label{display:block;font-family:var(--fd);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(125,211,252,0.55);margin-bottom:6px;transition:color .25s;}
-.inp-group:focus-within .inp-label{color:var(--ice);}
-.inp-wrap{position:relative;border:1px solid var(--bice);border-radius:7px;background:rgba(255,255,255,0.02);transition:border-color .25s,box-shadow .25s,background .25s;}
-.inp-wrap:focus-within{border-color:var(--ice-2);box-shadow:0 0 0 3px rgba(56,189,248,0.11),0 0 16px rgba(56,189,248,0.07);background:rgba(56,189,248,0.025);}
-.inp-wrap.valid{border-color:rgba(16,185,129,0.55);}
-.inp-wrap.invalid{border-color:rgba(239,68,68,0.55);}
-.inp-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:13px;color:rgba(125,211,252,0.35);pointer-events:none;transition:color .25s;width:16px;text-align:center;}
-.inp-wrap:focus-within .inp-icon{color:var(--ice-2);}
-.inp-field{width:100%;padding:12px 12px 12px 38px;background:none;border:none;outline:none;font-family:var(--fb);font-size:13px;color:var(--white);letter-spacing:.01em;}
-.inp-field::placeholder{color:rgba(255,255,255,0.18);}
-.inp-field:-webkit-autofill,.inp-field:-webkit-autofill:focus{-webkit-text-fill-color:var(--white);-webkit-box-shadow:0 0 0 1000px rgba(7,12,24,.98) inset;}
-.inp-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;font-size:13px;color:rgba(125,211,252,0.28);transition:color .2s;}
-.inp-toggle:hover{color:var(--ice);}
-.inp-msg{font-size:9px;margin-top:4px;padding-left:2px;height:12px;transition:all .2s;}
-.inp-msg.ok{color:var(--emerald);}
-.inp-msg.err{color:var(--ruby);}
-
-/* half-row for first/last name */
-.inp-row{display:flex;gap:10px;}
-.inp-row .inp-group{flex:1;}
-
-/* strength bar */
-#str-bar{display:flex;gap:3px;margin-top:4px;height:3px;}
-.sseg{flex:1;border-radius:2px;background:var(--border);transition:background .35s,box-shadow .35s;}
-.sseg.s1{background:var(--ruby);}
-.sseg.s2{background:var(--amber);box-shadow:0 0 5px rgba(245,158,11,.5);}
-.sseg.s3{background:var(--ice);box-shadow:0 0 5px var(--ice-glow);}
-.sseg.s4{background:var(--emerald);box-shadow:0 0 6px rgba(16,185,129,.5);}
-#str-txt{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:4px;transition:color .3s;}
-
-/* role selector */
-.role-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px;}
-.role-card{padding:10px 5px;border:1px solid var(--bice);border-radius:9px;background:var(--surface);cursor:pointer;text-align:center;transition:all .25s var(--spring);position:relative;overflow:hidden;}
-.role-card input[type=radio]{position:absolute;opacity:0;pointer-events:none;}
-.role-card-icon{font-size:17px;margin-bottom:3px;display:block;}
-.role-card-lbl{font-family:var(--fd);font-size:7.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);transition:color .25s;}
-.role-card.selected{border-color:var(--ice-2);background:rgba(56,189,248,0.07);box-shadow:0 0 14px rgba(56,189,248,0.14);}
-.role-card.selected .role-card-lbl{color:var(--ice);}
-/* Carte admin — style distinct pink */
-.role-admin-card{border-color:rgba(236,72,153,.2);}
-.role-admin-card:hover{border-color:rgba(236,72,153,.4);background:rgba(236,72,153,.04);}
-.role-admin-card.selected{border-color:rgba(236,72,153,.55);background:rgba(236,72,153,.07);box-shadow:0 0 16px rgba(236,72,153,.14);}
-.role-admin-card.selected .role-card-lbl{color:#EC4899;}
-/* Panneau code admin */
-.admin-code-notice{
-  display:flex;align-items:center;gap:8px;
-  padding:9px 13px;margin-bottom:12px;
-  background:rgba(236,72,153,.06);
-  border:1px solid rgba(236,72,153,.22);
-  border-radius:9px;
-  font-size:10px;color:rgba(236,72,153,.8);
-  font-family:var(--fd);font-weight:700;letter-spacing:.06em;
-}
-.admin-code-notice i{color:#EC4899;font-size:12px;}
-/* Indicateur de validation code admin */
-#admin-code-inp.valid{border-color:var(--emerald)!important;}
-#admin-code-inp.invalid{border-color:var(--ruby)!important;}
-
-/* checkbox */
-.check-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-.chk-wrap{display:flex;align-items:center;gap:8px;cursor:pointer;}
-.chk-wrap input{display:none;}
-.chk-box{width:15px;height:15px;border:1px solid var(--bice);border-radius:3px;background:var(--surface);display:flex;align-items:center;justify-content:center;transition:all .22s var(--spring);flex-shrink:0;}
-.chk-wrap input:checked~.chk-box{background:var(--ice-2);border-color:var(--ice-2);box-shadow:0 0 7px var(--ice-glow);}
-.chk-wrap input:checked~.chk-box i{display:block;}
-.chk-box i{display:none;font-size:8px;color:var(--bg);}
-.chk-lbl{font-size:10px;color:var(--muted);user-select:none;}
-.forgot{font-size:10px;color:var(--ice);text-decoration:none;font-weight:600;transition:color .2s;}
-.forgot:hover{color:var(--gold);}
-
-/* divider for cgu */
-.cgu-wrap{display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;cursor:pointer;}
-.cgu-wrap input{display:none;}
-.cgu-wrap input:checked~.chk-box{background:var(--ice-2);border-color:var(--ice-2);box-shadow:0 0 7px var(--ice-glow);}
-.cgu-wrap input:checked~.chk-box i{display:block;}
-.cgu-lbl{font-size:9px;color:var(--muted);line-height:1.5;}
-.cgu-lbl a{color:var(--ice);text-decoration:none;font-weight:600;}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━
-   STEP INDICATOR
-━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.step-indicator{
-  display:flex;align-items:center;gap:0;
-  margin-bottom:20px;
-}
-.step-item{display:flex;flex-direction:column;align-items:center;gap:4px;}
-.step-dot{
-  width:28px;height:28px;border-radius:50%;
-  border:1.5px solid var(--bice);
-  background:var(--surface);
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--fd);font-size:11px;font-weight:800;color:var(--muted);
-  transition:all .35s var(--spring);
-}
-.step-item.active .step-dot{
-  background:linear-gradient(135deg,var(--ice),var(--ice-2));
-  border-color:var(--ice);color:var(--bg);
-  box-shadow:0 0 14px var(--ice-glow);
-}
-.step-item.done .step-dot{
-  background:linear-gradient(135deg,var(--emerald),#059669);
-  border-color:var(--emerald);color:#fff;
-  box-shadow:0 0 10px rgba(16,185,129,.4);
-}
-.step-lbl{font-family:var(--fd);font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);transition:color .3s;}
-.step-item.active .step-lbl{color:var(--ice);}
-.step-item.done .step-lbl{color:var(--emerald);}
-.step-line{
-  flex:1;height:1.5px;margin:0 10px;margin-bottom:16px;
-  background:var(--bice);border-radius:2px;overflow:hidden;position:relative;
-}
-.step-line::after{
-  content:'';position:absolute;left:-100%;top:0;bottom:0;width:100%;
-  background:linear-gradient(90deg,var(--ice),var(--emerald));
-  transition:left .5s var(--eout);
-}
-.step-line.done::after{left:0;}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━
-   SELECT INPUT
-━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.inp-select-wrap{position:relative;}
-.inp-select{
-  -webkit-appearance:none;appearance:none;cursor:pointer;
-  padding-right:32px !important;
-}
-.inp-select option{background:#0B1525;color:var(--white);}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━
-   SOURCE GRID
-━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.source-grid{display:flex;gap:6px;flex-wrap:wrap;}
-.src-btn{
-  flex:1;min-width:80px;padding:8px 10px;
-  border:1px solid var(--bice);border-radius:7px;
-  background:var(--surface);cursor:pointer;
-  font-family:var(--fd);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--muted);text-align:center;
-  display:flex;align-items:center;justify-content:center;gap:5px;
-  transition:all .25s var(--spring);
-}
-.src-btn:hover{border-color:var(--ice-2);color:var(--ice);}
-.src-btn.selected{border-color:var(--ice-2);background:rgba(56,189,248,0.07);color:var(--ice);box-shadow:0 0 10px rgba(56,189,248,0.12);}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━
-   PLAN SELECTOR
-━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.plan-grid{display:flex;gap:6px;}
-.plan-btn{
-  flex:1;padding:10px 8px;
-  border:1px solid var(--bice);border-radius:8px;
-  background:var(--surface);cursor:pointer;text-align:center;
-  display:flex;flex-direction:column;align-items:center;gap:3px;
-  transition:all .25s var(--spring);position:relative;overflow:hidden;
-}
-.plan-btn:hover{border-color:var(--ice-2);transform:translateY(-2px);}
-.plan-btn.selected{border-color:var(--ice-2);background:rgba(56,189,248,0.07);box-shadow:0 0 14px rgba(56,189,248,0.14);}
-.plan-btn.selected#plan-premium{border-color:var(--gold);background:rgba(255,215,0,0.07);box-shadow:0 0 14px rgba(255,215,0,0.14);}
-.plan-btn.selected#plan-extra{border-color:#8B5CF6;background:rgba(139,92,246,0.07);box-shadow:0 0 14px rgba(139,92,246,0.14);}
-.plan-btn i{font-size:16px;margin-bottom:2px;}
-.plan-name{font-family:var(--fd);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--white);}
-.plan-price{font-family:var(--fd);font-size:9px;color:var(--muted);}
-.plan-popular{
-  font-size:8px;font-weight:700;color:#020408;
-  background:linear-gradient(135deg,var(--gold),var(--amber));
-  padding:1px 6px;border-radius:100px;margin-top:2px;
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━
-   SUBMIT BUTTON — always full visible
-━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-.submit-btn{
-  width:100%;padding:15px;
-  background:linear-gradient(135deg,var(--ice) 0%,var(--ice-2) 40%,var(--ice-dark) 65%,var(--ice) 100%);
-  background-size:300% 100%;
-  border:none;border-radius:8px;cursor:pointer;
-  font-family:var(--fd);font-size:12px;font-weight:900;
-  letter-spacing:.2em;text-transform:uppercase;color:var(--bg);
-  animation:bshine 3s ease infinite;
-  transition:transform .2s var(--spring),box-shadow .25s;
-  position:relative;overflow:hidden;
-  margin-top:14px; /* space above */
-  flex-shrink:0;   /* never squish */
-  display:flex;align-items:center;justify-content:center;gap:8px;
-}
-@keyframes bshine{
-  0%,100%{background-position:100% 0;box-shadow:0 0 18px rgba(125,211,252,.3);}
-  50%    {background-position:0% 0;  box-shadow:0 0 44px rgba(125,211,252,.75);}
-}
-.submit-btn:hover{transform:translateY(-2px) scale(1.01);}
-.submit-btn:active{transform:scale(.98);}
-.submit-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 30%,rgba(255,255,255,.16) 50%,transparent 70%);transform:translateX(-100%);animation:sweep 3s ease infinite;}
-@keyframes sweep{100%{transform:translateX(200%);}}
-.submit-btn i{font-size:13px;}
-.submit-btn.loading{pointer-events:none;color:transparent;}
-.btn-spin{display:none;width:17px;height:17px;border:2px solid rgba(0,0,0,.2);border-top-color:var(--bg);border-radius:50%;animation:spin .7s linear infinite;position:absolute;}
-@keyframes spin{100%{transform:rotate(360deg);}}
-.submit-btn.loading .btn-spin{display:block;}
-
-/* form footer link */
-.form-link{text-align:center;margin-top:14px;font-size:10px;color:var(--muted);}
-.form-link a{color:var(--ice);text-decoration:none;font-weight:700;transition:color .2s;}
-.form-link a:hover{color:var(--gold);}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━
-   OTP PANEL (désactivé)
-━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-#otp-panel{display:none;}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━
-   SUCCESS PANEL
-━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-#success-panel{
-  display:none;width:100%;
-  flex-direction:column;align-items:center;gap:14px;
-  animation:sucIn .6s var(--spring) forwards;
-}
-@keyframes sucIn{from{opacity:0;transform:scale(.8) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
-.suc-ring{width:76px;height:76px;border-radius:50%;border:2px solid var(--ice);display:flex;align-items:center;justify-content:center;position:relative;animation:ringPulse 2s ease-in-out infinite;}
-@keyframes ringPulse{0%,100%{box-shadow:0 0 0 0 rgba(125,211,252,.4)}50%{box-shadow:0 0 0 16px rgba(125,211,252,0)}}
-.suc-ring i{font-size:28px;color:var(--ice);}
-.suc-msg{font-family:var(--fd);font-size:20px;font-weight:900;text-align:center;}
-.suc-sub{font-size:11px;color:var(--muted);text-align:center;}
-.redir-bar{width:100%;max-width:280px;height:2px;background:var(--border);border-radius:2px;overflow:hidden;}
-.redir-fill{height:100%;background:linear-gradient(90deg,var(--ice),var(--gold));width:0%;box-shadow:0 0 8px var(--ice-glow);animation:fillB 2s .4s linear forwards;}
-@keyframes fillB{to{width:100%;}}
-.redir-lbl{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);}
-
-/* ═══════════════════════════════════════════════════════════
-   MOBILE WOW — Doctor Smile Auth
-   Une vraie pépite sur téléphone ✨
-═══════════════════════════════════════════════════════════ */
-
-/* ── Curseur custom OFF sur mobile ── */
-@media(hover:none) and (pointer:coarse){
-  html,body{cursor:auto;}
-  #cur,#curR{display:none;}
-}
-
-/* ════════════════════════════════════════
-   TABLETTE ≤ 768px — structure de base
-════════════════════════════════════════ */
-/* ═══ ADMIN CODE PANEL ══════════════════════════════════════ */
-#admin-code-panel{transition:opacity .3s,transform .3s;}
-#admin-code-wrap{transition:border-color .25s,box-shadow .25s;}
-#admin-code-wrap:focus-within{
-  border-color:rgba(236,72,153,.5)!important;
-  box-shadow:0 0 0 3px rgba(236,72,153,.07)!important;
-}
-
-@media(max-width:768px){
-  html,body{overflow-x:hidden;overflow-y:auto;height:auto;min-height:100%;}
-  #app{position:relative;flex-direction:column;min-height:100svh;overflow:visible;}
-
-  /* Panel gauche → HERO IMMERSIF */
-  #panel-left{
-    width:100%;height:auto;
-    flex-direction:column;align-items:center;justify-content:center;
-    padding:48px 24px 40px;
-    border-right:none;
-    border-bottom:none;
-    position:relative;overflow:hidden;
-    /* Dégradé riche */
-    background:
-      radial-gradient(ellipse 80% 60% at 50% 0%,rgba(125,211,252,0.12) 0%,transparent 70%),
-      radial-gradient(ellipse 50% 40% at 80% 50%,rgba(255,215,0,0.06) 0%,transparent 60%),
-      linear-gradient(180deg,rgba(7,12,24,0.95) 0%,rgba(3,6,13,1) 100%);
-  }
-  /* Ligne brillante en bas du hero */
-  #panel-left::after{
-    content:'';position:absolute;bottom:0;left:10%;right:10%;height:1px;
-    background:linear-gradient(90deg,transparent,rgba(125,211,252,0.4),rgba(255,215,0,0.3),rgba(125,211,252,0.4),transparent);
-    border-radius:1px;
-  }
-  /* Cercles décoratifs flous */
-  #panel-left::before{
-    content:'';position:absolute;top:-80px;right:-60px;
-    width:280px;height:280px;border-radius:50%;
-    background:radial-gradient(circle,rgba(125,211,252,0.07),transparent 65%);
-    pointer-events:none;
-  }
-
-  /* Logo hero centré */
-  .auth-logo{
-    margin-bottom:20px;
-    flex-direction:column;align-items:center;gap:16px;
-  }
-
-  /* Cube plus grand et plus beau en mobile */
-  .cube-wrap{width:72px;height:72px;perspective:220px;}
-  .cube{width:68px;height:68px;margin:2px;}
-  .cf{width:68px;height:68px;}
-  .cf-front{transform:translateZ(34px);}
-  .cf-back{transform:rotateY(180deg) translateZ(34px);}
-  .cf-right{transform:rotateY(90deg) translateZ(34px);}
-  .cf-left{transform:rotateY(-90deg) translateZ(34px);}
-  .cf-top{transform:rotateX(90deg) translateZ(34px);}
-  .cf-bot{transform:rotateX(-90deg) translateZ(34px);}
-  .cf i{font-size:22px;}
-
-  /* Aura plus grande */
-  .cube-wrap::before{inset:-14px;}
-
-  .logo-text{text-align:center;}
-  .logo-text span:first-child{
-    font-size:28px;letter-spacing:-.03em;
-    /* Gradient texte lumineux */
-    background:linear-gradient(135deg,#FFD700 0%,#7DD3FC 50%,#FFD700 100%);
-    background-size:200% 100%;
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-    animation:logoshimmer 3s ease infinite;
-  }
-  @keyframes logoshimmer{0%,100%{background-position:0% 0}50%{background-position:100% 0}}
-  .logo-text span:last-child{font-size:9px;letter-spacing:.28em;margin-top:3px;}
-
-  /* Titre hero visible sur mobile */
-  .left-title{
-    display:block !important;
-    text-align:center;
-    font-size:22px;
-    line-height:1.15;
-    margin-bottom:10px;
-    letter-spacing:-.025em;
-  }
-  .left-sub{
-    display:block !important;
-    text-align:center;
-    font-size:12px;
-    line-height:1.65;
-    max-width:300px;
-    margin:0 auto 20px;
-    color:rgba(255,255,255,0.45);
-  }
-
-  /* Chips — rangée horizontale scrollable */
-  .chips{
-    display:flex !important;
-    gap:10px;flex-wrap:nowrap;
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-    padding-bottom:4px;
-    scrollbar-width:none;
-    width:100%;justify-content:center;
-    margin-bottom:0;
-  }
-  .chips::-webkit-scrollbar{display:none;}
-  .chip{
-    flex-shrink:0;
-    padding:10px 16px;
-    border-radius:12px;
-    background:rgba(7,12,24,0.8);
-    border:1px solid rgba(125,211,252,0.2);
-    backdrop-filter:blur(10px);
-  }
-  .chip-val{font-size:17px;}
-  .chip-lbl{font-size:7.5px;}
-
-  /* Feat list masquée sur mobile */
-  .feat-list,#ecg-mini{display:none;}
-
-  /* Panel droit */
-  #panel-right{flex:none;width:100%;height:auto;overflow:visible;}
-  .right-inner{max-width:100%;padding:24px 16px 48px;}
-}
-
-/* ════════════════════════════════════════
-   TÉLÉPHONE ≤ 480px — LA PÉPITE
-════════════════════════════════════════ */
-@media(max-width:480px){
-
-  /* Hero un peu moins haut */
-  #panel-left{padding:40px 20px 32px;}
-
-  /* ── Coins déco réduits ── */
-  .brk{width:18px;height:18px;}
-  .brk.tl{top:8px;left:8px;}
-  .brk.tr{top:8px;right:8px;}
-  .brk.bl{bottom:8px;left:8px;}
-  .brk.br{bottom:8px;right:8px;}
-
-  /* ── TABS — style pill flottant ── */
-  .auth-tabs{
-    margin-bottom:18px;
-    background:rgba(7,12,24,0.9);
-    border:1px solid rgba(125,211,252,0.18);
-    border-radius:14px;
-    padding:5px;
-    backdrop-filter:blur(20px);
-    box-shadow:0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(125,211,252,0.06) inset;
-  }
-  .tab-btn{
-    padding:14px 0;
-    font-size:11.5px;
-    border-radius:10px;
-    min-height:48px;
-    letter-spacing:.08em;
-    transition:all .35s cubic-bezier(0.34,1.56,0.64,1);
-  }
-  .tab-btn.active{
-    background:linear-gradient(135deg,#38BDF8,#0EA5E9);
-    box-shadow:0 4px 20px rgba(56,189,248,0.4), 0 0 0 1px rgba(255,255,255,0.1) inset;
-    color:#03060D;
-  }
-
-  /* ── CARD formulaire glass premium ── */
-  .form-card{
-    border-radius:20px;
-    padding:24px 18px 26px;
-    background:rgba(7,12,24,0.75);
-    backdrop-filter:blur(32px) saturate(160%);
-    -webkit-backdrop-filter:blur(32px) saturate(160%);
-    border:1px solid rgba(125,211,252,0.14);
-    box-shadow:
-      0 24px 64px rgba(0,0,0,0.6),
-      0 0 0 1px rgba(255,255,255,0.03) inset,
-      0 1px 0 rgba(125,211,252,0.12) inset;
-    position:relative;overflow:hidden;
-  }
-  /* Reflet lumineux en haut de la card */
-  .form-card::before{
-    content:'';position:absolute;
-    top:0;left:0;right:0;height:1px;
-    background:linear-gradient(90deg,transparent 5%,rgba(125,211,252,0.35) 40%,rgba(255,215,0,0.2) 60%,transparent 95%);
-    border-radius:20px 20px 0 0;
-  }
-  /* Orbe lumineux coin */
-  .form-card::after{
-    content:'';position:absolute;
-    top:-60px;right:-60px;
-    width:180px;height:180px;border-radius:50%;
-    background:radial-gradient(circle,rgba(125,211,252,0.08),transparent 65%);
-    pointer-events:none;
-  }
-
-  .form-title{
-    font-size:22px;
-    margin-bottom:4px;
-    letter-spacing:-.025em;
-    background:linear-gradient(135deg,#fff 60%,rgba(125,211,252,0.7));
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  }
-  .form-sub{font-size:11.5px;line-height:1.6;margin-bottom:16px;}
-
-  /* ── OAUTH buttons — tactiles et beaux ── */
-  .oauth-row{gap:10px;margin-bottom:8px;}
-  .oauth-btn{
-    flex:1;padding:14px 10px;
-    min-height:50px;border-radius:12px;
-    font-size:12px;font-weight:700;gap:9px;
-    background:rgba(11,21,37,0.9);
-    border:1px solid rgba(125,211,252,0.18);
-    transition:all .3s cubic-bezier(0.34,1.56,0.64,1);
-    backdrop-filter:blur(10px);
-  }
-  .oauth-btn:active{transform:scale(0.96);}
-  .oauth-btn i{font-size:17px;}
-
-  /* ── DIVIDER ── */
-  .divider{margin:16px 0;font-size:9.5px;}
-
-  /* ── INPUTS premium ── */
-  .inp-group{margin-bottom:14px;}
-  .inp-label{
-    font-size:10px;margin-bottom:7px;
-    color:rgba(125,211,252,0.6);
-  }
-  .inp-wrap{
-    border-radius:12px;
-    border:1px solid rgba(125,211,252,0.16);
-    background:rgba(255,255,255,0.025);
-    transition:all .3s ease;
-  }
-  .inp-wrap:focus-within{
-    border-color:rgba(56,189,248,0.6);
-    box-shadow:0 0 0 3px rgba(56,189,248,0.1), 0 4px 20px rgba(56,189,248,0.08);
-    background:rgba(56,189,248,0.03);
-  }
-  .inp-wrap.valid{border-color:rgba(16,185,129,0.5);box-shadow:0 0 0 3px rgba(16,185,129,0.08);}
-  .inp-wrap.invalid{border-color:rgba(239,68,68,0.5);box-shadow:0 0 0 3px rgba(239,68,68,0.08);}
-  .inp-field{
-    padding:15px 15px 15px 42px;
-    font-size:15px;border-radius:12px;
-    letter-spacing:.01em;
-  }
-  .inp-icon{left:14px;font-size:14px;}
-  .inp-toggle{right:13px;font-size:14px;padding:8px;}
-  .inp-msg{font-size:10px;margin-top:5px;}
-
-  /* Prénom/Nom → colonne */
-  .inp-row{flex-direction:column;gap:0;}
-
-  /* ── ROLE CARDS — grille 3 cols tactile ── */
-  .role-grid{gap:8px;margin-bottom:14px;}
-  .role-card{
-    padding:14px 6px;border-radius:12px;
-    transition:all .3s cubic-bezier(0.34,1.56,0.64,1);
-    border:1px solid rgba(125,211,252,0.14);
-  }
-  .role-card.selected{
-    border-color:rgba(56,189,248,0.5);
-    background:rgba(56,189,248,0.08);
-    box-shadow:0 0 20px rgba(56,189,248,0.15), 0 0 0 1px rgba(56,189,248,0.1) inset;
-  }
-  .role-card:active{transform:scale(0.95);}
-  .role-card-icon{font-size:22px;margin-bottom:5px;}
-  .role-card-lbl{font-size:9.5px;letter-spacing:.1em;}
-
-  /* ── CHECKBOX ── */
-  .chk-box{width:20px;height:20px;border-radius:6px;flex-shrink:0;border:1.5px solid rgba(125,211,252,0.25);}
-  .chk-box i{font-size:10px;}
-  .chk-lbl,.forgot{font-size:12px;}
-  .check-row{margin-bottom:14px;gap:4px;}
-  .forgot{font-weight:700;color:var(--ice);}
-
-  /* CGU */
-  .cgu-wrap{margin-bottom:14px;gap:12px;align-items:flex-start;}
-  .cgu-lbl{font-size:11px;line-height:1.65;}
-
-  /* Strength bar */
-  #str-bar{height:4px;gap:4px;margin-top:7px;}
-  .sseg{border-radius:2px;}
-  #str-txt{font-size:10px;margin-top:5px;}
-
-  /* ── STEP INDICATOR ── */
-  .step-indicator{margin-bottom:20px;}
-  .step-dot{width:34px;height:34px;font-size:13px;}
-  .step-lbl{font-size:10px;letter-spacing:.1em;}
-  .step-line{margin:0 8px;margin-bottom:18px;}
-
-  /* ── SOURCE GRID — 2x2 ── */
-  .source-grid{gap:8px;display:grid;grid-template-columns:1fr 1fr;}
-  .src-btn{
-    min-width:unset;
-    padding:13px 10px;
-    font-size:10px;
-    border-radius:10px;
-    min-height:44px;
-    border:1px solid rgba(125,211,252,0.16);
-    transition:all .25s cubic-bezier(0.34,1.56,0.64,1);
-  }
-  .src-btn.selected{
-    border-color:rgba(56,189,248,0.5);
-    background:rgba(56,189,248,0.09);
-    box-shadow:0 0 14px rgba(56,189,248,0.12);
-  }
-  .src-btn:active{transform:scale(0.96);}
-
-  /* ── PLAN GRID — colonne avec effet wow ── */
-  .plan-grid{flex-direction:column;gap:8px;}
-  .plan-btn{
-    flex-direction:row;
-    justify-content:flex-start;align-items:center;
-    gap:14px;padding:14px 16px;
-    border-radius:14px;text-align:left;
-    border:1px solid rgba(125,211,252,0.14);
-    transition:all .3s cubic-bezier(0.34,1.56,0.64,1);
-    position:relative;overflow:hidden;
-  }
-  /* Reflet sur le plan sélectionné */
-  .plan-btn.selected::before{
-    content:'';position:absolute;inset:0;
-    background:linear-gradient(135deg,rgba(255,255,255,0.03),transparent);
-    pointer-events:none;
-  }
-  .plan-btn.selected{
-    border-color:rgba(56,189,248,0.45);
-    background:rgba(56,189,248,0.07);
-    box-shadow:0 0 24px rgba(56,189,248,0.14), 0 0 0 1px rgba(56,189,248,0.08) inset;
-    transform:scale(1.01);
-  }
-  .plan-btn.selected#plan-premium{
-    border-color:rgba(255,215,0,0.45);
-    background:rgba(255,215,0,0.06);
-    box-shadow:0 0 24px rgba(255,215,0,0.14), 0 0 0 1px rgba(255,215,0,0.08) inset;
-  }
-  .plan-btn.selected#plan-extra{
-    border-color:rgba(139,92,246,0.45);
-    background:rgba(139,92,246,0.07);
-    box-shadow:0 0 24px rgba(139,92,246,0.14), 0 0 0 1px rgba(139,92,246,0.08) inset;
-  }
-  .plan-btn:active{transform:scale(0.98);}
-  .plan-btn i{font-size:22px;margin-bottom:0;flex-shrink:0;}
-  .plan-name{font-size:12px;letter-spacing:.08em;}
-  .plan-price{font-size:11px;}
-  .plan-popular{font-size:9px;padding:2px 9px;border-radius:100px;}
-
-  /* ── SUBMIT BUTTON — le bouton star ── */
-  .submit-btn{
-    padding:17px;
-    font-size:13px;letter-spacing:.2em;
-    border-radius:14px;margin-top:18px;
-    min-height:56px;
-    background:linear-gradient(135deg,#7DD3FC 0%,#38BDF8 40%,#0EA5E9 70%,#7DD3FC 100%);
-    background-size:300% 100%;
-    box-shadow:0 8px 32px rgba(56,189,248,0.35), 0 0 0 1px rgba(255,255,255,0.08) inset;
-    position:relative;overflow:hidden;
-  }
-  /* Effet lueur au toucher */
-  .submit-btn:active{
-    transform:scale(0.97);
-    box-shadow:0 4px 16px rgba(56,189,248,0.25);
-    transition:all .1s ease;
-  }
-  /* Shine animé renforcé */
-  .submit-btn::after{
-    background:linear-gradient(90deg,transparent 20%,rgba(255,255,255,0.22) 50%,transparent 80%);
-    animation:sweep 2.5s ease infinite;
-  }
-  .submit-btn i{font-size:15px;}
-  .btn-spin{width:20px;height:20px;border-width:2.5px;}
-
-  /* Bouton retour étape 2 */
-  .back-btn-wrap{display:flex;gap:10px;margin-top:4px;}
-  .back-btn-wrap .submit-btn:first-child{
-    flex:0 0 56px;padding:0;
-    background:rgba(11,21,37,0.9);
-    border:1px solid rgba(125,211,252,0.2);
-    color:var(--ice);
-    box-shadow:none;animation:none;
-    border-radius:14px;
-  }
-  .back-btn-wrap .submit-btn:first-child::after{display:none;}
-
-  /* Form link */
-  .form-link{font-size:12px;margin-top:18px;line-height:1.6;}
-
-  /* ── SUCCESS PANEL wow ── */
-  #success-panel{gap:16px;}
-  .suc-ring{
-    width:90px;height:90px;
-    border:2px solid var(--ice);
-    box-shadow:0 0 40px rgba(125,211,252,0.3), 0 0 0 12px rgba(125,211,252,0.05);
-  }
-  .suc-ring i{font-size:36px;}
-  .suc-msg{font-size:24px;letter-spacing:-.02em;}
-  .suc-sub{font-size:13px;line-height:1.6;}
-  .redir-bar{height:3px;border-radius:3px;}
-}
-
-/* ════════════════════════════════════════
-   TRÈS PETIT ≤ 360px
-════════════════════════════════════════ */
-@media(max-width:360px){
-  #panel-left{padding:32px 16px 26px;}
-  .cube-wrap{width:60px;height:60px;}
-  .cube{width:56px;height:56px;}
-  .cf{width:56px;height:56px;}
-  .cf-front{transform:translateZ(28px);}
-  .cf-back{transform:rotateY(180deg) translateZ(28px);}
-  .cf-right{transform:rotateY(90deg) translateZ(28px);}
-  .cf-left{transform:rotateY(-90deg) translateZ(28px);}
-  .cf-top{transform:rotateX(90deg) translateZ(28px);}
-  .cf-bot{transform:rotateX(-90deg) translateZ(28px);}
-  .cf i{font-size:18px;}
-  .logo-text span:first-child{font-size:24px;}
-  .left-title{font-size:19px;}
-  .right-inner{padding:18px 13px 40px;}
-  .form-card{padding:20px 14px 22px;}
-  .inp-field{font-size:14px;}
-  .tab-btn{font-size:10.5px;}
-  .submit-btn{font-size:11.5px;letter-spacing:.16em;}
-}
-
-/* ══════════════════════════════════════════════════════
-   RESPONSIVE COMPLET — correctifs globaux + breakpoints
-   manquants (1024 / 640 / 540 / 430 / 390 / 320)
-   CSS additionnel — aucun HTML/JS modifié
-══════════════════════════════════════════════════════ */
-
-/* ── Fondation : empêcher tout débordement horizontal ── */
-*{box-sizing:border-box;}
-img,svg,video,canvas{max-width:100%;}
-
-/* ── #app : passer en relative/scroll dès qu'on n'est plus desktop ── */
-@media(max-width:1024px){
-  #app{
-    position:relative!important;
-    height:auto!important;
-    min-height:100svh;
-    overflow-x:hidden;
-    overflow-y:auto;
-    flex-direction:column;
-  }
-  #panel-left,#panel-right{
-    position:relative!important;
-    height:auto!important;
-    overflow:visible!important;
-  }
-  #panel-left{
-    width:100%!important;
-    padding:44px 32px 36px;
-    border-right:none;
-    border-bottom:1px solid rgba(125,211,252,0.12);
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-  }
-  #panel-right{
-    flex:none!important;
-    width:100%!important;
-    overflow-y:visible!important;
-  }
-  .right-inner{
-    max-width:520px;
-    margin:0 auto;
-    padding:32px 28px 56px;
-  }
-  /* chips centrées */
-  .chips{justify-content:center;}
-  /* titre + sous-titre centrés */
-  .left-title,.left-sub{text-align:center;}
-  .left-sub{max-width:480px;margin-left:auto;margin-right:auto;}
-}
-
-/* ── 640px : zone de transition tablette → mobile ── */
-@media(max-width:640px){
-  #panel-left{padding:36px 20px 28px;}
-  .right-inner{padding:24px 16px 52px;}
-  .form-card{padding:22px 16px 24px;}
-  /* inp-row reste en ligne si ≥ 540 */
-  .inp-row{gap:10px;}
-}
-
-/* ── 540px : zone morte — correctifs ciblés ── */
-@media(max-width:540px){
-  #panel-left{padding:32px 16px 24px;}
-  .left-title{font-size:20px!important;}
-  .left-sub{font-size:11.5px;}
-  .chip{padding:8px 12px;}
-  .chip-val{font-size:15px!important;}
-  /* plan-grid : horizontal mais compressé */
-  .plan-grid{gap:6px;}
-  .plan-btn{padding:8px 4px;}
-  .plan-name{font-size:9px;}
-  .plan-price{font-size:8.5px;}
-  /* source grid : 2 colonnes */
-  .source-grid{display:grid!important;grid-template-columns:1fr 1fr;gap:7px;}
-  .src-btn{min-width:unset!important;}
-  /* inp-row → colonne */
-  .inp-row{flex-direction:column!important;gap:0!important;}
-  /* step labels raccourcis */
-  .step-lbl{font-size:9px;letter-spacing:.08em;}
-}
-
-/* ── 430px : petits smartphones courants (iPhone SE, Pixel 4a) ── */
-@media(max-width:430px){
-  html,body{overflow-x:hidden;}
-  #panel-left{padding:28px 14px 22px;}
-  .right-inner{padding:20px 12px 48px;}
-  .form-card{
-    padding:18px 13px 20px;
-    border-radius:16px;
-  }
-  /* tabs */
-  .auth-tabs{padding:4px;border-radius:12px;}
-  .tab-btn{padding:12px 0;font-size:11px;min-height:44px;}
-  /* oauth */
-  .oauth-row{gap:8px;}
-  .oauth-btn{padding:12px 8px;font-size:11px;min-height:46px;border-radius:10px;}
-  .oauth-btn i{font-size:16px;}
-  /* inputs */
-  .inp-field{font-size:15px!important;padding:0 14px 0 42px!important;}
-  .inp-icon{left:13px;font-size:13px;}
-  .inp-toggle{right:11px;}
-  /* role cards */
-  .role-grid{gap:6px;}
-  .role-card{padding:12px 4px;}
-  .role-card-icon{font-size:20px;}
-  .role-card-lbl{font-size:8.5px;}
-  /* plan : colonne sur très petit */
-  .plan-grid{flex-direction:column!important;}
-  .plan-btn{
-    flex-direction:row!important;
-    justify-content:flex-start!important;
-    gap:12px;padding:12px 14px;
-    text-align:left;
-    border-radius:12px;
-  }
-  .plan-btn i{font-size:20px;margin-bottom:0!important;flex-shrink:0;}
-  .plan-name{font-size:11px;}
-  .plan-price{font-size:10px;}
-  /* submit */
-  .submit-btn{
-    padding:15px;font-size:12px;
-    border-radius:12px;min-height:52px;
-  }
-  /* step */
-  .step-dot{width:30px;height:30px;font-size:12px;}
-  .step-line{margin:0 6px;margin-bottom:16px;}
-  /* form-link */
-  .form-link{font-size:11px;margin-top:14px;}
-  /* chips */
-  .chips{gap:8px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding-bottom:4px;}
-  .chips::-webkit-scrollbar{display:none;}
-  .chip{flex-shrink:0;}
-  /* back btn */
-  .back-btn-wrap{gap:8px;}
-  .back-btn-wrap .submit-btn:first-child{flex:0 0 50px;}
-}
-
-/* ── 390px : iPhone 14/15 standard ── */
-@media(max-width:390px){
-  .form-card{padding:16px 12px 18px;}
-  .tab-btn{font-size:10.5px;letter-spacing:.06em;}
-  .oauth-btn{font-size:10.5px;gap:7px;}
-  .inp-label{font-size:9.5px;}
-  .inp-msg{font-size:9.5px;}
-  .cgu-lbl{font-size:10.5px;}
-  .plan-name{font-size:10.5px;}
-  .submit-btn{font-size:11.5px;letter-spacing:.15em;}
-  /* step : cacher les labels sur très petit */
-  .step-lbl{display:none;}
-  .step-dot{width:28px;height:28px;font-size:11px;}
-}
-
-/* ── 320px : appareils minimum ── */
-@media(max-width:320px){
-  #panel-left{padding:24px 10px 18px;}
-  .right-inner{padding:16px 10px 44px;}
-  .form-card{padding:14px 10px 16px;}
-  .auth-tabs{padding:3px;}
-  .tab-btn{font-size:9.5px;padding:10px 0;}
-  .form-title{font-size:17px!important;}
-  .oauth-btn{font-size:9.5px;padding:10px 6px;}
-  .submit-btn{font-size:10.5px;padding:13px;letter-spacing:.12em;}
-  .left-title{font-size:17px!important;}
-  .logo-text span:first-child{font-size:20px!important;}
-  .chip{padding:6px 10px;}
-  .chip-val{font-size:13px!important;}
-}
-
-/* ── Utilitaires touch globaux ── */
-@media(hover:none) and (pointer:coarse){
-  /* Agrandir tous les éléments cliquables à 44px min */
-  .tab-btn,
-  .oauth-btn,
-  .src-btn,
-  .role-card,
-  .plan-btn,
-  .submit-btn,
-  .inp-toggle,
-  .chk-box,
-  .forgot{
-    min-height:44px;
-  }
-  /* Supprimer les hover transform sur touch */
-  .oauth-btn:hover,
-  .plan-btn:hover,
-  .submit-btn:hover{
-    transform:none!important;
-  }
-  /* Active state visible au toucher */
-  .oauth-btn:active{transform:scale(0.96)!important;}
-  .plan-btn:active{transform:scale(0.98)!important;}
-  .submit-btn:active{transform:scale(0.97)!important;}
-  .src-btn:active{transform:scale(0.96)!important;}
-  .role-card:active{transform:scale(0.95)!important;}
-}
-
-/* ── Fix modal forgot-password sur mobile ── */
-@media(max-width:768px){
-  #_forgot_overlay{
-    align-items:flex-end!important;
-  }
-  #_forgot_box{
-    border-radius:24px 24px 0 0!important;
-    width:100%!important;
-    max-width:100%!important;
-    padding-bottom:calc(24px + env(safe-area-inset-bottom))!important;
-  }
-}
-@media(max-width:480px){
-  #_forgot_box{
-    padding:24px 18px!important;
-    padding-bottom:calc(24px + env(safe-area-inset-bottom))!important;
-  }
-  #_frgt_email{font-size:16px!important;} /* évite zoom iOS */
-}
-
-/* ── Safe area (iPhone X+ notch/home indicator) ── */
-@supports(padding-bottom:env(safe-area-inset-bottom)){
-  .right-inner{
-    padding-bottom:calc(56px + env(safe-area-inset-bottom));
-  }
-}
-
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doctor Smile · Authentification</title>
+  <meta name="description" content="Connectez-vous à Doctor Smile, plateforme IA de diagnostic de santé financière pour PME camerounaises.">
+  <!-- Anti-flash : appliquer le thème AVANT le premier paint -->
+  <script>
+    (function() {
+      try {
+        var t = localStorage.getItem('ds-theme');
+        if (!t || (t !== 'light' && t !== 'dark')) {
+          t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+  <!-- Polices : Sora (display) + Plus Jakarta Sans (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      transition: background-color 0.35s ease, color 0.35s ease;
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <!-- CSS : tokens → composants → page-spécifique -->
+  <link rel="stylesheet" href="assets/css/variables.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/auth.css">
 </head>
 <body>
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
 
-<canvas id="bg-canvas"></canvas>
-<div class="scanline"></div>
-<div class="brk tl"></div><div class="brk tr"></div>
-<div class="brk bl"></div><div class="brk br"></div>
-<div id="prog"><div id="prog-fill"></div></div>
-<div id="flash"></div>
-<div id="cur"></div>
-<div id="curR"></div>
+  <div class="brk tl" aria-hidden="true"></div>
+  <div class="brk tr" aria-hidden="true"></div>
+  <div class="brk bl" aria-hidden="true"></div>
+  <div class="brk br" aria-hidden="true"></div>
+  <div id="prog"><div id="prog-fill"></div></div>
+  <div id="flash" aria-hidden="true"></div>
+  <div id="cur" aria-hidden="true"></div>
+  <div id="curR" aria-hidden="true"></div>
 
-<div id="app">
-
-  <!-- ════════ LEFT PANEL ════════ -->
-  <div id="panel-left">
-
-    <div class="auth-logo">
-      <div class="cube-wrap">
-        <div class="cube">
-          <div class="cf cf-front"><i class="fa-solid fa-heart-pulse"></i></div>
-          <div class="cf cf-back"><i class="fa-solid fa-chart-line"></i></div>
-          <div class="cf cf-right"><i class="fa-solid fa-brain"></i></div>
-          <div class="cf cf-left"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
-          <div class="cf cf-top"></div>
-          <div class="cf cf-bot"></div>
-        </div>
-      </div>
-      <div class="logo-text">
-        <span>Doctor Smile</span>
-        <span>Santé Financière IA · v4</span>
-      </div>
-    </div>
-
-    <div class="left-title">
-      Le <span class="g">Médecin IA</span><br>
-      de votre<br>Santé Financière
-    </div>
-    <p class="left-sub">
-      Analysez la solidité financière de toute entreprise avec une précision de 95%+.
-      ML Ensemble · LLM Explicable · Scoring SHAP en temps réel.
-    </p>
-
-    <div class="chips">
-      <div class="chip" style="--d:3.2s;--dl:0s"><span class="chip-val">95%+</span><span class="chip-lbl">Précision</span></div>
-      <div class="chip" style="--d:3.6s;--dl:.25s"><span class="chip-val g">12</span><span class="chip-lbl">Modèles</span></div>
-      <div class="chip" style="--d:3.4s;--dl:.5s"><span class="chip-val">340ms</span><span class="chip-lbl">Analyse</span></div>
-    </div>
-
-    <div class="feat-list">
-      <div class="feat"><i class="fa-solid fa-shield-halved"></i>Diagnostic IA multi-modèles certifié</div>
-      <div class="feat"><i class="fa-solid fa-chart-pie"></i>Scoring SHAP explicable & transparent</div>
-      <div class="feat"><i class="fa-solid fa-bolt"></i>Résultats en moins de 500ms</div>
-      <div class="feat"><i class="fa-solid fa-lock"></i>Données chiffrées de bout en bout</div>
-    </div>
-
-    <!-- ECG SVG mini -->
-    <svg id="ecg-mini" viewBox="0 0 300 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path id="ecg-path" stroke="url(#eg)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-      <defs>
-        <linearGradient id="eg" x1="0" y1="0" x2="300" y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0"   stop-color="#38BDF8" stop-opacity="0"/>
-          <stop offset=".25" stop-color="#7DD3FC" stop-opacity="1"/>
-          <stop offset=".7"  stop-color="#38BDF8" stop-opacity="1"/>
-          <stop offset="1"   stop-color="#FFD700" stop-opacity=".6"/>
-        </linearGradient>
-      </defs>
-    </svg>
-
-  </div>
-
-  <!-- ════════ RIGHT PANEL ════════ -->
-  <div id="panel-right">
-    <div class="right-inner">
-
-      <!-- tabs -->
-      <div class="auth-tabs" id="tabs-wrap">
-        <button class="tab-btn active" id="tab-login"    onclick="switchTab('login')">
-          <i class="fa-solid fa-right-to-bracket" style="margin-right:6px;font-size:11px;"></i>Connexion
-        </button>
-        <button class="tab-btn"        id="tab-register" onclick="switchTab('register')">
-          <i class="fa-solid fa-user-plus" style="margin-right:6px;font-size:11px;"></i>Inscription
+  <main id="app">
+    <div class="star-container" id="star-container"></div>
+    <!-- Background particules (taille) - configurable -->
+    <div id="auth-particles-config"
+      data-particle-size-min="0.8"
+      data-particle-size-max="3.4"
+      style="display:none;"></div>
+    <!-- LEFT PANEL -->
+    <section id="panel-left" aria-labelledby="hero-title">
+      <!-- BOUTON DE THÈME (ajouté ici) -->
+      <div class="auth-top-actions">
+        <a href="/doctorSmile.html" class="btn-back-home">
+          <span class="btn-back-home__icon"><i class="fa-solid fa-arrow-left"></i></span>
+          <span class="btn-back-home__text">
+            <strong>Retour au site Doctor Smile</strong>
+            
+          </span>
+        </a>
+        <button class="theme-toggle theme-toggle-auth" id="theme-toggle" aria-label="Basculer en mode clair" onclick="toggleTheme()">
+          <i class="fa-solid fa-sun" id="theme-icon"></i>
         </button>
       </div>
 
-      <!-- ── LOGIN FORM ── -->
-      <div class="form-card" id="login-form">
-        <div class="form-title">Bon retour <i class="fa-solid fa-wave-square" style="color:var(--ice);font-size:.75em;"></i></div>
-        <div class="form-sub">Connectez-vous pour accéder à vos diagnostics financiers.</div>
-
-        <div class="oauth-row">
-          <button class="oauth-btn" onclick="oauthLogin('Google')">
-            <i class="fa-brands fa-google"></i> Google
-          </button>
-          <button class="oauth-btn" onclick="oauthLogin('LinkedIn')">
-            <i class="fa-brands fa-linkedin"></i> LinkedIn
-          </button>
-        </div>
-
-        <div class="divider">ou continuer par e-mail</div>
-
-        <div class="inp-group">
-          <label class="inp-label">Adresse e-mail</label>
-          <div class="inp-wrap" id="le-wrap">
-            <i class="fa-solid fa-envelope inp-icon"></i>
-            <input type="email" class="inp-field" id="le" placeholder="vous@entreprise.com"
-              oninput="valEmail('le','le-wrap','le-msg')" autocomplete="email">
+      <div class="auth-logo">
+        <div class="cube-wrap">
+          <div class="cube" role="img" aria-label="Logo animé Doctor Smile">
+            <div class="cf cf-front"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i></div>
+            <div class="cf cf-back"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></div>
+            <div class="cf cf-right"><i class="fa-solid fa-brain" aria-hidden="true"></i></div>
+            <div class="cf cf-left"><i class="fa-solid fa-magnifying-glass-chart" aria-hidden="true"></i></div>
+            <div class="cf cf-top"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
+            <div class="cf cf-bot"><i class="fa-solid fa-gem" aria-hidden="true"></i></div>
           </div>
-          <div class="inp-msg" id="le-msg"></div>
+        </div>
+        <div class="logo-text">
+          <h1>Doctor Smile</h1>
+          <span>Santé Financière IA</span>
+        </div>
+      </div>
+
+      <h1 id="hero-title" class="left-title">
+        L'Excellence<span class="gradient-text"> IA</span><br>
+        au service de votre<br>Patrimoine
+      </h1>
+     
+    
+      <div class="chips">
+        <div class="chip"><span class="chip-val">95.4%</span><span class="chip-lbl">Précision IA</span></div>
+        <div class="chip"><span class="chip-val g">12</span><span class="chip-lbl">Modèles ML</span></div>
+        <div class="chip"><span class="chip-val">340ms</span><span class="chip-lbl">Temps Analyse</span></div>
+      </div>
+
+     
+
+     
+      
+        <defs>
+          <linearGradient id="ecg-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#7C3AED" stop-opacity="0.4"/>
+            <stop offset="30%" stop-color="#A78BFA" stop-opacity="0.8"/>
+            <stop offset="60%" stop-color="#C9A84C" stop-opacity="1"/>
+            <stop offset="85%" stop-color="#F5D98E" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#C9A84C" stop-opacity="0.3"/>
+          </linearGradient>
+          <filter id="ecg-glow">
+            <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#C9A84C" flood-opacity="0.3"/>
+          </filter>
+        </defs>
+        <path id="ecg-path" d="M0,20 L20,20 L28,20 L34,8 L40,32 L46,20 L60,20 L68,20 L74,14 L80,26 L86,20 L100,20 L108,20 L114,10 L120,30 L126,20 L140,20 L148,20 L154,16 L160,24 L166,20 L180,20 L188,20 L194,12 L200,28 L206,20 L220,20 L228,20 L234,18 L240,22 L246,20 L260,20 L268,20 L274,15 L280,25 L286,20 L300,20" stroke="url(#ecg-grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#ecg-glow)"/>
+        <path d="M0,20 L20,20 L28,20 L34,8 L40,32 L46,20 L60,20 L68,20 L74,14 L80,26 L86,20 L100,20 L108,20 L114,10 L120,30 L126,20 L140,20 L148,20 L154,16 L160,24 L166,20 L180,20 L188,20 L194,12 L200,28 L206,20 L220,20 L228,20 L234,18 L240,22 L246,20 L260,20 L268,20 L274,15 L280,25 L286,20 L300,20" stroke="rgba(124,58,237,0.15)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </section>
+
+    <!-- RIGHT PANEL -->
+    <section id="panel-right" aria-label="Formulaire d'authentification">
+      <div class="right-inner">
+        <div class="auth-tabs" role="tablist" aria-label="Connexion ou inscription">
+          <button class="tab-btn active" id="tab-login" role="tab" aria-selected="true" aria-controls="login-form" onclick="switchTab('login')">
+            <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>Connexion
+          </button>
+          <button class="tab-btn" id="tab-register" role="tab" aria-selected="false" aria-controls="register-form" onclick="switchTab('register')">
+            <i class="fa-solid fa-user-plus" aria-hidden="true"></i>Inscription
+          </button>
         </div>
 
-        <div class="inp-group">
-          <label class="inp-label">Mot de passe</label>
-          <div class="inp-wrap" id="lp-wrap">
-            <i class="fa-solid fa-lock inp-icon"></i>
-            <input type="password" class="inp-field" id="lp" placeholder="••••••••"
-              oninput="valPw('lp','lp-wrap','lp-msg')" autocomplete="current-password">
-            <button class="inp-toggle" onclick="togPw('lp',this)" tabindex="-1">
-              <i class="fa-solid fa-eye" id="lp-eye"></i>
+        <!-- LOGIN FORM -->
+        <div class="form-card" id="login-form" role="tabpanel" aria-labelledby="tab-login">
+          <h2 class="form-title">Bon retour</h2>
+          <p class="form-sub">Connectez-vous pour accéder à vos diagnostics financiers.</p>
+
+          <div class="oauth-row">
+            <button class="oauth-btn google" onclick="oauthLogin('Google')" aria-label="Se connecter avec Google">
+              <i class="fa-brands fa-google" aria-hidden="true"></i> Continuer avec Google
             </button>
           </div>
-          <div class="inp-msg" id="lp-msg"></div>
+
+          <div class="divider">ou continuer par e-mail</div>
+
+          <div class="inp-group">
+            <label class="inp-label" for="le">Adresse e-mail</label>
+            <div class="inp-wrap" id="le-wrap">
+              <i class="fa-solid fa-envelope inp-icon" aria-hidden="true"></i>
+              <input type="email" class="inp-field" id="le" name="email" placeholder="vous@entreprise.com"
+                     autocomplete="email" aria-describedby="le-msg" oninput="valEmail('le','le-wrap','le-msg')">
+            </div>
+            <div class="inp-msg" id="le-msg" role="alert"></div>
+          </div>
+
+          <div class="inp-group">
+            <label class="inp-label" for="lp">Mot de passe</label>
+            <div class="inp-wrap" id="lp-wrap">
+              <i class="fa-solid fa-lock inp-icon" aria-hidden="true"></i>
+              <input type="password" class="inp-field" id="lp" name="password" placeholder="••••••••"
+                     autocomplete="current-password" aria-describedby="lp-msg" oninput="valPw('lp','lp-wrap','lp-msg')">
+              <button class="inp-toggle" onclick="togPw('lp',this)" tabindex="-1" aria-label="Afficher ou masquer le mot de passe">
+                <i class="fa-solid fa-eye" id="lp-eye" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="inp-msg" id="lp-msg" role="alert"></div>
+          </div>
+
+          <div class="check-row">
+            <label class="chk-wrap">
+              <input type="checkbox" id="remember">
+              <div class="chk-box" aria-hidden="true"><i class="fa-solid fa-check"></i></div>
+              <span class="chk-lbl">Se souvenir de moi</span>
+            </label>
+            <button class="forgot" id="forgot-link" aria-label="Mot de passe oublié">Mot de passe oublié ?</button>
+          </div>
+
+          <button class="submit-btn" id="login-btn" onclick="handleLogin()">
+            <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+            <span id="login-txt">Se connecter</span>
+            <div class="btn-spin" aria-hidden="true"></div>
+          </button>
+
+          <p class="form-link">Pas encore de compte ? <a href="#" onclick="switchTab('register')">Créer un compte</a></p>
         </div>
 
-        <div class="check-row">
-          <label class="chk-wrap">
-            <input type="checkbox" id="remember">
-            <div class="chk-box"><i class="fa-solid fa-check"></i></div>
-            <span class="chk-lbl">Se souvenir de moi</span>
-          </label>
-          <a href="#" class="forgot" id="forgot-link">Mot de passe oublié ?</a>
-        </div>
-
-        <button class="submit-btn" id="login-btn" onclick="handleLogin()">
-          <i class="fa-solid fa-right-to-bracket"></i>
-          <span id="login-txt">Se connecter</span>
-          <div class="btn-spin"></div>
-        </button>
-
-        <div class="form-link">Pas encore de compte ? <a href="#" onclick="switchTab('register')">Créer un compte</a></div>
-      </div>
-
-      <!-- ── REGISTER FORM ── -->
-      <div class="form-card" id="register-form" style="display:none;">
-
-        <!-- Step indicator -->
-        <div class="step-indicator">
-          <div class="step-item active" id="step-dot-1">
-            <div class="step-dot"><span>1</span></div>
-            <div class="step-lbl">Compte</div>
-          </div>
-          <div class="step-line" id="step-line-1"></div>
-          <div class="step-item" id="step-dot-2">
-            <div class="step-dot"><span>2</span></div>
-            <div class="step-lbl">Entreprise</div>
-          </div>
-        </div>
-
-        <!-- ═══ STEP 1 — Compte ═══ -->
-        <div id="reg-step1">
-          <div class="form-title">Créer un compte <i class="fa-solid fa-star-of-life" style="color:var(--gold);font-size:.65em;"></i></div>
-          <div class="form-sub">Étape 1 · Identité et accès — 30 secondes</div>
-
-          <!-- Role selector — 4 cartes : 3 métier + 1 admin protégé -->
-          <div class="form-sub" style="margin-bottom:8px;margin-top:-4px;">
-            Votre profil sur la plateforme
-          </div>
-          <div class="role-grid" id="role-grid-main">
-            <div class="role-card selected" id="role-analyst" onclick="selectRole('analyst')">
-              <input type="radio" name="role" value="analyst" checked>
-              <span class="role-card-icon"><i class="fa-solid fa-chart-bar" style="color:var(--ice);"></i></span>
-              <span class="role-card-lbl">Analyste</span>
+        <!-- REGISTER FORM -->
+        <div class="form-card" id="register-form" style="display:none;" role="tabpanel" aria-labelledby="tab-register">
+          <div class="step-indicator">
+            <div class="step-item active" id="step-dot-1">
+              <div class="step-dot"><span>1</span></div>
+              <div class="step-lbl">Compte</div>
             </div>
-            <div class="role-card" id="role-manager" onclick="selectRole('manager')">
-              <input type="radio" name="role" value="manager">
-              <span class="role-card-icon"><i class="fa-solid fa-building-columns" style="color:var(--gold);"></i></span>
-              <span class="role-card-lbl">Dirigeant</span>
-            </div>
-            <div class="role-card" id="role-expert" onclick="selectRole('expert')">
-              <input type="radio" name="role" value="expert">
-              <span class="role-card-icon"><i class="fa-solid fa-crosshairs" style="color:var(--emerald);"></i></span>
-              <span class="role-card-lbl">DAF</span>
-            </div>
-            <div class="role-card role-admin-card" id="role-admin" onclick="selectRole('admin')">
-              <input type="radio" name="role" value="admin">
-              <span class="role-card-icon">
-                <i class="fa-solid fa-shield-halved" style="color:#EC4899;"></i>
-              </span>
-              <span class="role-card-lbl" style="color:rgba(236,72,153,.6);">Admin</span>
+            <div class="step-line" id="step-line-1"></div>
+            <div class="step-item" id="step-dot-2">
+              <div class="step-dot"><span>2</span></div>
+              <div class="step-lbl">Entreprise</div>
             </div>
           </div>
 
-          <!-- Panneau code admin — masqué par défaut, reveal si "Admin" sélectionné -->
-          <div id="admin-code-panel" style="display:none;margin-bottom:14px;">
-            <div class="admin-code-notice">
-              <i class="fa-solid fa-triangle-exclamation"></i>
-              Accès réservé — Saisissez le code administrateur
+          <div id="reg-step1">
+            <h2 class="form-title">Créer un compte <i class="fa-solid fa-star-of-life title-icon text-accent" aria-hidden="true"></i></h2>
+            <p class="form-sub">Étape 1 · Identité et accès — 30 secondes</p>
+
+              <div class="inp-group">
+                <label class="inp-label" for="role-select">
+                  <i class="fa-solid fa-user-tie" aria-hidden="true"></i> Votre profil
+                </label>
+                <div class="inp-wrap inp-select-wrap">
+                  <i class="fa-solid fa-briefcase inp-icon" aria-hidden="true"></i>
+                  <select class="inp-field inp-select" id="role-select" name="role" aria-describedby="role-msg">
+                    <option value="analyst" selected><i class="fa-solid fa-chart-bar"></i> Analyste financier</option>
+                    <option value="manager"><i class="fa-solid fa-building-columns"></i> Dirigeant d'entreprise</option>
+                    <option value="expert"><i class="fa-solid fa-crosshairs"></i> DAF / Expert-comptable</option>
+                    <option value="admin"><i class="fa-solid fa-shield-halved"></i> Administrateur</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down select-arrow" aria-hidden="true"></i>
+                </div>
+                <div class="inp-msg" id="role-msg" role="alert"></div>
+              </div>
+           
+
+            <div id="admin-code-panel" style="display:none;">
+              <div class="admin-code-notice">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                Accès réservé — Saisissez le code administrateur
+              </div>
+              <div class="inp-group">
+                <label class="inp-label admin-label" for="admin-code-inp">
+                  <i class="fa-solid fa-key" aria-hidden="true"></i> Code d'accès admin
+                </label>
+                <div class="inp-wrap" id="admin-code-wrap">
+                  <i class="fa-solid fa-lock inp-icon text-admin" aria-hidden="true"></i>
+                  <input type="password" class="inp-field" id="admin-code-inp" placeholder="••••••••"
+                         aria-describedby="admin-code-msg" oninput="validateAdminCode(this.value)" autocomplete="off">
+                  <button class="inp-toggle" onclick="togPw('admin-code-inp',this)" tabindex="-1" aria-label="Afficher ou masquer le code admin">
+                    <i class="fa-solid fa-eye" id="admin-code-eye" aria-hidden="true"></i>
+                  </button>
+                </div>
+                <div class="inp-msg" id="admin-code-msg" role="alert"></div>
+              </div>
             </div>
-            <div class="inp-group" style="margin-bottom:0;">
-              <label class="inp-label" style="color:rgba(236,72,153,.7);">
-                <i class="fa-solid fa-key"></i>&nbsp; Code d'accès admin
-              </label>
-              <div class="inp-wrap" id="admin-code-wrap" style="border-color:rgba(236,72,153,.3);">
-                <i class="fa-solid fa-lock inp-icon" style="color:rgba(236,72,153,.5);"></i>
-                <input type="password" class="inp-field" id="admin-code-inp"
-                  placeholder="••••••••"
-                  oninput="validateAdminCode(this.value)"
-                  autocomplete="off">
-                <button class="inp-toggle" onclick="togPw('admin-code-inp',this)" tabindex="-1">
-                  <i class="fa-solid fa-eye" id="admin-code-eye"></i>
+
+            <div class="inp-row">
+              <div class="inp-group">
+                <label class="inp-label" for="rfn">Prénom</label>
+                <div class="inp-wrap" id="rfn-wrap">
+                  <i class="fa-solid fa-user inp-icon" aria-hidden="true"></i>
+                  <input type="text" class="inp-field" id="rfn" placeholder="Prénom"
+                         autocomplete="given-name" aria-describedby="rfn-msg" oninput="valName('rfn','rfn-wrap','rfn-msg')">
+                </div>
+                <div class="inp-msg" id="rfn-msg" role="alert"></div>
+              </div>
+              <div class="inp-group">
+                <label class="inp-label" for="rln">Nom</label>
+                <div class="inp-wrap" id="rln-wrap">
+                  <i class="fa-solid fa-user inp-icon" aria-hidden="true"></i>
+                  <input type="text" class="inp-field" id="rln" placeholder="Nom"
+                         autocomplete="family-name" aria-describedby="rln-msg" oninput="valName('rln','rln-wrap','rln-msg')">
+                </div>
+                <div class="inp-msg" id="rln-msg" role="alert"></div>
+              </div>
+            </div>
+
+            <div class="inp-group">
+              <label class="inp-label" for="re">E-mail professionnel</label>
+              <div class="inp-wrap" id="re-wrap">
+                <i class="fa-solid fa-envelope inp-icon" aria-hidden="true"></i>
+                <input type="email" class="inp-field" id="re" placeholder="vous@entreprise.com"
+                       autocomplete="email" aria-describedby="re-msg" oninput="valEmail('re','re-wrap','re-msg')">
+              </div>
+              <div class="inp-msg" id="re-msg" role="alert"></div>
+            </div>
+
+            <div class="inp-group">
+              <label class="inp-label" for="rp">Mot de passe</label>
+              <div class="inp-wrap" id="rp-wrap">
+                <i class="fa-solid fa-lock inp-icon" aria-hidden="true"></i>
+                <input type="password" class="inp-field" id="rp" placeholder="Minimum 8 caractères"
+                       autocomplete="new-password" aria-describedby="rp-msg str-txt" oninput="checkStr();valPw('rp','rp-wrap','rp-msg')">
+                <button class="inp-toggle" onclick="togPw('rp',this)" tabindex="-1" aria-label="Afficher ou masquer le mot de passe">
+                  <i class="fa-solid fa-eye" id="rp-eye" aria-hidden="true"></i>
                 </button>
               </div>
-              <div class="inp-msg" id="admin-code-msg"></div>
+              <div id="str-bar"><div class="sseg" id="ss1"></div><div class="sseg" id="ss2"></div><div class="sseg" id="ss3"></div><div class="sseg" id="ss4"></div></div>
+              <div id="str-txt">Force du mot de passe</div>
+              <div class="inp-msg" id="rp-msg" role="alert"></div>
             </div>
-          </div>
 
-          <div class="inp-row">
             <div class="inp-group">
-              <label class="inp-label">Prénom</label>
-              <div class="inp-wrap" id="rfn-wrap">
-                <i class="fa-solid fa-user inp-icon"></i>
-                <input type="text" class="inp-field" id="rfn" placeholder="Prénom"
-                  oninput="valName('rfn','rfn-wrap','rfn-msg')" autocomplete="given-name">
+              <label class="inp-label" for="rpc">Confirmer le mot de passe</label>
+              <div class="inp-wrap" id="rpc-wrap">
+                <i class="fa-solid fa-lock inp-icon" aria-hidden="true"></i>
+                <input type="password" class="inp-field" id="rpc" placeholder="Répétez le mot de passe"
+                       autocomplete="new-password" aria-describedby="rpc-msg" oninput="valConfirm()">
+                <button class="inp-toggle" onclick="togPw('rpc',this)" tabindex="-1" aria-label="Afficher ou masquer le mot de passe">
+                  <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                </button>
               </div>
-              <div class="inp-msg" id="rfn-msg"></div>
+              <div class="inp-msg" id="rpc-msg" role="alert"></div>
             </div>
+
+            <label class="cgu-wrap">
+              <input type="checkbox" id="cgu">
+              <div class="chk-box" aria-hidden="true"><i class="fa-solid fa-check"></i></div>
+              <span class="cgu-lbl">J'accepte les <a href="#">Conditions d'utilisation</a> et la <a href="#">Politique de confidentialité</a> de Doctor Smile</span>
+            </label>
+
+            <button class="submit-btn" id="step1-btn" onclick="goStep2()">
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+              <span>Continuer · Étape 2</span>
+              <div class="btn-spin" aria-hidden="true"></div>
+            </button>
+
+            <p class="form-link">Déjà un compte ? <a href="#" onclick="switchTab('login')">Se connecter</a></p>
+          </div>
+
+          <div id="reg-step2" style="display:none;">
+            <h2 class="form-title">Votre entreprise <i class="fa-solid fa-building title-icon" aria-hidden="true"></i></h2>
+            <p class="form-sub">Étape 2 · Profil entreprise — ces données alimentent directement le modèle ML</p>
+
             <div class="inp-group">
-              <label class="inp-label">Nom</label>
-              <div class="inp-wrap" id="rln-wrap">
-                <i class="fa-solid fa-user inp-icon"></i>
-                <input type="text" class="inp-field" id="rln" placeholder="Nom"
-                  oninput="valName('rln','rln-wrap','rln-msg')" autocomplete="family-name">
+              <label class="inp-label" for="rc">Nom de l'entreprise</label>
+              <div class="inp-wrap" id="rc-wrap">
+                <i class="fa-solid fa-building inp-icon" aria-hidden="true"></i>
+                <input type="text" class="inp-field" id="rc" placeholder="TechNova SAS"
+                       autocomplete="organization" aria-describedby="rc-msg" oninput="valRequired('rc','rc-wrap','rc-msg')">
               </div>
-              <div class="inp-msg" id="rln-msg"></div>
+              <div class="inp-msg" id="rc-msg" role="alert"></div>
             </div>
-          </div>
 
-          <div class="inp-group">
-            <label class="inp-label">E-mail professionnel</label>
-            <div class="inp-wrap" id="re-wrap">
-              <i class="fa-solid fa-envelope inp-icon"></i>
-              <input type="email" class="inp-field" id="re" placeholder="vous@entreprise.com"
-                oninput="valEmail('re','re-wrap','re-msg')" autocomplete="email">
+            <div class="inp-row">
+              <div class="inp-group">
+                <label class="inp-label" for="rsect">Secteur d'activité</label>
+                <div class="inp-wrap inp-select-wrap" id="rsect-wrap">
+                  <i class="fa-solid fa-industry inp-icon" aria-hidden="true"></i>
+                  <select class="inp-field inp-select" id="rsect" aria-describedby="rsect-msg" onchange="valSelect('rsect','rsect-wrap','rsect-msg')">
+                    <option value="">Sélectionner…</option>
+                    <option value="tech">Technologies</option>
+                    <option value="industrie">Industrie</option>
+                    <option value="retail">Commerce / Retail</option>
+                    <option value="immo">Immobilier</option>
+                    <option value="sante">Santé</option>
+                    <option value="finance">Finance / Assurance</option>
+                    <option value="agro">Agroalimentaire</option>
+                    <option value="transport">Transport / Logistique</option>
+                    <option value="energie">Énergie</option>
+                    <option value="media">Média / Communication</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down select-arrow" aria-hidden="true"></i>
+                </div>
+                <div class="inp-msg" id="rsect-msg" role="alert"></div>
+              </div>
+              <div class="inp-group">
+                <label class="inp-label" for="rsize">Taille entreprise</label>
+                <div class="inp-wrap inp-select-wrap" id="rsize-wrap">
+                  <i class="fa-solid fa-users inp-icon" aria-hidden="true"></i>
+                  <select class="inp-field inp-select" id="rsize" aria-describedby="rsize-msg" onchange="valSelect('rsize','rsize-wrap','rsize-msg')">
+                    <option value="">Sélectionner…</option>
+                    <option value="micro">Micro (&lt; 10 salariés)</option>
+                    <option value="pme">PME (10 – 250)</option>
+                    <option value="eti">ETI (250 – 5 000)</option>
+                    <option value="grand">Grand Groupe (&gt; 5 000)</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down select-arrow" aria-hidden="true"></i>
+                </div>
+                <div class="inp-msg" id="rsize-msg" role="alert"></div>
+              </div>
             </div>
-            <div class="inp-msg" id="re-msg"></div>
-          </div>
 
-          <div class="inp-group">
-            <label class="inp-label">Mot de passe</label>
-            <div class="inp-wrap" id="rp-wrap">
-              <i class="fa-solid fa-lock inp-icon"></i>
-              <input type="password" class="inp-field" id="rp" placeholder="Minimum 8 caractères"
-                oninput="checkStr();valPw('rp','rp-wrap','rp-msg')" autocomplete="new-password">
-              <button class="inp-toggle" onclick="togPw('rp',this)" tabindex="-1">
-                <i class="fa-solid fa-eye" id="rp-eye"></i>
+            <div class="inp-row">
+              <div class="inp-group">
+                <label class="inp-label" for="rpays">Pays</label>
+                <div class="inp-wrap inp-select-wrap" id="rpays-wrap">
+                  <i class="fa-solid fa-globe inp-icon" aria-hidden="true"></i>
+                  <select class="inp-field inp-select" id="rpays" aria-describedby="rpays-msg" onchange="valSelect('rpays','rpays-wrap','rpays-msg')">
+                    <option value="">Sélectionner…</option>
+                    <option value="cm">Cameroun</option>
+                    <option value="ga">Gabon</option>
+                    <option value="cg">Congo</option>
+                    <option value="td">Tchad</option>
+                    <option value="cf">RCA</option>
+                    <option value="gq">Guinée équatoriale</option>
+                    <option value="ci">Côte d'Ivoire</option>
+                    <option value="sn">Sénégal</option>
+                    <option value="bj">Bénin</option>
+                    <option value="tg">Togo</option>
+                    <option value="ml">Mali</option>
+                    <option value="bf">Burkina Faso</option>
+                    <option value="ne">Niger</option>
+                    <option value="ma">Maroc</option>
+                    <option value="fr">France</option>
+                    <option value="be">Belgique</option>
+                    <option value="ch">Suisse</option>
+                    <option value="lu">Luxembourg</option>
+                    <option value="other">Autre</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down select-arrow" aria-hidden="true"></i>
+                </div>
+                <div class="inp-msg" id="rpays-msg" role="alert"></div>
+              </div>
+              <div class="inp-group">
+                <label class="inp-label" for="rposte">Votre poste</label>
+                <div class="inp-wrap inp-select-wrap">
+                  <i class="fa-solid fa-id-badge inp-icon" aria-hidden="true"></i>
+                  <select class="inp-field inp-select" id="rposte">
+                    <option value="">Sélectionner…</option>
+                    <option value="dirigeant">Dirigeant / CEO</option>
+                    <option value="daf">DAF / CFO</option>
+                    <option value="analyste">Analyste financier</option>
+                    <option value="comptable">Comptable</option>
+                    <option value="risk">Risk Manager</option>
+                    <option value="other">Autre</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down select-arrow" aria-hidden="true"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="inp-group">
+              <label class="inp-label" for="rsiret">Identifiant entreprise <span class="optional-hint">(RCCM, NIU, IFU ou équivalent)</span></label>
+              <div class="inp-wrap" id="rsiret-wrap">
+                <i class="fa-solid fa-fingerprint inp-icon" aria-hidden="true"></i>
+                <input type="text" class="inp-field" id="rsiret" placeholder="RC/YAO/2025/B/00123 ou NIU123456789"
+                       maxlength="17" aria-describedby="rsiret-msg" oninput="valSiret()" autocomplete="off">
+              </div>
+              <div class="inp-msg" id="rsiret-msg" role="alert"></div>
+            </div>
+
+            <div class="inp-group">
+              <label class="inp-label">Comment nous avez-vous connu ? <span class="optional-hint">(optionnel)</span></label>
+              <div class="source-grid">
+                <div class="src-btn" onclick="selectSrc(this,'google')" role="button" tabindex="0" aria-pressed="false"><i class="fa-brands fa-google" aria-hidden="true"></i> Google</div>
+                <div class="src-btn" onclick="selectSrc(this,'reco')" role="button" tabindex="0" aria-pressed="false"><i class="fa-solid fa-people-arrows" aria-hidden="true"></i> Recommandation</div>
+                <div class="src-btn" onclick="selectSrc(this,'presse')" role="button" tabindex="0" aria-pressed="false"><i class="fa-solid fa-newspaper" aria-hidden="true"></i> Presse / Media</div>
+                <div class="src-btn" onclick="selectSrc(this,'other')" role="button" tabindex="0" aria-pressed="false"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i> Autre</div>
+              </div>
+            </div>
+
+            <div class="inp-group">
+              <label class="inp-label">Plan de démarrage</label>
+              <div class="plan-grid">
+                <div class="plan-btn selected" id="plan-standard" onclick="selectPlan('standard')" role="radio" aria-checked="true" tabindex="0">
+                  <i class="fa-solid fa-seedling plan-icon-primary" aria-hidden="true"></i>
+                  <span class="plan-name">Standard</span>
+                  <span class="plan-price">25 000 FCFA/mois</span>
+                </div>
+                <div class="plan-btn" id="plan-premium" onclick="selectPlan('premium')" role="radio" aria-checked="false" tabindex="0">
+                  <i class="fa-solid fa-bolt plan-icon-accent" aria-hidden="true"></i>
+                  <span class="plan-name">Premium</span>
+                  <span class="plan-price">50 000 FCFA/mois</span>
+                  <span class="plan-popular">⭐ Populaire</span>
+                </div>
+                <div class="plan-btn" id="plan-extra" onclick="selectPlan('extra')" role="radio" aria-checked="false" tabindex="0">
+                  <i class="fa-solid fa-brain plan-icon-extra" aria-hidden="true"></i>
+                  <span class="plan-name">Extra</span>
+                  <span class="plan-price">100 000 FCFA/mois</span>
+                </div>
+              </div>
+              <p class="plan-info">
+                <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                14 jours gratuits · Sans carte bancaire · Modifiable à tout moment
+              </p>
+            </div>
+
+            <div class="back-btn-wrap">
+              <button class="submit-btn secondary" onclick="goStep1()" aria-label="Retour à l'étape précédente">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+              </button>
+              <button class="submit-btn" id="reg-btn" onclick="handleRegister()">
+                <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+                <span id="reg-txt">Créer mon compte</span>
+                <div class="btn-spin" aria-hidden="true"></div>
               </button>
             </div>
-            <div id="str-bar"><div class="sseg" id="ss1"></div><div class="sseg" id="ss2"></div><div class="sseg" id="ss3"></div><div class="sseg" id="ss4"></div></div>
-            <div id="str-txt">Force du mot de passe</div>
-            <div class="inp-msg" id="rp-msg"></div>
+
+            <p class="form-link">Déjà un compte ? <a href="#" onclick="switchTab('login')">Se connecter</a></p>
           </div>
-
-          <div class="inp-group">
-            <label class="inp-label">Confirmer le mot de passe</label>
-            <div class="inp-wrap" id="rpc-wrap">
-              <i class="fa-solid fa-lock inp-icon"></i>
-              <input type="password" class="inp-field" id="rpc" placeholder="Répétez le mot de passe"
-                oninput="valConfirm()" autocomplete="new-password">
-              <button class="inp-toggle" onclick="togPw('rpc',this)" tabindex="-1">
-                <i class="fa-solid fa-eye"></i>
-              </button>
-            </div>
-            <div class="inp-msg" id="rpc-msg"></div>
-          </div>
-
-          <label class="cgu-wrap">
-            <input type="checkbox" id="cgu">
-            <div class="chk-box"><i class="fa-solid fa-check"></i></div>
-            <span class="cgu-lbl">J'accepte les <a href="#">Conditions d'utilisation</a> et la <a href="#">Politique de confidentialité</a> de Doctor Smile</span>
-          </label>
-
-          <button class="submit-btn" id="step1-btn" onclick="goStep2()">
-            <i class="fa-solid fa-arrow-right"></i>
-            <span>Continuer · Étape 2</span>
-            <div class="btn-spin"></div>
-          </button>
-
-          <div class="form-link">Déjà un compte ? <a href="#" onclick="switchTab('login')">Se connecter</a></div>
         </div>
 
-        <!-- ═══ STEP 2 — Entreprise ═══ -->
-        <div id="reg-step2" style="display:none;">
-          <div class="form-title">Votre entreprise <i class="fa-solid fa-building" style="color:var(--ice);font-size:.75em;"></i></div>
-          <div class="form-sub">Étape 2 · Profil entreprise — ces données alimentent directement le modèle ML</div>
-
-          <div class="inp-group">
-            <label class="inp-label">Nom de l'entreprise</label>
-            <div class="inp-wrap" id="rc-wrap">
-              <i class="fa-solid fa-building inp-icon"></i>
-              <input type="text" class="inp-field" id="rc" placeholder="TechNova SAS"
-                oninput="valRequired('rc','rc-wrap','rc-msg')" autocomplete="organization">
-            </div>
-            <div class="inp-msg" id="rc-msg"></div>
-          </div>
-
-          <div class="inp-row">
-            <div class="inp-group">
-              <label class="inp-label">Secteur d'activité</label>
-              <div class="inp-wrap inp-select-wrap" id="rsect-wrap">
-                <i class="fa-solid fa-industry inp-icon"></i>
-                <select class="inp-field inp-select" id="rsect" onchange="valSelect('rsect','rsect-wrap','rsect-msg')">
-                  <option value="">Sélectionner…</option>
-                  <option value="tech">💻 Technologies</option>
-                  <option value="industrie">🏭 Industrie</option>
-                  <option value="retail">🛒 Commerce / Retail</option>
-                  <option value="immo">🏢 Immobilier</option>
-                  <option value="sante">🏥 Santé</option>
-                  <option value="finance">💰 Finance / Assurance</option>
-                  <option value="agro">🌾 Agroalimentaire</option>
-                  <option value="transport">🚛 Transport / Logistique</option>
-                  <option value="energie">⚡ Énergie</option>
-                  <option value="media">📺 Média / Communication</option>
-                </select>
-                <i class="fa-solid fa-chevron-down" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:10px;color:rgba(125,211,252,0.35);pointer-events:none;"></i>
-              </div>
-              <div class="inp-msg" id="rsect-msg"></div>
-            </div>
-            <div class="inp-group">
-              <label class="inp-label">Taille entreprise</label>
-              <div class="inp-wrap inp-select-wrap" id="rsize-wrap">
-                <i class="fa-solid fa-users inp-icon"></i>
-                <select class="inp-field inp-select" id="rsize" onchange="valSelect('rsize','rsize-wrap','rsize-msg')">
-                  <option value="">Sélectionner…</option>
-                  <option value="micro">Micro (&lt; 10 salariés)</option>
-                  <option value="pme">PME (10 – 250)</option>
-                  <option value="eti">ETI (250 – 5 000)</option>
-                  <option value="grand">Grand Groupe (&gt; 5 000)</option>
-                </select>
-                <i class="fa-solid fa-chevron-down" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:10px;color:rgba(125,211,252,0.35);pointer-events:none;"></i>
-              </div>
-              <div class="inp-msg" id="rsize-msg"></div>
-            </div>
-          </div>
-
-          <div class="inp-row">
-            <div class="inp-group">
-              <label class="inp-label">Pays</label>
-              <div class="inp-wrap inp-select-wrap" id="rpays-wrap">
-                <i class="fa-solid fa-globe inp-icon"></i>
-                <select class="inp-field inp-select" id="rpays" onchange="valSelect('rpays','rpays-wrap','rpays-msg')">
-                  <option value="">Sélectionner…</option>
-                  <option value="fr">🇫🇷 France</option>
-                  <option value="be">🇧🇪 Belgique</option>
-                  <option value="ch">🇨🇭 Suisse</option>
-                  <option value="lu">🇱🇺 Luxembourg</option>
-                  <option value="ma">🇲🇦 Maroc</option>
-                  <option value="sn">🇸🇳 Sénégal</option>
-                  <option value="ci">🇨🇮 Côte d'Ivoire</option>
-                  <option value="cm">🇨🇲 Cameroun</option>
-                  <option value="other">🌍 Autre</option>
-                </select>
-                <i class="fa-solid fa-chevron-down" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:10px;color:rgba(125,211,252,0.35);pointer-events:none;"></i>
-              </div>
-              <div class="inp-msg" id="rpays-msg"></div>
-            </div>
-            <div class="inp-group">
-              <label class="inp-label">Votre poste</label>
-              <div class="inp-wrap inp-select-wrap" id="rposte-wrap">
-                <i class="fa-solid fa-id-badge inp-icon"></i>
-                <select class="inp-field inp-select" id="rposte">
-                  <option value="">Sélectionner…</option>
-                  <option value="dirigeant">Dirigeant / CEO</option>
-                  <option value="daf">DAF / CFO</option>
-                  <option value="analyste">Analyste financier</option>
-                  <option value="comptable">Comptable</option>
-                  <option value="risk">Risk Manager</option>
-                  <option value="other">Autre</option>
-                </select>
-                <i class="fa-solid fa-chevron-down" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:10px;color:rgba(125,211,252,0.35);pointer-events:none;"></i>
-              </div>
-            </div>
-          </div>
-
-          <div class="inp-group">
-            <label class="inp-label">Numéro SIRET <span style="color:var(--muted);font-size:8px;letter-spacing:0;text-transform:none;font-weight:400;">(optionnel — améliore la précision)</span></label>
-            <div class="inp-wrap" id="rsiret-wrap">
-              <i class="fa-solid fa-fingerprint inp-icon"></i>
-              <input type="text" class="inp-field" id="rsiret" placeholder="123 456 789 00010"
-                maxlength="17" oninput="valSiret()" autocomplete="off">
-            </div>
-            <div class="inp-msg" id="rsiret-msg"></div>
-          </div>
-
-          <!-- Source -->
-          <div class="inp-group">
-            <label class="inp-label">Comment nous avez-vous connu ? <span style="color:var(--muted);font-size:8px;letter-spacing:0;text-transform:none;font-weight:400;">(optionnel)</span></label>
-            <div class="source-grid">
-              <div class="src-btn" onclick="selectSrc(this,'linkedin')"><i class="fa-brands fa-linkedin"></i> LinkedIn</div>
-              <div class="src-btn" onclick="selectSrc(this,'google')"><i class="fa-brands fa-google"></i> Google</div>
-              <div class="src-btn" onclick="selectSrc(this,'reco')"><i class="fa-solid fa-people-arrows"></i> Recommandation</div>
-              <div class="src-btn" onclick="selectSrc(this,'other')"><i class="fa-solid fa-ellipsis"></i> Autre</div>
-            </div>
-          </div>
-
-          <!-- Plan selector -->
-          <div class="inp-group">
-            <label class="inp-label">Plan de démarrage</label>
-            <div class="plan-grid">
-              <div class="plan-btn selected" id="plan-standard" onclick="selectPlan('standard')">
-                <i class="fa-solid fa-seedling" style="color:var(--ice);"></i>
-                <span class="plan-name">Standard</span>
-                <span class="plan-price">49€/mois</span>
-              </div>
-              <div class="plan-btn" id="plan-premium" onclick="selectPlan('premium')">
-                <i class="fa-solid fa-bolt" style="color:var(--gold);"></i>
-                <span class="plan-name">Premium</span>
-                <span class="plan-price">99€/mois</span>
-                <span class="plan-popular">⭐ Populaire</span>
-              </div>
-              <div class="plan-btn" id="plan-extra" onclick="selectPlan('extra')">
-                <i class="fa-solid fa-brain" style="color:#a78bfa;"></i>
-                <span class="plan-name">Extra</span>
-                <span class="plan-price">199€/mois</span>
-              </div>
-            </div>
-            <div style="font-size:9px;color:var(--muted);margin-top:6px;text-align:center;">
-              <i class="fa-solid fa-circle-info" style="margin-right:4px;color:var(--ice);"></i>
-              14 jours gratuits · Sans carte bancaire · Modifiable à tout moment
-            </div>
-          </div>
-
-          <div class="back-btn-wrap" style="display:flex;gap:10px;margin-top:4px;">
-            <button class="submit-btn" style="flex:0 0 46px;padding:0;background:var(--surface-2);border:1px solid var(--bice);color:var(--ice);animation:none;box-shadow:none;" onclick="goStep1()">
-              <i class="fa-solid fa-arrow-left" style="font-size:13px;"></i>
-            </button>
-            <button class="submit-btn" id="reg-btn" style="flex:1;" onclick="handleRegister()">
-              <i class="fa-solid fa-user-plus"></i>
-              <span id="reg-txt">Créer mon compte</span>
-              <div class="btn-spin"></div>
-            </button>
-          </div>
-
-          <div class="form-link">Déjà un compte ? <a href="#" onclick="switchTab('login')">Se connecter</a></div>
-        </div>
-
-      </div>
-
-      <!-- ── PANNEAU VÉRIFICATION EMAIL (désactivé) ── -->
-      <div id="otp-panel" style="display:none;"></div>
-
-      <!-- ── SUCCESS PANEL ── -->
-      <div id="success-panel">
-        <div class="suc-ring"><i class="fa-solid fa-check" id="suc-icon"></i></div>
-        <div class="suc-msg" id="suc-msg">Connexion réussie !</div>
-        <div class="suc-sub" id="suc-sub">Redirection vers votre tableau de bord…</div>
-        <div class="redir-bar" id="redir-bar"><div class="redir-fill"></div></div>
-        <div class="redir-lbl" id="redir-lbl">
-          <i class="fa-solid fa-circle-notch fa-spin" style="margin-right:5px;color:var(--ice);"></i>
-          Chargement de l'application…
+        <!-- SUCCESS PANEL - DÉSACTIVÉ (plus de message connexion réussie) -->
+        <div id="success-panel" role="alert" aria-live="polite">
+          <div class="suc-ring"><i class="fa-solid fa-check" aria-hidden="true"></i></div>
+          <p class="suc-msg" id="suc-msg"></p>
+          <p class="suc-sub" id="suc-sub"></p>
+          <div class="redir-bar" id="redir-bar"><div class="redir-fill"></div></div>
+          <p class="redir-lbl" id="redir-lbl">
+            <i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i>
+          </p>
         </div>
       </div>
+    </section>
+  </main>
 
-    </div><!-- /right-inner -->
-  </div><!-- /panel-right -->
-
-</div><!-- /app -->
-
+<script type="module" src="js/ui-components.js"></script>
 <script type="module">
 // ════════════════════════════════════════════════════════════════
 //  AUTH.HTML — Script complet autonome
@@ -1593,7 +528,14 @@ const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
-// Pas de signOut() au chargement — détruirait la session post-reset
+// 🚨 NOUVELLE LOGIQUE : Ne pas rediriger automatiquement au chargement de la page
+let isPageLoading = true;
+let explicitLogin = false;
+
+// Nettoyer les variables de session Storage au chargement pour éviter les boucles
+sessionStorage.removeItem('2fa_verified');
+sessionStorage.removeItem('2fa_uid');
+sessionStorage.removeItem('pending_otp');
 
 // ════════════════════════════════════════════════════════════════
 //  ÉTAT
@@ -1603,88 +545,111 @@ let selectedRole = 'analyst';
 let selectedPlan = 'standard';
 let selectedSrc  = '';
 
+// Paramètres URL (?mode=signup&plan=premium&redirect=demo)
+const _authParams = new URLSearchParams(window.location.search);
+if (_authParams.get('mode') === 'signup') {
+  document.addEventListener('DOMContentLoaded', () => switchTab('register'));
+}
+if (_authParams.get('plan') && ['standard','premium','extra'].includes(_authParams.get('plan'))) {
+  selectedPlan = _authParams.get('plan');
+  document.addEventListener('DOMContentLoaded', () => selectPlan(selectedPlan));
+}
+
 // ════════════════════════════════════════════════════════════════
-//  REDIRIGER SI DÉJÀ CONNECTÉ (sans condition de vérification)
+//  REDIRIGER SI DÉJÀ CONNECTÉ (seulement si connexion explicite)
 // ════════════════════════════════════════════════════════════════
 
 onAuthStateChanged(auth, async (user) => {
+  console.log("[Auth] onAuthStateChanged déclenché, isPageLoading:", isPageLoading, ", explicitLogin:", explicitLogin);
+
+  // Si la page est en train de charger : ne rien faire, attendre l'action utilisateur
+  if (isPageLoading) {
+    console.log("[Auth] Page en chargement — pas de redirection automatique");
+    // Marquer la page comme chargée après un court délai
+    setTimeout(() => { isPageLoading = false; }, 1000);
+    return;
+  }
+
   if (!user) {
     console.log("[Auth] Aucun utilisateur connecté → affichage formulaire");
     return;
   }
 
-  console.log("[Auth] Utilisateur connecté :", user.email || user.uid);
+  // Si la connexion est explicite (via bouton login/register) alors procéder
+  if (explicitLogin) {
+    console.log("[Auth] Utilisateur connecté explicitement :", user.email || user.uid);
 
-  // Attendre que Firebase Auth ait bien propagé le token avant la lecture Firestore
-  try { await user.getIdToken(true); } catch(_) {}
+    // Attendre que Firebase Auth ait bien propagé le token avant la lecture Firestore
+    try { await user.getIdToken(true); } catch(_) {}
 
-  try {
-    const userRef = doc(db, "users", user.uid);
-    const userSnap = await getDoc(userRef);
+    try {
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
 
-    if (userSnap.exists()) {
-      const data = userSnap.data();
+      if (userSnap.exists()) {
+        const data = userSnap.data();
 
-      // Critères de complétion (tu peux en ajouter/enlever)
-      const isComplete =
-        data.prenom?.trim() &&
-        data.nom?.trim() &&
-        data.entreprise?.nom?.trim() &&
-        data.entreprise?.secteur &&
-        data.entreprise?.taille &&
-        data.entreprise?.pays &&
-        data.plan;  // ← très important si le plan est choisi à l'inscription
+        // Critères de complétion (tu peux en ajouter/enlever)
+        const isComplete =
+          data.prenom?.trim() &&
+          data.nom?.trim() &&
+          data.entreprise?.nom?.trim() &&
+          data.entreprise?.secteur &&
+          data.entreprise?.taille &&
+          data.entreprise?.pays &&
+          data.plan;  // ← très important si le plan est choisi à l'inscription
 
-      if (isComplete) {
-        console.log("[Auth] Profil COMPLET → redirection vers dashboard");
-        window.location.href = "/dashboard.html";
+        if (isComplete) {
+          console.log("[Auth] Profil COMPLET → redirection vers OTP");
+          // Définir le drapeau pending_otp avant de rediriger
+          sessionStorage.setItem('pending_otp', 'true');
+          window.location.href = "/otp-verify.html";
+        } else {
+          console.log("[Auth] Profil INCOMPLET → forçage étape 2");
+          toast("Veuillez compléter votre profil pour continuer.", "info");
+          switchTab("register");
+
+          // Masquer étape 1, montrer étape 2
+          const step1 = $("reg-step1");
+          const step2 = $("reg-step2");
+          if (step1) step1.style.display = "none";
+          if (step2) step2.style.display = "block";
+
+          // Bonus : pré-remplir quelques champs si possible
+          if (data.prenom) $("#rfn").value = data.prenom;
+          if (data.nom) $("#rln").value = data.nom;
+          if (data.email) $("#re").value = data.email;
+        }
       } else {
-        console.log("[Auth] Profil INCOMPLET → forçage étape 2");
-        toast("Veuillez compléter votre profil pour continuer.", "info");
+        // NOUVEL utilisateur → création profil minimal
+        console.log("[Auth] Nouvel utilisateur → création profil minimal");
+        
+        await setDoc(userRef, {
+          prenom: user.displayName?.split(" ")[0] || "",
+          nom: user.displayName?.split(" ").slice(1).join(" ") || "",
+          email: user.email || "",
+          role: "analyst",           // valeur par défaut raisonnable
+          plan: "standard",          // ou "trial" selon ta logique
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+
+        toast("Bienvenue ! Complétez votre profil pour commencer.", "ok");
         switchTab("register");
 
-        // Masquer étape 1, montrer étape 2
         const step1 = $("reg-step1");
         const step2 = $("reg-step2");
         if (step1) step1.style.display = "none";
         if (step2) step2.style.display = "block";
-
-        // Bonus : pré-remplir quelques champs si possible
-        if (data.prenom) $("#rfn").value = data.prenom;
-        if (data.nom) $("#rln").value = data.nom;
-        if (data.email) $("#re").value = data.email;
       }
-    } else {
-      // NOUVEL utilisateur → création profil minimal
-      console.log("[Auth] Nouvel utilisateur → création profil minimal");
-      
-      await setDoc(userRef, {
-        prenom: user.displayName?.split(" ")[0] || "",
-        nom: user.displayName?.split(" ").slice(1).join(" ") || "",
-        email: user.email || "",
-        role: "analyst",           // valeur par défaut raisonnable
-        plan: "standard",          // ou "trial" selon ta logique
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-
-      toast("Bienvenue ! Complétez votre profil pour commencer.", "ok");
-      switchTab("register");
-
-      const step1 = $("reg-step1");
-      const step2 = $("reg-step2");
-      if (step1) step1.style.display = "none";
-      if (step2) step2.style.display = "block";
+    } catch (err) {
+      console.warn("[Auth] Erreur lecture profil Firestore:", err.code, err.message);
+      // 🔐 En cas d'erreur, rediriger quand même vers OTP
+      sessionStorage.setItem('pending_otp', 'true');
+      window.location.href = '/otp-verify.html';
     }
-  } catch (err) {
-    console.warn("[Auth] Erreur lecture profil Firestore:", err.code, err.message);
-    // Permission refusée = règles Firestore — ne pas bloquer la navigation
-    if (err.code === 'permission-denied' || err.code === 'PERMISSION_DENIED') {
-      console.warn("[Auth] Règles Firestore non configurées — redirection dashboard quand même");
-      setTimeout(() => { window.location.href = 'dashboard.html'; }, 2800);
-    } else {
-      toast("Erreur de chargement du profil. Réessayez.", "err");
-    }
+  } else {
+    console.log("[Auth] Utilisateur connecté mais pas de connexion explicite → affichage formulaire");
   }
 });
 // forgot-link branché en fin de module (après déclaration de showForgot)
@@ -1694,6 +659,22 @@ onAuthStateChanged(auth, async (user) => {
 // ════════════════════════════════════════════════════════════════
 // ══ MAGNETIC PARTICLE FIELD ══════════════════════════════════
 (function(){
+  // Stars generation
+  const container = document.getElementById('star-container');
+  if (container) {
+    for (let i = 0; i < 165; i++) {
+      const star = document.createElement('div');
+      star.className = 'star';
+      star.style.left = Math.random() * 100 + '%';
+      star.style.top = Math.random() * 100 + '%';
+      star.style.setProperty('--size', (Math.random() * 3.2 + 1.2) + 'px');
+      star.style.setProperty('--d', (Math.random() * 3 + 2) + 's');
+      star.style.setProperty('--op', (Math.random() * 0.5 + 0.3));
+      star.style.animationDelay = Math.random() * 5 + 's';
+      container.appendChild(star);
+    }
+  }
+
   const canvas = document.getElementById('bg-canvas');
   const ctx    = canvas.getContext('2d');
   let W, H, mx = -9999, my = -9999, mouseActive = false, mouseTO;
@@ -1702,6 +683,13 @@ onAuthStateChanged(auth, async (user) => {
   const GOLD = '255,215,0';
   const N_NODES = 170, N_DUST = 50, CONNECT_D = 108;
   let nodes = [], dust = [];
+
+  // Taille particules (r) configurable via data-attrs
+  const cfgEl = document.getElementById('auth-particles-config');
+  const SIZE_MIN = cfgEl ? parseFloat(cfgEl.dataset.particleSizeMin || '0.8') : 0.8;
+  const SIZE_MAX = cfgEl ? parseFloat(cfgEl.dataset.particleSizeMax || '3.4') : 3.4;
+  const SIZE_LO = Math.min(SIZE_MIN, SIZE_MAX);
+  const SIZE_HI = Math.max(SIZE_MIN, SIZE_MAX);
 
   function initParticles(){
     nodes = []; dust = [];
@@ -1712,7 +700,7 @@ onAuthStateChanged(auth, async (user) => {
       else { x=Math.random()*W; y=Math.random()*H; }
       const isG = Math.random() < .09;
       nodes.push({ x, y, ox:x, oy:y, vx:0, vy:0,
-        r: Math.random()*1.5+.5, mass: Math.random()*.6+.7,
+        r: (Math.random() * (SIZE_HI - SIZE_LO) + SIZE_LO), mass: Math.random()*.6+.7,
         orbit: Math.random()*Math.PI*2, orbitR: Math.random()*52+14,
         orbitSpd: (Math.random()-.5)*.007*(Math.random()<.5?1:-1),
         phase: Math.random()*Math.PI*2, speed: Math.random()*.45+.12,
@@ -1721,7 +709,7 @@ onAuthStateChanged(auth, async (user) => {
     for(let i=0;i<N_DUST;i++){
       dust.push({ x:Math.random()*W, y:Math.random()*H,
         vx:(Math.random()-.5)*.14, vy:(Math.random()-.5)*.14,
-        r:Math.random()*.65+.2, alpha:Math.random()*.13+.04,
+        r:Math.random()*1.05+.35, alpha:Math.random()*.13+.04,
         col:Math.random()<.13?GOLD:ICE });
     }
   }
@@ -1843,7 +831,11 @@ function shake(el) { if(!el)return; el.style.animation='none'; el.offsetHeight; 
 
 // Page entrance
 function setProg(v) { document.getElementById('prog-fill').style.width = v+'%'; }
-setTimeout(() => { setProg(40); document.getElementById('panel-left').classList.add('show'); }, 80);
+setTimeout(() => { 
+  setProg(40); 
+  document.getElementById('panel-left').classList.add('show'); 
+  document.getElementById('app').classList.add('page-entrance');
+}, 80);
 setTimeout(() => { setProg(80); document.getElementById('panel-right').classList.add('show'); }, 180);
 setTimeout(() => setProg(100), 600);
 
@@ -1888,10 +880,18 @@ function toast(msg, type = 'ok') {
 }
 function animIn(el, dir='right') {
   if (!el) return;
-  el.style.opacity='0'; el.style.transform = dir==='right'?'translateX(12px)':'translateX(-12px)';
+  el.style.transition = 'none';
+  el.style.opacity = '0';
+  el.style.filter = 'blur(6px)';
+  el.style.transform = `translateY(36px) scale(0.93) rotate(${dir==='right' ? '1.5' : '-1.5'}deg)`;
+  
+  el.offsetHeight; // force reflow
+  
   requestAnimationFrame(() => {
-    el.style.transition = 'opacity .3s ease,transform .3s ease';
-    el.style.opacity='1'; el.style.transform='none';
+    el.style.transition = 'opacity 0.65s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.45s ease';
+    el.style.opacity = '1';
+    el.style.filter = 'none';
+    el.style.transform = 'none';
   });
 }
 function isEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
@@ -1927,11 +927,11 @@ window.valSelect = (id,wid,mid) => {
   if (mid) setMsg(mid, v?'✓':'', v||null);
 };
 window.valSiret = () => {
-  const raw=gv('rsiret').replace(/\s/g,'');
+  const raw=gv('rsiret').trim();
   if (!raw.length) { setWrap('rsiret-wrap',null); setMsg('rsiret-msg','',null); return; }
-  const ok=/^\d{14}$/.test(raw);
-  setWrap('rsiret-wrap',ok); setMsg('rsiret-msg',ok?'✓ SIRET valide':'✗ 14 chiffres requis',ok);
-  if (ok) $('rsiret').value = raw.replace(/(\d{3})(\d{3})(\d{3})(\d{5})/,'$1 $2 $3 $4');
+  const compact = raw.replace(/\s+/g,'');
+  const ok=/^[A-Za-z0-9\-\/]{6,20}$/.test(compact);
+  setWrap('rsiret-wrap',ok); setMsg('rsiret-msg',ok?'✓ Identifiant reconnu':'✗ 6 a 20 caracteres lettres/chiffres',ok);
 };
 window.checkStr = () => {
   const v=gv('rp');
@@ -2125,7 +1125,19 @@ function showSuccessPanel(isAdmin) {
     }
   }
   setTimeout(() => { $('flash') && ($('flash').style.opacity='1'); }, 2000);
-  setTimeout(() => window.location.href='dashboard.html', 2700);
+  setTimeout(() => {
+    const redirect = _authParams.get('redirect') || '';
+    if (window.DS_NAV?.handlePostAuth && auth.currentUser) {
+      window.DS_NAV.handlePostAuth(auth.currentUser, selectedPlan, redirect);
+    } else {
+      if (selectedPlan && selectedPlan !== 'standard') {
+        localStorage.setItem('ds_pending_plan', selectedPlan);
+      }
+      if (redirect === 'demo') localStorage.setItem('ds_load_demo', '1');
+      // Rediriger vers la page OTP dédiée avant d'accéder au dashboard
+      window.location.href = 'otp-verify.html';
+    }
+  }, 2700);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -2137,6 +1149,10 @@ window.handleLogin = async () => {
   if (!isEmail(email)) { showErr('le-wrap','le-msg','✗ E-mail invalide'); ok=false; }
   if (pw.length<6)     { showErr('lp-wrap','lp-msg','✗ Mot de passe requis'); ok=false; }
   if (!ok) return;
+
+  // 🔐 Marquer la connexion comme explicite
+  explicitLogin = true;
+  isPageLoading = false;
 
   setLoading('login-btn', true);
   try {
@@ -2152,6 +1168,8 @@ window.handleLogin = async () => {
       'auth/invalid-credential': '✗ E-mail ou mot de passe incorrect.',
     };
     toast(msgs[e.code] || ('✗ Erreur : '+e.message), 'err');
+    // Réinitialiser en cas d'échec
+    explicitLogin = false;
   }
 };
 
@@ -2172,6 +1190,10 @@ window.handleRegister = async () => {
     return;
   }
   if (!ok) return;
+
+  // 🔐 Marquer la connexion comme explicite
+  explicitLogin = true;
+  isPageLoading = false;
 
   setLoading('reg-btn', true);
   const email=gv('re').trim(), pw=gv('rp');
@@ -2213,14 +1235,21 @@ window.handleRegister = async () => {
       'auth/invalid-email':        '✗ E-mail invalide.',
     };
     toast(msgs[e.code] || ('✗ Erreur : '+e.message), 'err');
+    // Réinitialiser en cas d'échec
+    explicitLogin = false;
   }
 };
 
 // ════════════════════════════════════════════════════════════════
-//  GOOGLE LOGIN (corrigé)
+//  GOOGLE LOGIN
 // ════════════════════════════════════════════════════════════════
 window.oauthLogin = async (provider) => {
-  if (provider !== 'Google') { toast('LinkedIn disponible prochainement.', 'info'); return; }
+  if (provider !== 'Google') return;
+  
+  // 🔐 Marquer la connexion comme explicite
+  explicitLogin = true;
+  isPageLoading = false;
+
   try {
     const result = await signInWithPopup(auth, new GoogleAuthProvider());
     const user = result.user;
@@ -2245,6 +1274,7 @@ window.oauthLogin = async (provider) => {
   } catch (e) {
     if (e.code !== 'auth/popup-closed-by-user') {
       toast('✗ Connexion Google échouée : '+e.message, 'err');
+      explicitLogin = false;
     }
   }
 };
@@ -2436,13 +1466,21 @@ async function sendReset() {
 
   // ── continueUrl : toujours l'URL Firebase Hosting déployée ──
   // localhost:port est refusé par Firebase — on pointe toujours la prod
-  const continueUrl = 'https://doctorsmile-d8d8f.web.app/reset-password.html';
+  const API_BASE = window.API_BASE || ((window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost')
+    ? 'http://127.0.0.1:8000'
+    : window.location.origin);
 
+  // 🔐 Envoi via Brevo (backend)
   try {
-    await sendPasswordResetEmail(auth, email, {
-      url: continueUrl,
-      handleCodeInApp: false
+    const response = await fetch(`${API_BASE}/reset-password/forgot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
     });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.detail || data.message || 'Erreur lors de l\'envoi');
+    }
 
     // Succès → cooldown 60s + afficher état ok
     sessionStorage.setItem('ds_reset_cd', String(Date.now() + 60000));
@@ -2450,15 +1488,7 @@ async function sendReset() {
     document.getElementById('_forgot_state_ok').style.display   = 'block';
 
   } catch (err) {
-    console.error('[sendReset] Firebase error:', err.code, err.message);
-
-    // user-not-found → même réponse que succès (anti-énumération)
-    if (err.code === 'auth/user-not-found') {
-      sessionStorage.setItem('ds_reset_cd', String(Date.now() + 60000));
-      document.getElementById('_forgot_state_form').style.display = 'none';
-      document.getElementById('_forgot_state_ok').style.display   = 'block';
-      return;
-    }
+    console.error('[sendReset] error:', err);
 
     // Toutes les autres erreurs → réactiver bouton + message explicite
     btn.disabled      = false;
@@ -2467,13 +1497,14 @@ async function sendReset() {
 
     const msgs = {
       'auth/invalid-email':             '✗ Adresse e-mail invalide.',
-      'auth/too-many-requests':         '✗ Trop de tentatives Firebase. Réessayez dans quelques minutes.',
+      'auth/too-many-requests':         '✗ Trop de tentatives. Réessayez dans quelques minutes.',
       'auth/network-request-failed':    '✗ Erreur réseau. Vérifiez votre connexion.',
-      'auth/unauthorized-continue-uri': '✗ Domaine non autorisé (Firebase Console → Auth → Domaines autorisés).',
+      'auth/unauthorized-continue-uri': '✗ Domaine non autorisé.',
       'auth/invalid-continue-uri':      '✗ URL de redirection invalide.',
-      'auth/operation-not-allowed':     '✗ Réinitialisation désactivée dans Firebase Console.',
+      'auth/operation-not-allowed':     '✗ Réinitialisation désactivée.',
     };
-    errEl.textContent = msgs[err.code] || ('✗ Erreur Firebase : ' + err.code);
+    const errMsg = err.code ? (msgs[err.code] || `Erreur Firebase : ${err.code}`) : (err.message || 'Erreur lors de l\'envoi');
+    errEl.textContent = errMsg.startsWith('✗') ? errMsg : '✗ ' + errMsg;
 
     if (err.code === 'auth/too-many-requests') {
       sessionStorage.setItem('ds_reset_cd', String(Date.now() + 300000));
@@ -2490,6 +1521,8 @@ document.getElementById('forgot-link')?.addEventListener('click', e => {
   showForgot();
 });
 </script>
+<!-- Thème centralisé -->
+<script src="js/theme-toggle.js"></script>
 <script src="js/navigation.js"></script>
 </body>
 </html>

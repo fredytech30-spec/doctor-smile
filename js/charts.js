@@ -31,7 +31,7 @@ window.addEventListener('load', function() {
     }
     Plotly.newPlot('hero-plot',[{
       type:'surface',x,y,z,
-      colorscale:[[0,'rgba(5,8,15,1)'],[0.3,'rgba(125,211,252,0.7)'],[0.7,'rgba(255,215,0,0.8)'],[1,'rgba(255,255,255,1)']],
+      colorscale:[[0,'rgba(5,8,15,1)'],[0.3,'rgba(139,127,240,0.7)'],[0.7,'rgba(255,215,0,0.8)'],[1,'rgba(255,255,255,1)']],
       showscale:false,opacity:0.95,
       contours:{z:{show:true,usecolormap:true,highlightcolor:'rgba(255,215,0,0.6)',project:{z:true}}}
     }],{
@@ -40,7 +40,7 @@ window.addEventListener('load', function() {
         bgcolor:'rgba(0,0,0,0)',
         xaxis:{showgrid:false,zeroline:false,showticklabels:false,title:''},
         yaxis:{showgrid:false,zeroline:false,showticklabels:false,title:''},
-        zaxis:{showgrid:true,zeroline:false,showticklabels:false,title:'',gridcolor:'rgba(125,211,252,0.08)'},
+        zaxis:{showgrid:true,zeroline:false,showticklabels:false,title:'',gridcolor:'rgba(139,127,240,0.08)'},
         camera:{eye:{x:1.6,y:1.6,z:0.8}},
         aspectmode:'cube'
       },
@@ -70,8 +70,8 @@ window.addEventListener('load', function() {
     Plotly.newPlot('roc-plot',[
       {x:[0,1],y:[0,1],mode:'lines',line:{color:'rgba(255,255,255,0.1)',dash:'dot',width:1}},
       {x:fpr,y:tpr,mode:'lines',fill:'tozeroy',
-        line:{color:'#7DD3FC',width:2.5},
-        fillcolor:'rgba(125,211,252,0.07)',
+        line:{color:'#8B7FF0',width:2.5},
+        fillcolor:'rgba(139,127,240,0.07)',
         name:'AUC=0.97'
       }
     ],{
@@ -153,7 +153,7 @@ window.addEventListener('load', function() {
   if(shapEl) {
     const features=['Debt/Equity','Current Ratio','ROA','Cash Flow','Working Cap.','Revenue Growth','Quick Ratio'];
     const values=[-12.3,8.7,-6.1,5.4,-3.8,4.2,2.1];
-    const colors=values.map(v=>v<0?'rgba(125,211,252,0.8)':'rgba(255,215,0,0.8)');
+    const colors=values.map(v=>v<0?'rgba(139,127,240,0.8)':'rgba(240,208,120,0.8)');
     Plotly.newPlot('shap-plot',[{
       type:'bar',orientation:'h',
       x:values,y:features,

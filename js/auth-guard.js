@@ -19,7 +19,6 @@ function requireAuth(onReady) {
   showPageLoader();
 
   // ── FIX : Timeout de sécurité si Firebase ne répond pas
-  // (connexion lente, offline, etc.)
   let resolved = false;
   const timeout = setTimeout(() => {
     if (!resolved) {
@@ -29,8 +28,6 @@ function requireAuth(onReady) {
   }, 8000);
 
   const unsubscribe = onAuthChange(async ({ loggedIn, user, profile }) => {
-    // ── FIX : Ne pas unsubscribe immédiatement
-    // Attendre d'avoir traité le résultat d'abord
     if (resolved) return;
     resolved = true;
     clearTimeout(timeout);
@@ -41,13 +38,19 @@ function requireAuth(onReady) {
       return;
     }
 
+    // ⚠️ DÉSACTIVER LA REDIRECTION OTP DANS LE GUARD POUR ÉVITER LA BOUCLE
+    // La redirection OTP est déjà gérée dans auth-ui.js après login volontaire
+    console.log('[auth-guard] Session active, mais pas de redirection OTP automatique');
+
     // Connecté — récupérer l'abonnement Firestore
     const abonnement = await getAbonnement(user.uid);
 
-    // ── FIX : On ne redirige plus vers /auth.html?complete=true
-    // Le profil Google est maintenant créé complet dès l'inscription (auth.html)
-    // Si le profil Firestore est absent pour une raison quelconque,
-    // on continue quand même avec les données Firebase Auth
+    // ── FIX : Vérifier si le profil est complet
+    if (profile && profile.profileComplete === false) {
+      console.warn('[auth-guard] Profil incomplet — redirection vers finalisation');
+      window.location.href = '/auth.html?complete=true';
+      return;
+    }
 
     hidePageLoader();
 
@@ -94,12 +97,11 @@ function redirectIfLoggedIn() {
   const params = new URLSearchParams(window.location.search);
   if (params.get("complete") === "true") return; // laisser passer
 
-  const unsubscribe = onAuthChange(({ loggedIn, profile }) => {
-    unsubscribe();
-    if (loggedIn && profile?.profileComplete !== false) {
-      window.location.href = "/dashboard.html";
-    }
-  });
+  // NE PAS rediriger automatiquement au chargement de la page.
+  // Le redirection vers OTP doit être déclenchée uniquement après un login volontaire
+  // via `handleLogin()` dans `auth-ui.js` pour éviter les boucles causées
+  // par la restauration automatique de session Firebase.
+  return;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -130,8 +132,8 @@ function showPageLoader() {
   loader.innerHTML = `
     <div style="
       width: 40px; height: 40px; border-radius: 50%;
-      border: 2px solid rgba(125,211,252,0.15);
-      border-top-color: #7DD3FC;
+      border: 2px solid rgba(139,127,240,0.15);
+      border-top-color: #8B7FF0;
       animation: dspin 0.7s linear infinite;
     "></div>
     <div style="font-family:'Syne',sans-serif;font-size:11px;

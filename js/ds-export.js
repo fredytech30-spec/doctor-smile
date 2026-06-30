@@ -51,7 +51,7 @@ window.DS_EXPORT = {
     m.innerHTML = `
     <div style="
       background:linear-gradient(160deg,rgba(10,14,26,.98),rgba(15,25,41,.98));
-      border:1px solid rgba(125,211,252,.14);border-radius:20px;
+      border:1px solid rgba(139,127,240,.14);border-radius:20px;
       padding:32px;width:min(600px,94vw);max-height:90vh;overflow-y:auto;
       box-shadow:0 32px 80px rgba(0,0,0,.7);position:relative;">
 
@@ -59,7 +59,7 @@ window.DS_EXPORT = {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">
         <div>
           <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:900;color:#fff;margin-bottom:4px;">
-            <i class="fa-solid fa-arrow-up-from-bracket" style="color:#7DD3FC;margin-right:10px;"></i>Exporter l'analyse
+            <i class="fa-solid fa-arrow-up-from-bracket" style="color:var(--color-ice);margin-right:10px;"></i>Exporter l'analyse
           </div>
           <div style="font-size:10px;color:rgba(255,255,255,.35);">
             <span id="exp-company-name" style="color:var(--ice);font-weight:700;"></span>
@@ -83,7 +83,7 @@ window.DS_EXPORT = {
           background:rgba(239,68,68,.05);cursor:pointer;transition:all .2s;position:relative;">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
             <div style="width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,.15);
-              color:#ef4444;display:flex;align-items:center;justify-content:center;font-size:16px;">
+              color:var(--color-error);display:flex;align-items:center;justify-content:center;font-size:16px;">
               <i class="fa-solid fa-file-pdf"></i></div>
             <div>
               <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:900;color:#fff;">PDF Rapport</div>
@@ -94,7 +94,7 @@ window.DS_EXPORT = {
             Rapport complet : score, ratios, SHAP, recommandations IA, graphiques. Idéal pour votre banquier.
           </div>
           <div class="_exp-check" style="position:absolute;top:12px;right:12px;width:18px;height:18px;
-            border-radius:50%;background:#ef4444;color:#fff;font-size:9px;
+            border-radius:50%;background:var(--color-error);color:#fff;font-size:9px;
             display:none;align-items:center;justify-content:center;">
             <i class="fa-solid fa-check"></i></div>
         </div>
@@ -167,15 +167,15 @@ window.DS_EXPORT = {
       </div>
 
       <!-- API Access -->
-      <div style="padding:16px;border-radius:12px;background:rgba(139,92,246,.06);
-        border:1px solid rgba(139,92,246,.2);margin-bottom:20px;">
+      <div style="padding:16px;border-radius:12px;background:rgba(139,127,240,.06);
+        border:1px solid rgba(139,127,240,.2);margin-bottom:20px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:800;color:#a78bfa;">
+          <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:800;color:#8B7FF0;">
             <i class="fa-solid fa-plug" style="margin-right:7px;"></i>Accès API direct
           </div>
           ${(S.abonnement?.plan||'standard')==='extra'
-            ? `<span style="font-size:8px;background:rgba(167,139,250,.15);color:#a78bfa;
-                border:1px solid rgba(167,139,250,.3);padding:2px 9px;border-radius:20px;font-weight:800;">
+            ? `<span style="font-size:8px;background:rgba(139,127,240,.15);color:#8B7FF0;
+                border:1px solid rgba(139,127,240,.3);padding:2px 9px;border-radius:20px;font-weight:800;">
                 ✦ EXTRA</span>`
             : `<span style="font-size:8px;background:rgba(255,215,0,.08);color:#FFD700;
                 border:1px solid rgba(255,215,0,.2);padding:2px 9px;border-radius:20px;font-weight:800;cursor:pointer;"
@@ -190,14 +190,14 @@ window.DS_EXPORT = {
             background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);
             border-radius:7px;padding:8px 12px;color:rgba(255,255,255,.55);
             overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-            GET ${window.API_BASE||'http://127.0.0.1:8000'}/analyses/export/<span id="exp-api-token" style="color:#a78bfa;">—</span>
+            GET ${window.API_BASE||'http://127.0.0.1:8000'}/analyses/export/<span id="exp-api-token" style="color:#8B7FF0;">—</span>
           </div>
           <button onclick="DS_EXPORT._copyApiUrl()"
-            style="padding:8px 14px;border-radius:8px;background:rgba(139,92,246,.12);
-            border:1px solid rgba(139,92,246,.25);color:#a78bfa;font-family:'Syne',sans-serif;
+            style="padding:8px 14px;border-radius:8px;background:rgba(139,127,240,.12);
+            border:1px solid rgba(139,127,240,.25);color:#8B7FF0;font-family:'Syne',sans-serif;
             font-size:9px;font-weight:800;cursor:pointer;white-space:nowrap;transition:background .15s;"
-            onmouseenter="this.style.background='rgba(139,92,246,.22)'"
-            onmouseleave="this.style.background='rgba(139,92,246,.12)'">
+            onmouseenter="this.style.background='rgba(139,127,240,.22)'"
+            onmouseleave="this.style.background='rgba(139,127,240,.12)'">
             <i class="fa-solid fa-copy"></i> Copier
           </button>
         </div>
@@ -206,19 +206,19 @@ window.DS_EXPORT = {
       <!-- Options supplémentaires -->
       <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:9px;color:rgba(255,255,255,.5);">
-          <input type="checkbox" id="exp-opt-shap" checked style="accent-color:#7DD3FC;">
+          <input type="checkbox" id="exp-opt-shap" checked style="accent-color:#8B7FF0;">
           Inclure SHAP
         </label>
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:9px;color:rgba(255,255,255,.5);">
-          <input type="checkbox" id="exp-opt-recos" checked style="accent-color:#7DD3FC;">
+          <input type="checkbox" id="exp-opt-recos" checked style="accent-color:#8B7FF0;">
           Recommandations IA
         </label>
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:9px;color:rgba(255,255,255,.5);">
-          <input type="checkbox" id="exp-opt-history" style="accent-color:#7DD3FC;">
+          <input type="checkbox" id="exp-opt-history" style="accent-color:#8B7FF0;">
           Historique scores
         </label>
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:9px;color:rgba(255,255,255,.5);">
-          <input type="checkbox" id="exp-opt-raw" style="accent-color:#7DD3FC;">
+          <input type="checkbox" id="exp-opt-raw" style="accent-color:#8B7FF0;">
           Données brutes
         </label>
       </div>
@@ -228,13 +228,13 @@ window.DS_EXPORT = {
       <button onclick="DS_EXPORT.exportAll()"
         id="exp-launch-btn"
         style="width:100%;padding:14px;border-radius:12px;
-        background:linear-gradient(135deg,rgba(125,211,252,.15),rgba(255,215,0,.1));
-        border:1px solid rgba(125,211,252,.3);
+        background:linear-gradient(135deg,rgba(139,127,240,.15),rgba(255,215,0,.1));
+        border:1px solid rgba(139,127,240,.3);
         color:#fff;font-family:'Syne',sans-serif;font-size:12px;font-weight:900;
         letter-spacing:.06em;cursor:pointer;transition:all .22s;
         display:flex;align-items:center;justify-content:center;gap:10px;"
-        onmouseenter="this.style.background='linear-gradient(135deg,rgba(125,211,252,.25),rgba(255,215,0,.18))'"
-        onmouseleave="this.style.background='linear-gradient(135deg,rgba(125,211,252,.15),rgba(255,215,0,.1))'">
+        onmouseenter="this.style.background='linear-gradient(135deg,rgba(139,127,240,.25),rgba(255,215,0,.18))'"
+        onmouseleave="this.style.background='linear-gradient(135deg,rgba(139,127,240,.15),rgba(255,215,0,.1))'">
         <i class="fa-solid fa-arrow-up-from-bracket"></i>
         Exporter les formats sélectionnés
       </button>
@@ -246,9 +246,9 @@ window.DS_EXPORT = {
       #export-modal.show { opacity:1 !important; }
       ._exp-card { user-select:none; }
       ._exp-card.selected {
-        border-color:rgba(125,211,252,.6) !important;
-        background:rgba(125,211,252,.08) !important;
-        box-shadow:0 0 0 3px rgba(125,211,252,.08);
+        border-color:rgba(139,127,240,.6) !important;
+        background:rgba(139,127,240,.08) !important;
+        box-shadow:0 0 0 3px rgba(139,127,240,.08);
       }
       ._exp-card.selected ._exp-check { display:flex !important; }
       ._exp-card:hover:not(.selected) { transform:translateY(-2px); }
@@ -382,7 +382,7 @@ window.DS_EXPORT = {
       .page { max-width:860px; margin:0 auto; background:#fff; padding:40px; }
       .header { background:linear-gradient(135deg,#0a0e1a 0%,#0f1929 60%,#1a1040 100%);
         color:#fff; padding:32px 36px; border-radius:16px; margin-bottom:28px; }
-      .header-logo { font-size:13px; font-weight:700; color:#7DD3FC; letter-spacing:.15em;
+      .header-logo { font-size:13px; font-weight:700; color:#8B7FF0; letter-spacing:.15em;
         text-transform:uppercase; margin-bottom:10px; }
       .header-title { font-size:28px; font-weight:900; margin-bottom:4px; }
       .header-sub { font-size:10px; color:rgba(255,255,255,.4); }
@@ -445,7 +445,7 @@ window.DS_EXPORT = {
         </div>
         <div class="card">
           <h3>AUC ROC</h3>
-          <div class="kpi-val" style="color:#7DD3FC">${a.auc || '—'}</div>
+          <div class="kpi-val" style="color:#8B7FF0">${a.auc || '—'}</div>
           <div class="kpi-lbl">Précision du modèle</div>
         </div>
       </div>
@@ -712,16 +712,16 @@ window._DS_injectExportBtn = function() {
   fab.style.cssText = `
     position:fixed;bottom:28px;right:28px;z-index:8000;
     width:48px;height:48px;border-radius:14px;
-    background:linear-gradient(135deg,rgba(125,211,252,.18),rgba(255,215,0,.12));
-    border:1px solid rgba(125,211,252,.3);
-    color:#7DD3FC;font-size:16px;cursor:pointer;
+    background:linear-gradient(135deg,rgba(139,127,240,.18),rgba(240,208,120,.12));
+    border:1px solid rgba(139,127,240,.3);
+    color:#8B7FF0;font-size:16px;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
     box-shadow:0 8px 28px rgba(0,0,0,.5);
     transition:all .22s cubic-bezier(.34,1.56,.64,1);
     backdrop-filter:blur(12px);`;
   fab.addEventListener('mouseenter', () => {
     fab.style.transform = 'translateY(-3px) scale(1.08)';
-    fab.style.boxShadow = '0 14px 36px rgba(125,211,252,.18)';
+    fab.style.boxShadow = '0 14px 36px rgba(139,127,240,.18)';
   });
   fab.addEventListener('mouseleave', () => {
     fab.style.transform = 'none';

@@ -1,0 +1,207 @@
+/* Doctor Smile — Dashboard premium overrides (scoped to prevent CSS conflicts) */
+:root{
+  --ds-scoped: 1;
+
+  /* Safe fallbacks for tokens that may not exist everywhere */
+  --dash-border: var(--border-v);
+  --violet-border-strong: var(--border-v-strong);
+}
+
+#view-dashboard,
+#view-analyses,
+#view-agent,
+#view-chat,
+#view-visualisations,
+#view-rapports,
+#view-parametres,
+#view-notifications,
+#view-benchmark,
+#view-peers,
+#view-cosign,
+#view-whatsapp,
+#view-forecast,
+#view-early,
+#view-credit,
+#view-cabinet,
+#view-admin{
+  /* premium base for every main view pane */
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+
+/* Dashboard chrome base (outside view panes) */
+#app{
+  background: transparent;
+}
+#main{
+  min-height: 100vh;
+}
+#nav{
+  background: var(--surface) !important;
+  border-right: 1px solid var(--border-v) !important;
+}
+#sidebar{
+  background: var(--surface) !important;
+  border-right: 1px solid var(--border-v) !important;
+}
+.view-pane{
+  padding: 0;
+}
+
+/* Typography size uplift (luxury + readability) */
+#view-dashboard .topbar-greeting{ font-size: clamp(20px, 2.1vw, 28px); }
+#view-dashboard .topbar-sub{ font-size: 13px; }
+
+#view-dashboard .card-title,
+#view-dashboard .kpi .card-title{ font-size: 13px; }
+
+#view-dashboard .kpi-lbl{ font-size: 13px !important; letter-spacing: .01em; }
+#view-dashboard .kpi-val{ font-size: clamp(26px, 2.6vw, 38px) !important; }
+
+#view-dashboard .ratio-name{ font-size: 11px; }
+#view-dashboard .ratio-bench{ font-size: 11px; }
+
+#view-dashboard .msg{ font-size: 14px; line-height: 1.55; }
+
+/* Layout: restore spacing breathing */
+#view-dashboard .inner{
+  padding: 30px 30px 90px;
+  gap: 24px;
+}
+#view-dashboard .kpi-row{ gap: 20px; }
+#view-dashboard .score-grid{ gap: 20px; }
+#view-dashboard .card,
+#view-dashboard .kpi,
+#view-dashboard .chat-card,
+#view-dashboard .upload-zone,
+#view-dashboard .pipeline,
+#view-dashboard .reco2{
+  border-radius: var(--r-xl);
+  border: 1px solid var(--dash-border);
+  box-shadow: var(--shadow-sm);
+
+  /* glass subtil premium */
+  backdrop-filter: blur(14px);
+  background: var(--glass);
+}
+
+/* Keep glass subtle and violet 30% dominance */
+#view-dashboard .card:hover,
+#view-dashboard .kpi:hover,
+#view-dashboard .chat-card:hover,
+#view-dashboard .upload-zone:hover,
+#view-dashboard .pipeline:hover,
+#view-dashboard .reco2:hover{
+  border-color: var(--violet-border-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+  transition: var(--theme-transition, all .35s var(--ease-premium));
+  background: var(--grad-card);
+}
+
+/* Override risky hardcodes: nav + sidebar backgrounds */
+#nav{
+  box-shadow: 10px 0 50px rgba(0,0,0,.12) !important;
+}
+#sidebar{
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Theme light adjustments (still using 60/30/10) */
+[data-theme="light"] #nav{ background: rgba(255,255,255,.98) !important; }
+[data-theme="light"] #sidebar{ background: rgba(255,255,255,.98) !important; }
+
+/* LLM toggle: ensure consistent violet track */
+#view-dashboard .llm-toggle-wrap{
+  background: var(--violet-bg) !important;
+  border: 1px solid var(--violet-border) !important;
+  border-radius: var(--r-md);
+}
+#view-dashboard .llm-toggle-label{ color: var(--violet-3) !important; }
+#view-dashboard .llm-switch{ background: transparent; }
+
+/* Chat send: use primary violet and gold accents only when needed */
+#view-dashboard .chat-send{
+  background: var(--grad-perfect) !important;
+  border-radius: 10px !important;
+  color: var(--bg) !important;
+}
+
+/* Data table readability */
+#view-dashboard .dtbl th{
+  background: var(--surface-2) !important;
+  color: var(--text-muted) !important;
+  font-size: 11px !important;
+  letter-spacing: .02em;
+}
+#view-dashboard .dtbl td{
+  color: var(--text-2) !important;
+  font-size: 12px !important;
+  line-height: 1.5;
+}
+
+/* Dashboard global premium polish (elements outside #view-dashboard) */
+#app{
+  background: transparent;
+}
+
+#loading-overlay{
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(9,8,15,.55);
+  z-index: 99999;
+  backdrop-filter: blur(10px);
+  padding: 24px;
+}
+
+#modal-overlay .modal-box,
+#modal-overlay .modal-box *{
+  font-family: var(--font-body) !important;
+}
+
+#modal-overlay .modal-box{
+  background: var(--glass) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--r-xl) !important;
+  box-shadow: var(--shadow-xl) !important;
+}
+
+#bottom-nav{
+  background: var(--surface) !important;
+  border-top: 1px solid var(--border-v) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+#bottom-nav .bn-item{
+  color: var(--text-2) !important;
+}
+
+#bottom-nav .bn-item.active{
+  color: var(--violet-3) !important;
+  background: rgba(139,127,240,.10) !important;
+  border: 1px solid rgba(139,127,240,.25) !important;
+  box-shadow: 0 0 0 4px rgba(139,127,240,.06) !important;
+}
+
+#profile-drawer{
+  background: var(--glass) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--r-xl) !important;
+  box-shadow: var(--shadow-xl) !important;
+  backdrop-filter: blur(14px) !important;
+}
+
+#_cmod #_cbox{
+  background: var(--glass) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--r-xl) !important;
+  backdrop-filter: blur(14px) !important;
+}
+
+/* Scatter/chart text visibility in light theme */
+[data-theme="light"] #view-dashboard canvas text,
+[data-theme="light"] #view-dashboard svg text,
+#view-dashboard #globe-3d text{ fill: var(--text) !important; }

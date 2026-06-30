@@ -30,6 +30,14 @@ document.addEventListener("DOMContentLoaded", () => {
     switchTab("register");
     showStep2();
   }
+
+  // Récupérer le plan depuis l'URL (si présent)
+  const planParam = params.get("plan");
+  if (planParam && ["standard", "premium", "extra"].includes(planParam)) {
+    selectedPlan = planParam;
+    // Si on est sur l'onglet register, mettre à jour l'UI
+    setTimeout(() => selectPlan(planParam), 100);
+  }
 });
 
 // ════════════════════════════════════════════════════════════════
@@ -93,9 +101,15 @@ window.handleLogin = async function() {
       showOtp("login");
       return;
     }
-    // Succès → redirection
-    showSuccess("login");
-    setTimeout(() => window.location.href = "/dashboard.html", 2200);
+    // 🔐 Redirection vers la page OTP obligatoire
+    // Marquer la redirection comme 'pending' et stocker email/uid pour accélération
+    try {
+      sessionStorage.setItem('pending_otp', '1');
+      sessionStorage.setItem('pending_email', email);
+      sessionStorage.setItem('pending_uid', result.user.uid);
+    } catch(e){}
+    // 🔐 Redirection directe vers OTP (sans message "connexion réussie")
+    setTimeout(() => window.location.href = "/otp-verify.html", 500);
   } else {
     setLoading(btn, false);
     showFormError("login-form", result.error);
@@ -106,24 +120,27 @@ window.handleLogin = async function() {
 //  GOOGLE LOGIN
 // ════════════════════════════════════════════════════════════════
 window.oauthLogin = async function(provider) {
-  if (provider !== "Google") {
-    showToast("LinkedIn disponible prochainement.", "info");
-    return;
-  }
+  if (provider !== "Google") return;
 
   const result = await loginWithGoogle();
 
   if (result.cancelled) return;
 
   if (result.success) {
-    if (result.isNew) {
-      // Nouveau compte → compléter le profil entreprise
+    // Vérifier si le profil est complet (même pour un utilisateur existant)
+    if (result.isNew || result.profile?.profileComplete === false) {
+      // Nouveau compte ou profil incomplet → compléter le profil entreprise
       switchTab("register");
       showStep2();
-      showToast("Compte Google créé ! Complétez votre profil entreprise.", "ok");
+      showToast("Veuillez compléter votre profil entreprise.", "info");
     } else {
-      showSuccess("login");
-      setTimeout(() => window.location.href = "/dashboard.html", 2200);
+      // Google login - redirection directe vers OTP
+      try {
+        sessionStorage.setItem('pending_otp', '1');
+        sessionStorage.setItem('pending_email', result.user.email);
+        sessionStorage.setItem('pending_uid', result.user.uid);
+      } catch(e){}
+      setTimeout(() => window.location.href = "/otp-verify.html", 500);
     }
   } else if (result.error) {
     showFormError("login-form", result.error);
@@ -245,7 +262,7 @@ window.handleRegister = async function() {
 
   // Construire l'objet userData complet
   // Calculer la date de fin d'essai pour les plans payants
-  const trialDays = parseInt(localStorage.getItem('ds_trial_days') || '45', 10);
+  const trialDays = parseInt(localStorage.getItem('ds_trial_days') || '14', 10);
   const trialEnd  = selectedPlan !== 'standard'
     ? new Date(Date.now() + trialDays * 24 * 3600 * 1000).toISOString()
     : null;
@@ -259,7 +276,8 @@ window.handleRegister = async function() {
     plan:     selectedPlan,
     source:   selectedSource,
     poste:    val("rposte") || "",
-    // Essai 45 jours pour Premium et Extra
+    // Profil complet car on vient de soumettre l'étape 2
+    profileComplete: true,
     trialStatus: selectedPlan !== 'standard' ? 'trial' : 'active',
     trialEnd:    trialEnd,
     trialDays:   selectedPlan !== 'standard' ? trialDays : 0,
@@ -272,11 +290,43 @@ window.handleRegister = async function() {
     }
   };
 
-  const result = await registerUser(userData);
+  // Si l'utilisateur est déjà connecté via Google (on est en mode "complete")
+  const params = new URLSearchParams(window.location.search);
+  const isCompletionMode = params.get("complete") === "true";
+
+  let result;
+  if (isCompletionMode) {
+    // Mode mise à jour (Google)
+    const { getCurrentUser, saveUserProfile, saveAbonnement } = await import("./firebase-auth.js");
+    const user = getCurrentUser();
+    if (user) {
+      // Nettoyer password avant sauvegarde Firestore
+      delete userData.password;
+      const ok = await saveUserProfile(user.uid, userData);
+      // Créer l'abonnement
+      await saveAbonnement(user.uid, {
+        plan:        userData.plan,
+        status:      userData.trialStatus,
+        trialEnd:    userData.trialEnd,
+        trialDays:   userData.trialDays,
+        startedAt:   new Date(),
+      });
+      result = { success: ok, user };
+    } else {
+      result = { success: false, error: "Session expirée. Reconnectez-vous." };
+    }
+  } else {
+    // Mode création complète (Email/Password)
+    result = await registerUser(userData);
+  }
 
   if (result.success) {
     setLoading(btn, false);
-    showOtp("register");
+    if (isCompletionMode) {
+      // showSuccess("register"); // Désactivé - redirection directe
+    } else {
+      showOtp("register");
+    }
   } else {
     setLoading(btn, false);
     showFormError("register-form", result.error);
@@ -317,8 +367,6 @@ window.selectSrc = function(el, src) {
 // ════════════════════════════════════════════════════════════════
 //  OTP — Vérification email
 //  Note: Firebase envoie un lien email, pas un OTP numérique
-//  Ici on simule l'UX OTP — en production utilise
-//  l'email de vérification Firebase
 // ════════════════════════════════════════════════════════════════
 let otpMode = "login";
 
@@ -336,10 +384,28 @@ window.showOtp = function(mode) {
   if (otpPanel) {
     otpPanel.style.display = "flex";
     requestAnimationFrame(() => otpPanel.classList.add("show"));
-    setTimeout(() => {
-      const first = document.querySelectorAll(".otp-d")[0];
-      if (first) first.focus();
-    }, 300);
+    
+    // Message contextuel pour expliquer que c'est un lien et non un code
+    const otpTitle = otpPanel.querySelector('.form-title');
+    const otpSub   = otpPanel.querySelector('.form-sub');
+    if (otpTitle) otpTitle.textContent = "Vérification";
+    if (otpSub) otpSub.innerHTML = `Un lien de vérification a été envoyé à <strong>${val("re") || val("le")}</strong>.<br>Cliquez sur le lien dans l'e-mail pour activer votre compte.`;
+    
+    // Masquer les champs OTP numériques car Firebase Auth utilise des liens
+    const otpInputs = otpPanel.querySelector('.otp-inputs');
+    if (otpInputs) otpInputs.style.display = "none";
+    
+    // Ajouter un bouton de rafraîchissement d'état
+    let checkBtn = document.getElementById('check-verify-btn');
+    if (!checkBtn) {
+      checkBtn = document.createElement('button');
+      checkBtn.id = 'check-verify-btn';
+      checkBtn.className = 'submit-btn';
+      checkBtn.style.marginTop = '20px';
+      checkBtn.innerHTML = '<span>J\'ai cliqué sur le lien</span>';
+      checkBtn.onclick = () => location.reload();
+      otpPanel.appendChild(checkBtn);
+    }
   }
 };
 
@@ -382,7 +448,7 @@ async function verifyOtp() {
   // Pour un vrai OTP, utiliser Firebase Phone Auth ou un service tiers
   const otpPanel = document.getElementById("otp-panel");
   if (otpPanel) otpPanel.style.opacity = "0";
-  setTimeout(showSuccessPanel, 450);
+  // setTimeout(showSuccessPanel, 450); // Désactivé - plus de message succès
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -402,15 +468,26 @@ function showSuccessPanel() {
   if (otpPanel)  otpPanel.style.display     = "none";
   if (successPanel) successPanel.style.display = "flex";
 
-  if (sucMsg) sucMsg.textContent = otpMode === "register" ? "Compte créé ! 🎉" : "Connexion réussie !";
+  if (sucMsg) sucMsg.textContent = ""; // Message supprimé
   if (sucSub) sucSub.textContent = otpMode === "register"
     ? "Bienvenue chez Doctor Smile. Vérifiez votre e-mail."
     : "Redirection vers votre tableau de bord…";
 
+  const params = new URLSearchParams(window.location.search);
+  const redirect = params.get("redirect");
+
   setTimeout(() => {
     const flash = document.getElementById("flash");
     if (flash) flash.style.opacity = "1";
-    setTimeout(() => window.location.href = "/dashboard.html", 700);
+    
+    setTimeout(() => {
+      if (window.DS_NAV && typeof window.DS_NAV.handlePostAuth === 'function') {
+        window.DS_NAV.handlePostAuth(null, selectedPlan, redirect);
+      } else {
+        const is2FA = sessionStorage.getItem('2fa_verified');
+        window.location.href = is2FA ? "dashboard.html" : "otp-verify.html";
+      }
+    }, 700);
   }, 2600);
 }
 
@@ -620,31 +697,19 @@ function showFormError(formId, msg) {
 }
 
 function showToast(msg, type = "ok") {
-  const colors = {
-    ok:   { bg: "rgba(16,185,129,0.1)", border: "rgba(16,185,129,0.25)", text: "#10b981" },
-    warn: { bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.25)", text: "#f59e0b" },
-    err:  { bg: "rgba(239,68,68,0.1)",  border: "rgba(239,68,68,0.25)",  text: "#ef4444" },
-    info: { bg: "rgba(125,211,252,0.1)",border: "rgba(125,211,252,0.25)",text: "#7DD3FC" }
+  const typeMap = {
+    ok:   'success',
+    warn: 'warning',
+    err:  'error',
+    info: 'info'
   };
-  const c = colors[type] || colors.info;
-  const toast = document.createElement("div");
-  toast.style.cssText = `
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-    z-index: 10000; padding: 12px 24px; border-radius: 10px;
-    background: ${c.bg}; border: 1px solid ${c.border}; color: ${c.text};
-    font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
-    backdrop-filter: blur(16px); white-space: nowrap;
-    animation: toastIn .3s ease;
-  `;
-  toast.textContent = msg;
-  document.body.appendChild(toast);
-  if (!document.getElementById("toast-style")) {
-    const s = document.createElement("style");
-    s.id = "toast-style";
-    s.textContent = "@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}";
-    document.head.appendChild(s);
+  const dsType = typeMap[type] || 'info';
+  if (window.Toast) {
+    window.Toast.show(msg, { type: dsType });
+  } else {
+    // Fallback if ui-components.js is not loaded
+    console.log(`[Toast Fallback] ${type}: ${msg}`);
   }
-  setTimeout(() => { toast.style.opacity = "0"; toast.style.transition = "opacity .3s"; setTimeout(() => toast.remove(), 300); }, 3500);
 }
 
 function setLoading(btn, loading) {

@@ -403,7 +403,7 @@ class OcrService:
         key_fields = {
             "actif_courant", "passif_courant", "chiffre_affaires",
             "resultat_net", "capitaux_propres", "actif_total",
-            "dettes_totales", "ebitda",
+            "dettes_totales", "ebitda", "resultats_reportes",
         }
         all_keys: set[str] = set()
         for r in rows:

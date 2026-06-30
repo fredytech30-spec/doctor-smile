@@ -1,3 +1,4 @@
+
 """
 ==========================================
 ANALYSE SERVICE
@@ -31,9 +32,9 @@ from app.services.preprocessing_service import (
 
 log = logging.getLogger("doctorsmile.analyse")
 
-# ════════════════════════════════════════════════════════════════
+# ================================================================================
 #  ZONES
-# ════════════════════════════════════════════════════════════════
+# ================================================================================
 
 ZONES = {
     "saine":     {"label": "Zone Saine",     "color": "#10b981", "bg": "rgba(16,185,129,.1)"},
@@ -49,9 +50,9 @@ def score_to_zone(score: float) -> str:
     return "critique"
 
 
-# ════════════════════════════════════════════════════════════════
+# ================================================================================
 #  POIDS DES ENSEMBLES PAR PLAN
-# ════════════════════════════════════════════════════════════════
+# ================================================================================
 
 ENSEMBLE_WEIGHTS = {
     "standard": {"rf": 0.45, "xgb": 0.55},
@@ -59,35 +60,35 @@ ENSEMBLE_WEIGHTS = {
     "extra":    {"rf": 0.25, "xgb": 0.35, "lgb": 0.25, "meta": 0.15},
 }
 
-# ════════════════════════════════════════════════════════════════
+# ================================================================================
 #  LABELS ET BENCHMARKS
-# ════════════════════════════════════════════════════════════════
+# ================================================================================
 
 FEATURE_LABELS: dict[str, str] = {
-    "current_ratio":        "Liquidité générale",
-    "quick_ratio":          "Liquidité immédiate",
-    "cash_ratio":           "Ratio de trésorerie",
+    "current_ratio":        "Liquidite generale",
+    "quick_ratio":          "Liquidite immediate",
+    "cash_ratio":           "Ratio de tresorerie",
     "debt_equity":          "Ratio d'endettement",
-    "solvabilite":          "Solvabilité",
-    "roa":                  "ROA (rentabilité actifs)",
-    "roe":                  "ROE (rentabilité capitaux)",
+    "solvabilite":          "Solvabilite",
+    "roa":                  "ROA (rentabilite actifs)",
+    "roe":                  "ROE (rentabilite capitaux)",
     "ebitda_margin":        "Marge EBITDA",
     "net_margin":           "Marge nette",
     "marge_brute_pct":      "Marge brute",
     "rotation_actifs":      "Rotation des actifs",
     "bfr_ca":               "BFR / CA",
-    "couverture_interets":  "Couverture des intérêts",
-    "annees_activite":      "Ancienneté",
+    "couverture_interets":  "Couverture des interets",
+    "annees_activite":      "Anciennete",
     "altman_z":             "Score Altman Z",
-    "retained_earnings_ta": "Résultats reportés / Actif",
-    "pct_missing":          "Complétude des données",
+    "retained_earnings_ta": "Resultats reportes / Actif",
+    "pct_missing":          "Completude des donnees",
 }
 
 BENCHMARKS: dict[str, tuple[str, str, bool]] = {
-    "current_ratio":        ("> 1.2",   "",    True),   # seuil européen révisé
+    "current_ratio":        ("> 1.2",   "",    True),
     "quick_ratio":          ("> 0.8",   "",    True),
     "cash_ratio":           ("> 0.15",  "",    True),
-    "debt_equity":          ("< 1.5",   "",    False),  # Europe : endettement plus élevé
+    "debt_equity":          ("< 1.5",   "",    False),
     "solvabilite":          ("> 25%",   "%",   True),
     "roa":                  ("> 2%",    "%",   True),
     "roe":                  ("> 5%",    "%",   True),
@@ -98,39 +99,37 @@ BENCHMARKS: dict[str, tuple[str, str, bool]] = {
     "bfr_ca":               ("< 20%",   "%",   False),
     "couverture_interets":  ("> 2",     "x",   True),
     "annees_activite":      ("> 5 ans", "ans", True),
-    "altman_z":             ("> 1.81",  "",    True),   # seuil Altman Europe
+    "altman_z":             ("> 1.81",  "",    True),
     "retained_earnings_ta": ("> 0.2",   "",    True),
     "pct_missing":          ("< 0.2",   "",    False),
 }
 
 RATIO_THRESHOLDS: dict[str, tuple[float, float, bool]] = {
-    # (seuil_vert, seuil_jaune, higher_is_better)
-    # Calibrés sur MEDIANS_REFERENCE v3 (dataset européen)
     "current_ratio":        (1.20,  0.80, True),
     "quick_ratio":          (0.80,  0.50, True),
     "cash_ratio":           (0.15,  0.07, True),
-    "debt_equity":          (1.55,  2.50, False),  # Europe : médiane = 1.55
-    "solvabilite":          (26.8,  13.0, True),   # EN %
-    "roa":                  (2.17,  0.0,  True),   # EN %
-    "roe":                  (5.45,  0.0,  True),   # EN %
-    "ebitda_margin":        (6.64,  0.0,  True),   # EN %
-    "net_margin":           (2.35,  0.0,  True),   # EN %
-    "marge_brute_pct":      (20.59, 8.0,  True),   # EN %
+    "debt_equity":          (1.55,  2.50, False),
+    "solvabilite":          (26.8,  13.0, True),
+    "roa":                  (2.17,  0.0,  True),
+    "roe":                  (5.45,  0.0,  True),
+    "ebitda_margin":        (6.64,  0.0,  True),
+    "net_margin":           (2.35,  0.0,  True),
+    "marge_brute_pct":      (20.59, 8.0,  True),
     "rotation_actifs":      (0.68,  0.30, True),
-    "bfr_ca":               (5.6,   20.0, False),  # EN % — médiane = 5.6%
+    "bfr_ca":               (5.6,   20.0, False),
     "couverture_interets":  (4.20,  1.50, True),
-    "altman_z":             (1.85,  1.23, True),   # seuil Altman Europe
-    "retained_earnings_ta": (1.18,  0.0,  True),   # médiane = 1.18
+    "altman_z":             (1.85,  1.23, True),
+    "retained_earnings_ta": (1.18,  0.0,  True),
 }
 
 
-# ════════════════════════════════════════════════════════════════
+# ================================================================================
 #  CLASSE PRINCIPALE — Singleton par plan
-# ════════════════════════════════════════════════════════════════
+# ================================================================================
 
 class AnalyseService:
     """
-    Orchestre le pipeline ML complet pour un plan donné.
+    Orchestre le pipeline ML complet pour un plan donne.
     Singleton par plan (standard / premium / extra).
     """
 
@@ -140,20 +139,20 @@ class AnalyseService:
         if plan not in cls._instances:
             obj = super().__new__(cls)
             obj._plan       = plan
-            obj._models     = {}       # modèles calibrés chargés
-            obj._explainers = {}       # ✅ corrigé : pas d'annotation de type ici
+            obj._models     = {}
+            obj._explainers = {}
             obj._loaded     = False
             cls._instances[plan] = obj
         return cls._instances[plan]
 
-    # ────────────────────────────────────────────────────────────
-    #  CHARGEMENT DES MODÈLES
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
+    #  CHARGEMENT DES MODELES
+    # ============================================================================
 
     def load_models(self, base_path: str | None = None) -> bool:
         """
-        Charge les modèles depuis ml/saved_models/{plan}/.
-        Retourne True si succès, False si fallback mock activé.
+        Charge les modeles depuis ml/saved_models/{plan}/.
+        Retourne True si succes, False si fallback mock active.
         """
         if self._loaded:
             return True
@@ -162,57 +161,53 @@ class AnalyseService:
         weights = ENSEMBLE_WEIGHTS.get(self._plan, ENSEMBLE_WEIGHTS["standard"])
 
         try:
-            # Charger chaque modèle calibré
             for model_key in weights:
                 if model_key == "meta":
                     continue
                 fpath = f"{path}/model_{model_key}_calibrated.pkl"
                 if not os.path.exists(fpath):
-                    raise FileNotFoundError(f"Modèle manquant : {fpath}")
+                    raise FileNotFoundError(f"Modele manquant : {fpath}")
                 self._models[model_key] = joblib.load(fpath)
-                log.info("  ✅ Modèle %s chargé", model_key)
+                log.info("  ✓ Modele %s charge", model_key)
 
-            # Charger scaler + encoders dans preprocessing_service
             preprocessing_service.load(path)
 
-            # ✅ SHAP — extraire le RF de base depuis CalibratedClassifierCV
             if "rf" in self._models:
                 try:
                     base_rf = self._extract_base_estimator(self._models["rf"])
                     if base_rf is not None:
                         self._explainers["rf"] = shap.TreeExplainer(base_rf)
-                        log.info("  ✅ SHAP TreeExplainer initialisé pour RF")
+                        log.info("  ✓ SHAP TreeExplainer initialise pour RF")
                     else:
-                        log.warning("  ⚠️  SHAP : RF de base non trouvé — désactivé")
+                        log.warning("  ⚠ SHAP : RF de base non trouve — desactive")
                 except Exception as shap_err:
-                    log.warning("  ⚠️  SHAP init failed : %s — désactivé", shap_err)
+                    log.warning("  ⚠ SHAP init failed : %s — desactive", shap_err)
 
             self._loaded = True
-            log.info("✅ Modèles %s chargés depuis %s", self._plan, path)
+            log.info("✓ Modeles %s charges depuis %s", self._plan, path)
             return True
 
         except FileNotFoundError as e:
-            log.warning("⚠️  %s — mode mock activé", e)
+            log.warning("⚠ %s — mode mock active", e)
             self._loaded = False
             return False
 
         except Exception as e:
-            # Détecter l'erreur JWT (horloge désynchronisée Windows)
             err_str = str(e)
             if "invalid_grant" in err_str or "Invalid JWT" in err_str:
                 log.warning(
-                    "⚠️  JWT Firebase invalide — horloge système désynchronisée.\n"
+                    "⚠ JWT Firebase invalide — horloge systeme desynchronisee.\n"
                     "   Fix : w32tm /resync (PowerShell admin) ou sync horloge Windows.\n"
                     "   L'analyse continue en mode mock (sans sauvegarde Firestore)."
                 )
             else:
-                log.error("Erreur chargement modèles %s : %s", self._plan, e, exc_info=True)
+                log.error("Erreur chargement modeles %s : %s", self._plan, e, exc_info=True)
             self._loaded = False
             return False
 
-    # ────────────────────────────────────────────────────────────
-    #  PRÉDICTION PRINCIPALE
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
+    #  PREDICTION PRINCIPALE
+    # ============================================================================
 
     def predict(
         self,
@@ -223,55 +218,44 @@ class AnalyseService:
         """Pipeline complet — retourne un dict consommable par le dashboard."""
         t0 = time.perf_counter()
 
-        # Prétraitement
         X, feature_names = preprocessing_service.preprocess(rows)
 
-        # Inférence
         if self._loaded and self._models:
             p_defaut, model_probs = self._ensemble_predict(X)
         else:
             p_defaut, model_probs = self._mock_predict(rows[0] if rows else {})
 
-        # Score 0-100
         score = max(0, min(100, int(round((1 - p_defaut) * 100))))
 
-        # FIX — Modèle taïwanais : si score = 0 mais p_defaut < 0.999
-        # (saturation du modèle sur données hors-distribution),
-        # on blende avec le mock_predict calibré européen (30% mock)
         if score <= 2 and p_defaut < 0.999:
             try:
                 mock_s, _ = self._mock_predict(rows[0] if rows else {})
                 if mock_s > 5:
                     score = max(1, int(round(0.25 * mock_s)))
-                    log.debug("[Score] ML saturé (p=%.3f) → blend mock=%d → final=%d",
+                    log.debug("[Score] ML sature (p=%.3f) → blend mock=%d → final=%d",
                               p_defaut, mock_s, score)
             except Exception as _e:
                 log.debug("[Score] Mock fallback failed: %s", _e)
 
         zone  = score_to_zone(score)
 
-        # Confiance inter-modèles — calculée avant elapsed_ms
         probs_list      = list(model_probs.values())
         std_inter       = float(np.std(probs_list)) if len(probs_list) > 1 else 0.0
-        # Seed déterministe sans elapsed_ms (pas encore calculé ici)
         _rng_seed       = int(abs(score * 137 + p_defaut * 31)) % (2**31)
         _rng            = np.random.default_rng(_rng_seed)
         conf_base       = 95.0 + (3.0 * max(0.0, 1.0 - std_inter * 5.0))
         conf_noise      = float(_rng.uniform(-0.3, 0.3))
         confidence      = int(round(min(98.0, max(95.0, conf_base + conf_noise))))
-        confiance_label = "Très fiable" if std_inter < 0.08 else "Fiable" if std_inter < 0.18 else "Incertitude modérée"
+        confiance_label = "Tres fiable" if std_inter < 0.08 else "Fiable" if std_inter < 0.18 else "Incertitude moderee"
 
-        # SHAP
         shap_values = self._compute_shap(X, feature_names)
 
-        # Ratios + Radar + Recommandations
         agg          = preprocessing_service._normalize_and_aggregate(rows)
         raw_features = preprocessing_service._compute_numeric_features(agg)
         ratios_detail = self._build_ratios_detail(raw_features)
         radar         = self._build_radar(raw_features, score)
         recos         = self._generate_recommendations(raw_features, score, zone)
 
-        # Score history
         prev          = score_history_prev or []
         score_history = (prev + [score])[-7:]
 
@@ -300,9 +284,9 @@ class AnalyseService:
             "modelProbs":        {k: round(v, 4) for k, v in model_probs.items()},
         }
 
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
     #  HELPER — extraire le RF de base depuis CalibratedClassifierCV
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
 
     @staticmethod
     def _extract_base_estimator(model):
@@ -311,18 +295,15 @@ class AnalyseService:
         CalibratedClassifierCV, quelle que soit la version de sklearn.
         Retourne None si impossible.
         """
-        # Cas 1 : pas calibré — c'est directement le modèle
         from sklearn.ensemble import RandomForestClassifier
         if isinstance(model, RandomForestClassifier):
             return model if hasattr(model, 'estimators_') else None
 
-        # Cas 2 : CalibratedClassifierCV sklearn >= 1.2 → .estimator
         if hasattr(model, 'estimator'):
             est = model.estimator
             if isinstance(est, RandomForestClassifier) and hasattr(est, 'estimators_'):
                 return est
 
-        # Cas 3 : CalibratedClassifierCV sklearn < 1.2 → .calibrated_classifiers_
         if hasattr(model, 'calibrated_classifiers_'):
             for cc in model.calibrated_classifiers_:
                 for attr in ('estimator', 'base_estimator'):
@@ -333,9 +314,9 @@ class AnalyseService:
 
         return None
 
-    # ────────────────────────────────────────────────────────────
-    #  INFÉRENCE ENSEMBLE
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
+    #  INFERENCE ENSEMBLE
+    # ============================================================================
 
     def _ensemble_predict(
         self, X: np.ndarray
@@ -356,20 +337,13 @@ class AnalyseService:
         p_ensemble = p_total / w_total if w_total else 0.5
         return p_ensemble, probs
 
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
     #  MOCK PREDICT
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
 
     def _mock_predict(
         self, row: dict[str, Any]
     ) -> tuple[float, dict[str, float]]:
-        """
-        Scoring de secours (sans modèle ML chargé).
-        Calibré sur normes européennes — Banque de France / BCE.
-        Chaque ratio contribue au risque selon sa déviation par rapport
-        aux seuils réels. Les poids reproduisent l'importance SHAP
-        typique d'un RandomForest entraîné sur données européennes.
-        """
         agg      = preprocessing_service._normalize_and_aggregate([row])
         features = preprocessing_service._compute_numeric_features(agg)
         risk     = 0.0
@@ -378,66 +352,56 @@ class AnalyseService:
             v = features.get(key)
             return v if v is not None and not (isinstance(v, float) and v != v) else default
 
-        # ── Liquidité (poids 22%) ──────────────────────────────
-        # Seuils calibrés sur MEDIANS_REFERENCE v3
         cr = f("current_ratio", 1.20)
         if   cr < 0.60: risk += 0.22
         elif cr < 0.80: risk += 0.16
         elif cr < 1.20: risk += 0.08
 
-        # ── Endettement (poids 20%) ────────────────────────────
         de = f("debt_equity", 1.50)
         if   de > 6.0:  risk += 0.20
         elif de > 3.5:  risk += 0.15
         elif de > 2.0:  risk += 0.09
         elif de > 1.5:  risk += 0.04
 
-        # ── Rentabilité ROA (poids 18%) ────────────────────────
         roa = f("roa", 2.8)
         if   roa < -10.0: risk += 0.18
         elif roa <  -3.0: risk += 0.13
         elif roa <   0.0: risk += 0.08
         elif roa <   1.5: risk += 0.03
 
-        # ── Solvabilité (poids 15%) ────────────────────────────
         solv = f("solvabilite", 30.0)
         if   solv <  5.0: risk += 0.15
         elif solv < 12.0: risk += 0.10
         elif solv < 20.0: risk += 0.05
 
-        # ── Altman Z-score (poids 15%) ─────────────────────────
         z = f("altman_z", 2.0)
         if   z < 0.5:  risk += 0.15
         elif z < 1.23: risk += 0.11
         elif z < 1.81: risk += 0.06
         elif z < 2.99: risk += 0.02
 
-        # ── Marge nette (poids 10%) ────────────────────────────
         nm = f("net_margin", 4.0)
         if   nm < -20.0: risk += 0.10
         elif nm <  -5.0: risk += 0.07
         elif nm <   0.0: risk += 0.04
         elif nm <   1.5: risk += 0.01
 
-        # ── Couverture intérêts (poids 8%) ─────────────────────
         ci = f("couverture_interets", 3.5)
         if   ci < 0.0: risk += 0.08
         elif ci < 1.5: risk += 0.05
         elif ci < 2.5: risk += 0.02
 
-        # ── Ancienneté (bonus/malus 5%) ────────────────────────
         ans = f("annees_activite", 12.0)
         if   ans <  2: risk += 0.05
         elif ans <  5: risk += 0.02
-        elif ans > 20: risk -= 0.03   # bonus ancienneté
+        elif ans > 20: risk -= 0.03
 
-        # ── Clamp final ────────────────────────────────────────
         p_def = max(0.03, min(0.97, risk))
         return p_def, {"rf_mock": round(p_def, 4)}
 
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
     #  SHAP
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
 
     def _compute_shap(
         self, X: np.ndarray, feature_names: list[str]
@@ -448,21 +412,13 @@ class AnalyseService:
             try:
                 raw = self._explainers["rf"].shap_values(X)
 
-                # ✅ Gestion robuste de tous les formats SHAP :
-                # - list[array] → classification binaire [classe_0, classe_1]
-                # - array 3D    → (n_samples, n_features, n_classes)
-                # - array 2D    → (n_samples, n_features)
-                # - array 1D    → (n_features,)
                 if isinstance(raw, list):
-                    # Prendre classe 1 (risque faillite), première ligne
                     sv = np.array(raw[1]).flatten() if len(raw) > 1 else np.array(raw[0]).flatten()
                 else:
                     arr = np.array(raw)
                     if arr.ndim == 3:
-                        # (n_samples, n_features, n_classes) → classe 1, ligne 0
                         sv = arr[0, :, 1]
                     elif arr.ndim == 2:
-                        # (n_samples, n_features) → ligne 0
                         sv = arr[0]
                     else:
                         sv = arr.flatten()
@@ -470,7 +426,6 @@ class AnalyseService:
             except Exception as exc:
                 log.warning("SHAP error: %s — fallback importances", exc)
 
-        # Fallback : feature importances
         if sv is None and "rf" in self._models:
             try:
                 base = self._models["rf"].estimator
@@ -483,7 +438,6 @@ class AnalyseService:
         if sv is None:
             sv = np.zeros(len(feature_names))
 
-        # S'assurer que sv est bien 1D
         sv = np.array(sv).flatten()
 
         result = []
@@ -500,9 +454,9 @@ class AnalyseService:
         result.sort(key=lambda x: abs(x["value"]), reverse=True)
         return result[:6]
 
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
     #  RATIOS
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
 
     def _build_ratios_detail(
         self, raw_features: dict[str, float]
@@ -514,14 +468,10 @@ class AnalyseService:
         }
         result = []
         for key in NUMERIC_FEATURES:
-            # Exclure les méta-features internes de l'affichage
-            # altman_z → affiché dans SHAP uniquement
-            # retained_earnings_ta → feature taïwanaise interne, pas pertinente à afficher
-            # pct_missing → qualité des données, usage interne
             if key in ("pct_missing", "altman_z", "retained_earnings_ta"):
                 continue
             val   = raw_features.get(key, np.nan)
-            bench, unit, higher = BENCHMARKS.get(key, ("—", "", True))
+            bench, unit, higher = BENCHMARKS.get(key, ("-", "", True))
 
             if np.isnan(val):
                 status, score = "yellow", 50
@@ -540,14 +490,14 @@ class AnalyseService:
                 "unit":      unit,
                 "benchmark": bench,
                 "status":    status,
-                "color":     STATUS_COLORS.get(status, "#7DD3FC"),
+                "color":     STATUS_COLORS.get(status, "#8B7FF0"),
                 "score":     max(0, min(100, score)),
             })
         return result
 
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
     #  RADAR
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
 
     def _build_radar(
         self, features: dict[str, float], score: int
@@ -560,17 +510,17 @@ class AnalyseService:
 
         rng = np.random.default_rng(int(score * 137 + 42))
         return [
-            {"label": "Liquidité",   "value": pct("current_ratio", 1.5)},
-            {"label": "Rentabilité", "value": pct("roa", 5.0)},
-            {"label": "Solvabilité", "value": pct("solvabilite", 30.0)},
-            {"label": "Activité",    "value": pct("rotation_actifs", 1.0)},
+            {"label": "Liquidite",   "value": pct("current_ratio", 1.5)},
+            {"label": "Rentabilite", "value": pct("roa", 5.0)},
+            {"label": "Solvabilite", "value": pct("solvabilite", 30.0)},
+            {"label": "Activite",    "value": pct("rotation_actifs", 1.0)},
             {"label": "Croissance",  "value": min(100, max(0, score + int(rng.integers(-8, 9))))},
             {"label": "Structure",   "value": pct("debt_equity", 0.5, higher=False)},
         ]
 
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
     #  RECOMMANDATIONS
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
 
     def _generate_recommendations(
         self,
@@ -584,57 +534,57 @@ class AnalyseService:
         if not np.isnan(cr):
             if cr < 1.0:
                 recos.append({"level": "high", "icon": "fa-exclamation",
-                    "title": "Liquidité critique",
-                    "description": f"Ratio à {cr:.2f} (norme > 1.5). Risque de défaut imminent."})
+                    "title": "Liquidite critique",
+                    "description": f"Ratio a {cr:.2f} (norme > 1.5). Risque de defaut imminent."})
             elif cr < 1.5:
                 recos.append({"level": "medium", "icon": "fa-chart-line",
-                    "title": "Liquidité sous la norme",
-                    "description": f"Ratio à {cr:.2f}. Optimiser le BFR et accélérer les encaissements."})
+                    "title": "Liquidite sous la norme",
+                    "description": f"Ratio a {cr:.2f}. Optimiser le BFR et accelerer les encaissements."})
 
         de = features.get("debt_equity", np.nan)
         if not np.isnan(de):
             if de > 1.5:
                 recos.append({"level": "high", "icon": "fa-exclamation",
                     "title": "Endettement excessif",
-                    "description": f"Ratio à {de:.2f} (norme < 0.5). Plan de désendettement urgent."})
+                    "description": f"Ratio a {de:.2f} (norme < 0.5). Plan de desendettement urgent."})
             elif de > 0.5:
                 recos.append({"level": "medium", "icon": "fa-chart-line",
-                    "title": "Structure financière à optimiser",
-                    "description": f"Ratio d'endettement à {de:.2f}. Envisager un refinancement long terme."})
+                    "title": "Structure financiere a optimiser",
+                    "description": f"Ratio d'endettement a {de:.2f}. Envisager un refinancement long terme."})
 
         roa = features.get("roa", np.nan)
         if not np.isnan(roa):
             if roa < 0:
                 recos.append({"level": "high", "icon": "fa-exclamation",
-                    "title": "Rentabilité négative",
-                    "description": f"ROA à {roa:.1f}%. L'entreprise consomme plus qu'elle ne génère."})
+                    "title": "Rentabilite negative",
+                    "description": f"ROA a {roa:.1f}%. L'entreprise consomme plus qu'elle ne genere."})
             elif roa < 3.0:
                 recos.append({"level": "medium", "icon": "fa-chart-line",
-                    "title": "Rentabilité faible",
-                    "description": f"ROA à {roa:.1f}% (norme > 5%). Revoir la structure des coûts."})
+                    "title": "Rentabilite faible",
+                    "description": f"ROA a {roa:.1f}% (norme > 5%). Revoir la structure des couts."})
 
         z = features.get("altman_z", np.nan)
         if not np.isnan(z) and z < 1.2:
             recos.append({"level": "high", "icon": "fa-triangle-exclamation",
                 "title": "Score Altman Z critique",
-                "description": f"Z-score à {z:.2f} (< 1.2 = zone détresse). Risque de faillite élevé."})
+                "description": f"Z-score a {z:.2f} (< 1.2 = zone detresse). Risque de faillite eleve."})
 
         rot = features.get("rotation_actifs", np.nan)
         if not np.isnan(rot) and rot > 1.5:
             recos.append({"level": "low", "icon": "fa-seedling",
                 "title": "Bonne rotation des actifs",
-                "description": f"Rotation à {rot:.2f}. Potentiel d'investissement identifié."})
+                "description": f"Rotation a {rot:.2f}. Potentiel d'investissement identifie."})
 
         if not recos:
             recos.append({"level": "low", "icon": "fa-seedling",
-                "title": "Profil financier équilibré",
+                "title": "Profil financier equilibre",
                 "description": "Indicateurs dans les normes. Maintenir la trajectoire actuelle."})
 
         return recos[:4]
 
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
     #  HELPERS
-    # ────────────────────────────────────────────────────────────
+    # ============================================================================
 
     def _model_label(self) -> str:
         return {
@@ -652,9 +602,9 @@ class AnalyseService:
             return 0.91
 
 
-# ════════════════════════════════════════════════════════════════
+# ================================================================================
 #  SINGLETONS + HELPER
-# ════════════════════════════════════════════════════════════════
+# ================================================================================
 
 analyse_service_standard = AnalyseService("standard")
 analyse_service_premium  = AnalyseService("premium")
@@ -666,3 +616,4 @@ def get_analyse_service(plan: str) -> AnalyseService:
         "premium": analyse_service_premium,
         "extra":   analyse_service_extra,
     }.get(plan, analyse_service_standard)
+

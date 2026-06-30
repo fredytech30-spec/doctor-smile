@@ -86,8 +86,13 @@ async function handlePostAuth(user, plan, redirect) {
     localStorage.setItem('ds_load_demo', '1');
   }
 
-  // Toujours aller vers le dashboard d'abord
-  window.location.href = 'dashboard.html';
+  // Si 2FA est déjà validé, aller vers dashboard, sinon vers otp-verify.html
+  const is2FA = sessionStorage.getItem('2fa_verified');
+  if (is2FA) {
+    window.location.href = 'dashboard.html';
+  } else {
+    window.location.href = 'otp-verify.html';
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -129,30 +134,38 @@ async function handleDashboardEntry() {
 
 function patchVitrine() {
   // Nav → Connexion
-  const connexionBtn = document.querySelector('a[href="./auth.html"]');
+  const connexionBtn = document.querySelector('a[href="auth.html"].btn-ghost');
   if (connexionBtn) {
     connexionBtn.href = 'auth.html?mode=login';
   }
 
   // Nav → Démo gratuite
-  document.querySelectorAll('a[href="#contact"].btn-gold').forEach(btn => {
-    btn.removeAttribute('href');
-    btn.style.cursor = 'pointer';
-    btn.addEventListener('click', (e) => { e.preventDefault(); goToDemo(); });
+  document.querySelectorAll('a[href="auth.html"].btn-gold').forEach(btn => {
+    if (btn.textContent.includes('Démo gratuite')) {
+      btn.removeAttribute('href');
+      btn.style.cursor = 'pointer';
+      btn.addEventListener('click', (e) => { e.preventDefault(); goToDemo(); });
+    }
   });
 
-  // Hero → Démarrer gratuitement
-  document.querySelectorAll('.cta-btns .btn-gold').forEach(btn => {
+  // Hero → Démarrer gratuitement (Consulter une entreprise)
+  document.querySelectorAll('.hero-btn-standard').forEach(btn => {
     btn.removeAttribute('href');
     btn.style.cursor = 'pointer';
     btn.addEventListener('click', (e) => { e.preventDefault(); goToStandard(); });
   });
 
-  // Hero → Réserver une démo
-  document.querySelectorAll('.cta-btns .btn-glass').forEach(btn => {
+  // Hero → Voir la démo (scroll ou action)
+  document.querySelectorAll('.hero-btn-demo').forEach(btn => {
+    // Si on veut que ça scroll vers features, on laisse le href ou on gère ici
+    // Mais pour l'instant on va le laisser scroller sauf si on veut une action spécifique
+  });
+
+  // Intelligence → Assistant IA
+  document.querySelectorAll('.llm-content .btn-gold').forEach(btn => {
     btn.removeAttribute('href');
     btn.style.cursor = 'pointer';
-    btn.addEventListener('click', (e) => { e.preventDefault(); goToContact(); });
+    btn.addEventListener('click', (e) => { e.preventDefault(); goToPremium(); });
   });
 
   // Pricing → boutons des cartes
@@ -170,14 +183,24 @@ function patchVitrine() {
     }
   });
 
-  // Mobile menu → Démo gratuite
-  document.querySelectorAll('.mobile-nav .btn-gold').forEach(btn => {
-    btn.removeAttribute('href');
-    btn.addEventListener('click', (e) => { e.preventDefault(); goToDemo(); });
-  });
-
   console.log('[Nav] Vitrine patchée ✅');
 }
+
+// Exposer les fonctions sur window.DS_NAV
+window.DS_NAV = {
+  handleDashboardEntry,
+  getAuthParams,
+  handlePostAuth,
+  patchVitrine,
+  patchAuth,
+  goToLogin,
+  goToSignup,
+  goToDemo,
+  goToStandard,
+  goToPremium,
+  goToExtra,
+  goToContact,
+};
 
 // ════════════════════════════════════════════════════════════════
 //  PATCH DE AUTH.HTML
@@ -197,12 +220,12 @@ function patchAuth() {
   // Afficher le plan choisi dans le formulaire
   if (plan && plan !== 'standard') {
     const planBadge = document.getElementById('auth-plan-badge');
-    const planNames = { premium: 'Premium — 79€/mois', extra: 'Extra — 159€/mois' };
-    const planColors = { premium: '#FFD700', extra: '#a78bfa' };
+    const planNames = { premium: 'Premium · Analyses Avancées', extra: 'Extra · Full IA & API' };
+    const planColors = { premium: '#7C3AED', extra: '#FFD700' };
 
     if (planBadge) {
-      planBadge.textContent = `Plan sélectionné : ${planNames[plan] || plan}`;
-      planBadge.style.color = planColors[plan] || '#7DD3FC';
+      planBadge.textContent = `✦ Plan sélectionné : ${planNames[plan] || plan}`;
+      planBadge.style.color = planColors[plan] || '#8B7FF0';
       planBadge.style.display = 'block';
     } else {
       // Créer le badge si absent
@@ -210,13 +233,15 @@ function patchAuth() {
       if (form) {
         const badge = document.createElement('div');
         badge.style.cssText = `
-          text-align:center;padding:8px 16px;margin-bottom:16px;
-          border-radius:8px;font-size:11px;font-weight:700;
-          background:rgba(255,215,0,.08);
-          color:${planColors[plan] || '#7DD3FC'};
-          border:1px solid ${planColors[plan] || '#7DD3FC'}33;
+          text-align:center;padding:10px 16px;margin-bottom:20px;
+          border-radius:12px;font-size:11px;font-weight:800;
+          background:rgba(255,255,255,0.03);
+          color:${planColors[plan] || '#8B7FF0'};
+          border:1px solid ${planColors[plan] || '#8B7FF0'}33;
+          font-family:'Syne', sans-serif;
+          text-transform: uppercase; letter-spacing: 0.05em;
         `;
-        badge.textContent = `✦ Plan sélectionné : ${planNames[plan] || plan}`;
+        badge.innerHTML = `<i class="fa-solid fa-crown" style="margin-right:8px;"></i>${planNames[plan] || plan}`;
         form.insertBefore(badge, form.firstChild);
       }
     }
@@ -240,7 +265,7 @@ function patchAuth() {
 document.addEventListener('DOMContentLoaded', () => {
   const page = window.location.pathname.split('/').pop();
 
-  if (page === 'doctorSmile_v4.html' || page === '') {
+  if (page === 'doctorSmile_v4.html' || page === 'doctorSmile.html' || page === '') {
     patchVitrine();
   } else if (page === 'auth.html') {
     patchAuth();

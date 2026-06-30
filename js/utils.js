@@ -15,6 +15,11 @@ export function formatScore(score) {
 }
 
 export function formatCurrency(val, currency = "EUR") {
+  if (currency === 'FCFA') {
+    // Formattage simple puis suffixe 'FCFA' pour une homogénéité lisible
+    const fmt = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(val);
+    return fmt + ' FCFA';
+  }
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency }).format(val);
 }
 
@@ -107,14 +112,27 @@ export async function fetchWithAuth(url, options = {}) {
     throw new Error("Authentification requise");
   }
 
+  // ── Headers de base ───────────────────────────────────────────
   const headers = {
     "Content-Type": "application/json",
     "Authorization": `Bearer ${token}`,
-    ...(options.headers || {})
   };
 
+  // ── Header 2FA — injecté automatiquement si session active ────
+  const twoFAToken = sessionStorage.getItem('2fa_verified');
+  const twoFAUid   = sessionStorage.getItem('2fa_uid');
+  if (twoFAToken) {
+    headers['X-2FA-Verified'] = twoFAToken;
+  }
+  if (twoFAUid) {
+    headers['X-User-UID'] = twoFAUid;
+  }
+
+  // ── Fusion avec les headers fournis ───────────────────────────
+  Object.assign(headers, options.headers || {});
+
   // ✅ Retourner la Response brute — dashboard.js gère response.ok et response.json()
-  return fetch(url, { ...options, headers });
+  return fetch(url, { ...options, headers, credentials: 'same-origin' });
 }
 
 // ── Debounce ─────────────────────────────────────────────────────

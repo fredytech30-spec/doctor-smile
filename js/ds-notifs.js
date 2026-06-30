@@ -70,7 +70,7 @@ window.DS_NOTIFS = {
             title: `Analyse terminée — ${notifTitle}`,
             body: `Score ${analyse.score}/100 · Zone ${analyse.zone ?? '—'} · Modèle ${analyse.model ?? 'ML'}`,
             icon: 'fa-circle-check',
-            color: analyse.score >= 75 ? '#10b981' : analyse.score >= 50 ? '#f59e0b' : '#ef4444',
+            color: analyse.score >= 75 ? 'var(--success)' : analyse.score >= 50 ? 'var(--amber)' : 'var(--error)',
             analyseId: analyse.id, read: false, createdAt: serverTimestamp(),
           });
         } catch {}
@@ -85,9 +85,9 @@ window.DS_NOTIFS = {
   async _seedWelcome(uid, db, collection, addDoc, serverTimestamp) {
     try {
       await addDoc(collection(db, 'notifications', uid, 'items'), {
-        type: 'system', title: 'Bienvenue sur Doctor Smile ✦',
+        type: 'system', title: 'Bienvenue sur Doctor Smile',
         body: 'Chargez votre premier bilan pour obtenir votre Doctor Score™.',
-        icon: 'fa-sparkles', color: '#7DD3FC', read: false, createdAt: serverTimestamp(),
+        icon: 'fa-wand-magic-sparkles', color: 'var(--cyan)', read: false, createdAt: serverTimestamp(),
       });
     } catch {}
   },
@@ -95,7 +95,7 @@ window.DS_NOTIFS = {
   _localFallback() {
     const a = S.currentAnalyse; if (!a) return;
     if (a.score < 50)
-      this._state.list = [{ id: 'l1', title: 'Zone risque détectée', body: `Score ${a.score}/100`, icon: 'fa-triangle-exclamation', color: '#f97316', read: false, createdAt: new Date() }];
+      this._state.list = [{ id: 'l1', title: 'Zone risque détectée', body: `Score ${a.score}/100`, icon: 'fa-triangle-exclamation', color: 'var(--error)', read: false, createdAt: new Date() }];
     this._updateBadge();
   },
 
@@ -111,9 +111,9 @@ window.DS_NOTIFS = {
       badge = document.createElement('span');
       badge.id = 'notif-badge';
       badge.style.cssText = 'position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;' +
-        'background:#ef4444;border-radius:8px;font-size:8px;font-weight:900;color:#fff;' +
+        'background:var(--error);border-radius:8px;font-size:8px;font-weight:900;color:var(--text);' +
         'display:flex;align-items:center;justify-content:center;padding:0 3px;' +
-        'border:2px solid rgba(8,12,22,.9);z-index:3;pointer-events:none;transition:transform .2s;';
+        'border:2px solid var(--bg-base);z-index:3;pointer-events:none;transition:transform .2s;';
       bell.appendChild(badge);
     }
     if (unread > 0) {
@@ -144,41 +144,41 @@ window.DS_NOTIFS = {
     panel.id = '_notif_panel';
     panel.style.cssText =
       'position:fixed;top:56px;right:16px;width:340px;max-height:500px;' +
-      'z-index:9500;background:rgba(6,10,20,.98);border:1px solid rgba(125,211,252,.15);' +
-      'border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.7);backdrop-filter:blur(20px);' +
+      'z-index:9500;background:var(--bg-elevated);border:1px solid var(--border-v);' +
+      'border-radius:14px;box-shadow:var(--shadow-lg);backdrop-filter:blur(20px);' +
       'display:flex;flex-direction:column;animation:mIn .22s cubic-bezier(.16,1,.3,1);overflow:hidden;';
 
     const unreadCount = this._state.list.filter(n => !n.read).length;
     const preview = this._state.list.slice(0, 8);
 
     panel.innerHTML = `
-      <div style="padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);
+      <div style="padding:14px 16px 10px;border-bottom:1px solid var(--border);
         display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
-        <div style="font-family:Syne,sans-serif;font-size:12px;font-weight:900;color:#fff;">
-          <i class="fa-solid fa-bell" style="color:#7DD3FC;margin-right:7px;"></i>Notifications
-          ${this._state.list.length ? `<span style="font-size:9px;color:rgba(255,255,255,.3);font-weight:400;margin-left:4px;">${this._state.list.length}</span>` : ''}
+        <div style="font-family:Syne,sans-serif;font-size:12px;font-weight:900;color:var(--text);">
+          <i class="fa-solid fa-bell" style="color:var(--cyan);margin-right:7px;"></i>Notifications
+          ${this._state.list.length ? `<span style="font-size:9px;color:var(--text-hint);font-weight:400;margin-left:4px;">${this._state.list.length}</span>` : ''}
         </div>
         <div style="display:flex;gap:6px;align-items:center;">
-          ${unreadCount ? `<button id="_np_markread" style="font-size:8px;color:#7DD3FC;background:rgba(125,211,252,.08);border:1px solid rgba(125,211,252,.2);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:Syne,sans-serif;">Tout lire</button>` : ''}
-          ${this._state.list.length ? `<button id="_np_delall" style="font-size:8px;color:rgba(239,68,68,.7);background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.18);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:Syne,sans-serif;">Tout supprimer</button>` : ''}
-          <button id="_np_close" style="background:rgba(255,255,255,.07);border:none;border-radius:6px;padding:4px 8px;color:rgba(255,255,255,.4);cursor:pointer;">✕</button>
+          ${unreadCount ? `<button id="_np_markread" style="font-size:8px;color:var(--cyan);background:var(--cyan-hover);border:1px solid var(--cyan-border);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:Syne,sans-serif;">Tout lire</button>` : ''}
+          ${this._state.list.length ? `<button id="_np_delall" style="font-size:8px;color:var(--error);background:var(--error-bg);border:1px solid var(--error-border);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:Syne,sans-serif;">Tout supprimer</button>` : ''}
+          <button id="_np_close" style="background:var(--surface-3);border:none;border-radius:6px;padding:4px 8px;color:var(--text-hint);cursor:pointer;">✕</button>
         </div>
       </div>
       <div id="_ni_list" style="overflow-y:auto;flex:1;">
         ${preview.length
           ? preview.map(n => this._renderItem(n)).join('')
           : `<div style="padding:32px;text-align:center;">
-               <i class="fa-solid fa-bell-slash" style="font-size:22px;color:rgba(255,255,255,.1);display:block;margin-bottom:10px;"></i>
-               <div style="font-size:10px;color:rgba(255,255,255,.2);">Aucune notification</div>
+               <i class="fa-solid fa-bell-slash" style="font-size:22px;color:var(--text-hint);display:block;margin-bottom:10px;opacity:.3;"></i>
+               <div style="font-size:10px;color:var(--text-muted);">Aucune notification</div>
              </div>`}
       </div>
       ${this._state.list.length > 8 ? `
-      <div style="padding:10px 16px;border-top:1px solid rgba(255,255,255,.05);flex-shrink:0;text-align:center;">
-        <button id="_np_viewall" style="font-size:9px;color:#7DD3FC;background:rgba(125,211,252,.06);
-          border:1px solid rgba(125,211,252,.15);border-radius:8px;padding:7px 0;
+      <div style="padding:10px 16px;border-top:1px solid var(--border);flex-shrink:0;text-align:center;">
+        <button id="_np_viewall" style="font-size:9px;color:var(--cyan);background:var(--cyan-hover);
+          border:1px solid var(--cyan-border);border-radius:8px;padding:7px 0;
           cursor:pointer;font-family:Syne,sans-serif;font-weight:800;width:100%;transition:background .15s;"
-          onmouseenter="this.style.background='rgba(125,211,252,.12)'"
-          onmouseleave="this.style.background='rgba(125,211,252,.06)'">
+          onmouseenter="this.style.background='var(--cyan-glow)'"
+          onmouseleave="this.style.background='var(--cyan-hover)'">
           Voir toutes les notifications (${this._state.list.length})
         </button>
       </div>` : ''}`;
@@ -209,35 +209,43 @@ window.DS_NOTIFS = {
   // ── Item HTML (partagé panel + vue complète) ─────────────────
   _renderItem(n) {
     const dt = n.createdAt?.toDate ? n.createdAt.toDate() : (n.createdAt ? new Date(n.createdAt) : new Date());
-    const ago = msToHuman(Date.now() - dt);
+    const ago = (typeof window.msToHuman === 'function')
+      ? window.msToHuman(Date.now() - dt)
+      : (function(ms){
+          const s = Math.floor(ms/1000); if (isNaN(s)) return '';
+          if (s < 60) return s + 's';
+          const m = Math.floor(s/60); if (m < 60) return m + 'm';
+          const h = Math.floor(m/60); if (h < 24) return h + 'h';
+          const d = Math.floor(h/24); return d + 'j';
+        })(Date.now() - dt);
     const canReply = n.type === 'message' || n.fromUid || n.isAdmin;
     const dot = !n.read
-      ? `<span style="width:7px;height:7px;background:#7DD3FC;border-radius:50%;flex-shrink:0;margin-top:4px;align-self:flex-start;"></span>`
+      ? `<span style="width:7px;height:7px;background:var(--cyan);border-radius:50%;flex-shrink:0;margin-top:4px;align-self:flex-start;"></span>`
       : '<span style="width:7px;flex-shrink:0;"></span>';
 
     return `<div class="_ni" data-nid="${n.id}"
-      style="display:flex;gap:10px;padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.04);
-        background:${n.read ? 'transparent' : 'rgba(125,211,252,.04)'};transition:background .15s;position:relative;"
-      onmouseenter="this.querySelector('._nia').style.opacity='1';this.style.background='rgba(125,211,252,.07)'"
-      onmouseleave="this.querySelector('._nia').style.opacity='0';this.style.background='${n.read ? 'transparent' : 'rgba(125,211,252,.04)'}'">
+      style="display:flex;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border);
+        background:${n.read ? 'transparent' : 'var(--surface-2)'};transition:background .15s;position:relative;"
+      onmouseenter="this.querySelector('._nia').style.opacity='1';this.style.background='var(--cyan-glow)'"
+      onmouseleave="this.querySelector('._nia').style.opacity='0';this.style.background='${n.read ? 'transparent' : 'var(--surface-2)'}'">
 
       <div style="width:34px;height:34px;border-radius:9px;flex-shrink:0;
-        background:${n.color ?? '#7DD3FC'}18;color:${n.color ?? '#7DD3FC'};
+        background:${n.color?.startsWith('var') ? n.color : (n.color ?? 'var(--cyan)')}18;color:${n.color?.startsWith('var') ? n.color : (n.color ?? 'var(--cyan)')};
         display:flex;align-items:center;justify-content:center;font-size:13px;">
         <i class="fa-solid ${n.icon ?? 'fa-bell'}"></i>
       </div>
 
       <div style="flex:1;min-width:0;cursor:pointer;padding-right:58px;"
         onclick="window.DS_NOTIFS._onItemClick('${n.id}')">
-        <div style="font-family:Syne,sans-serif;font-size:10px;font-weight:800;color:#fff;
+        <div style="font-family:Syne,sans-serif;font-size:10px;font-weight:800;color:var(--text);
           margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
           ${escHtml(n.title ?? '')}</div>
-        <div style="font-size:9px;color:rgba(255,255,255,.45);line-height:1.5;
+        <div style="font-size:9px;color:var(--text-2);line-height:1.4;
           display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
           ${escHtml(n.body ?? '')}</div>
-        ${n.fromName ? `<div style="font-size:8px;color:rgba(255,255,255,.25);margin-top:2px;">
+        ${n.fromName ? `<div style="font-size:8px;color:var(--text-muted);margin-top:2px;">
           <i class="fa-solid fa-user" style="margin-right:3px;font-size:7px;"></i>${escHtml(n.fromName)}</div>` : ''}
-        <div style="font-size:8px;color:rgba(255,255,255,.2);margin-top:3px;">${ago}</div>
+        <div style="font-size:8px;color:var(--text-hint);margin-top:3px;">${ago}</div>
       </div>
 
       ${dot}
@@ -247,19 +255,19 @@ window.DS_NOTIFS = {
         display:flex;gap:5px;opacity:0;transition:opacity .15s;">
         ${canReply ? `<button title="Répondre"
           onclick="event.stopPropagation();window.DS_NOTIFS._openReply('${n.id}')"
-          style="width:28px;height:28px;border-radius:8px;border:1px solid rgba(125,211,252,.2);
-          background:rgba(125,211,252,.07);color:#7DD3FC;font-size:10px;cursor:pointer;
+          style="width:28px;height:28px;border-radius:8px;border:1px solid var(--cyan-border);
+          background:var(--cyan-hover);color:var(--cyan);font-size:10px;cursor:pointer;
           display:flex;align-items:center;justify-content:center;transition:background .15s;"
-          onmouseenter="this.style.background='rgba(125,211,252,.2)'"
-          onmouseleave="this.style.background='rgba(125,211,252,.07)'">
+          onmouseenter="this.style.background='var(--cyan-glow)'"
+          onmouseleave="this.style.background='var(--cyan-hover)'">
           <i class="fa-solid fa-reply"></i></button>` : ''}
         <button title="Supprimer"
           onclick="event.stopPropagation();window.DS_NOTIFS.deleteNotif('${n.id}')"
-          style="width:28px;height:28px;border-radius:8px;border:1px solid rgba(239,68,68,.18);
-          background:rgba(239,68,68,.06);color:rgba(239,68,68,.6);font-size:10px;cursor:pointer;
+          style="width:28px;height:28px;border-radius:8px;border:1px solid var(--error-border);
+          background:var(--error-bg);color:var(--error);font-size:10px;cursor:pointer;
           display:flex;align-items:center;justify-content:center;transition:all .15s;"
-          onmouseenter="this.style.background='rgba(239,68,68,.2)';this.style.color='#ef4444'"
-          onmouseleave="this.style.background='rgba(239,68,68,.06)';this.style.color='rgba(239,68,68,.6)'">
+          onmouseenter="this.style.background='var(--error-bg)';this.style.opacity='1'"
+          onmouseleave="this.style.background='var(--error-bg)';this.style.opacity='.7'">
           <i class="fa-solid fa-trash"></i></button>
       </div>
     </div>`;
@@ -294,9 +302,9 @@ window.DS_NOTIFS = {
     if (!list.length) {
       container.innerHTML = `
         <div style="text-align:center;padding:80px 20px;">
-          <i class="fa-solid fa-bell-slash" style="font-size:40px;color:rgba(255,255,255,.07);display:block;margin-bottom:16px;"></i>
-          <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.2);margin-bottom:6px;">Aucune notification</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.12);">Les analyses terminées et les messages apparaîtront ici.</div>
+          <i class="fa-solid fa-bell-slash" style="font-size:40px;color:var(--text-hint);display:block;margin-bottom:16px;opacity:.1;"></i>
+          <div style="font-size:13px;font-weight:700;color:var(--text-hint);margin-bottom:6px;">Aucune notification</div>
+          <div style="font-size:10px;color:var(--text-muted);">Les analyses terminées et les messages apparaîtront ici.</div>
         </div>`;
       return;
     }
@@ -313,8 +321,8 @@ window.DS_NOTIFS = {
     container.innerHTML = Object.entries(groups).map(([label, notifs]) => `
       <div style="margin-bottom:8px;">
         <div style="font-family:Syne,sans-serif;font-size:8px;font-weight:800;letter-spacing:.14em;
-          text-transform:uppercase;color:rgba(255,255,255,.2);padding:10px 2px 6px;">${label}</div>
-        <div style="background:rgba(6,10,20,.7);border:1px solid rgba(255,255,255,.06);border-radius:14px;overflow:hidden;">
+          text-transform:uppercase;color:var(--text-hint);padding:10px 2px 6px;">${label}</div>
+        <div style="background:var(--surface-1);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
           ${notifs.map(n => this._renderItem(n)).join('')}
         </div>
       </div>`
@@ -338,8 +346,6 @@ window.DS_NOTIFS = {
     try {
       if (this._state._fs && this._state._db) {
         const { doc, updateDoc } = this._state._fs;
-        const unread = this._state.list.filter(n => !n.read);
-        // _state.list déjà mis à jour — on filtre depuis une copie des IDs
         await Promise.all(
           this._state.list.map(n =>
             updateDoc(doc(this._state._db, 'notifications', uid, 'items', n.id), { read: true })
@@ -431,70 +437,70 @@ window.DS_NOTIFS = {
 
     const senderName  = notif.fromName || 'Doctor Smile';
     const senderIcon  = notif.icon     || 'fa-bell';
-    const senderColor = notif.color    || '#7DD3FC';
+    const senderColor = notif.color    || 'var(--cyan)';
 
     modal.innerHTML = `
-      <div style="background:rgba(6,10,20,.99);border:1px solid rgba(125,211,252,.15);
+      <div style="background:var(--bg-elevated);border:1px solid var(--border-v);
         border-radius:18px;padding:28px;max-width:500px;width:92%;
-        box-shadow:0 32px 80px rgba(0,0,0,.7);">
+        box-shadow:var(--shadow-lg);">
 
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
           <div style="display:flex;gap:12px;align-items:center;">
             <div style="width:40px;height:40px;border-radius:10px;flex-shrink:0;
-              background:${senderColor}18;color:${senderColor};
+              background:${senderColor.startsWith('var')?senderColor:senderColor}18;color:${senderColor};
               display:flex;align-items:center;justify-content:center;font-size:16px;">
               <i class="fa-solid ${senderIcon}"></i></div>
             <div>
-              <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:900;color:#fff;margin-bottom:2px;">
+              <div style="font-family:Syne,sans-serif;font-size:13px;font-weight:900;color:var(--text);margin-bottom:2px;">
                 Répondre à ${escHtml(senderName)}</div>
-              <div style="font-size:9px;color:rgba(255,255,255,.3);">
+              <div style="font-size:9px;color:var(--text-hint);">
                 <i class="fa-solid fa-reply" style="margin-right:4px;"></i>
                 En réponse à : ${escHtml((notif.title ?? '').slice(0, 52))}${(notif.title ?? '').length > 52 ? '…' : ''}</div>
             </div>
           </div>
-          <button id="_rm_close" style="background:rgba(255,255,255,.08);border:none;border-radius:8px;
-            padding:6px 10px;color:rgba(255,255,255,.4);cursor:pointer;font-size:13px;">✕</button>
+          <button id="_rm_close" style="background:var(--surface-3);border:none;border-radius:8px;
+            padding:6px 10px;color:var(--text-hint);cursor:pointer;font-size:13px;">✕</button>
         </div>
 
         <!-- Message original -->
-        <div style="padding:12px 14px;border-radius:10px;background:rgba(255,255,255,.03);
-          border:1px solid rgba(255,255,255,.06);margin-bottom:16px;">
-          <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.25);
+        <div style="padding:12px 14px;border-radius:10px;background:var(--surface-2);
+          border:1px solid var(--border);margin-bottom:16px;">
+          <div style="font-size:9px;font-weight:800;color:var(--text-hint);
             letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;">Message reçu</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.55);line-height:1.6;">${escHtml(notif.body ?? '')}</div>
+          <div style="font-size:10px;color:var(--text-2);line-height:1.6;">${escHtml(notif.body ?? '')}</div>
         </div>
 
         <div style="margin-bottom:16px;">
           <label style="font-family:Syne,sans-serif;font-size:9px;font-weight:800;
-            letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);
+            letter-spacing:.1em;text-transform:uppercase;color:var(--text-hint);
             display:block;margin-bottom:8px;">Votre réponse</label>
           <textarea id="_rm_body" rows="4" placeholder="Écrivez votre réponse… (Ctrl+Entrée pour envoyer)"
-            style="width:100%;padding:12px 14px;background:rgba(255,255,255,.04);
-              border:1px solid rgba(125,211,252,.18);border-radius:10px;
-              color:#fff;font-family:'Instrument Sans',sans-serif;font-size:11px;
+            style="width:100%;padding:12px 14px;background:var(--surface-1);
+              border:1px solid var(--cyan-border);border-radius:10px;
+              color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:11px;
               resize:none;outline:none;transition:border-color .18s,box-shadow .18s;box-sizing:border-box;"
-            onfocus="this.style.borderColor='rgba(125,211,252,.45)';this.style.boxShadow='0 0 0 3px rgba(125,211,252,.07)'"
-            onfocusout="this.style.borderColor='rgba(125,211,252,.18)';this.style.boxShadow='none'"></textarea>
-          <div style="font-size:8px;color:rgba(255,255,255,.18);margin-top:5px;text-align:right;">
+            onfocus="this.style.borderColor='var(--cyan)';this.style.boxShadow='0 0 0 3px var(--cyan-glow)'"
+            onfocusout="this.style.borderColor='var(--cyan-border)';this.style.boxShadow='none'"></textarea>
+          <div style="font-size:8px;color:var(--text-hint);margin-top:5px;text-align:right;">
             <span id="_rm_cc">0</span>/500</div>
         </div>
 
         <div style="display:flex;gap:10px;justify-content:flex-end;">
           <button id="_rm_cancel"
-            style="padding:10px 20px;border-radius:10px;border:1px solid rgba(255,255,255,.1);
-            background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);
+            style="padding:10px 20px;border-radius:10px;border:1px solid var(--border);
+            background:var(--surface-2);color:var(--text-hint);
             font-family:Syne,sans-serif;font-size:9px;font-weight:800;
             letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s;"
-            onmouseenter="this.style.background='rgba(255,255,255,.1)'"
-            onmouseleave="this.style.background='rgba(255,255,255,.05)'">Annuler</button>
+            onmouseenter="this.style.background='var(--surface-3)'"
+            onmouseleave="this.style.background='var(--surface-2)'">Annuler</button>
           <button id="_rm_send"
             style="padding:10px 24px;border-radius:10px;border:none;
-            background:linear-gradient(135deg,#7DD3FC,#38bdf8);color:#02040B;
+            background:var(--cyan);color:var(--bg-base);
             font-family:Syne,sans-serif;font-size:9px;font-weight:900;
             letter-spacing:.08em;text-transform:uppercase;cursor:pointer;
-            box-shadow:0 0 16px rgba(125,211,252,.25);transition:all .18s;"
-            onmouseenter="this.style.transform='translateY(-1px)';this.style.boxShadow='0 0 24px rgba(125,211,252,.4)'"
-            onmouseleave="this.style.transform='none';this.style.boxShadow='0 0 16px rgba(125,211,252,.25)'">
+            box-shadow:var(--shadow-md);transition:all .18s;"
+            onmouseenter="this.style.transform='translateY(-1px)';this.style.boxShadow='var(--shadow-lg)'"
+            onmouseleave="this.style.transform='none';this.style.boxShadow='var(--shadow-md)'">
             <i class="fa-solid fa-paper-plane" style="margin-right:6px;"></i>Envoyer
           </button>
         </div>
@@ -528,7 +534,7 @@ window.DS_NOTIFS = {
         if (notif.fromUid) {
           await addDoc(collection(this._state._db, 'notifications', notif.fromUid, 'items'), {
             type: 'message', title: `Réponse de ${senderName}`, body,
-            icon: 'fa-reply', color: '#7DD3FC', read: false,
+            icon: 'fa-reply', color: 'var(--cyan)', read: false,
             fromUid: uid, fromName: senderName,
             replyToId: notif.id, replyToTitle: notif.title,
             createdAt: serverTimestamp(),
@@ -543,7 +549,7 @@ window.DS_NOTIFS = {
       }
 
       modal.remove();
-      showToast('Réponse envoyée ✓', 'ok');
+      showToast('Réponse envoyée', 'ok');
     } catch(e) {
       console.error('[Reply]', e);
       if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane" style="margin-right:6px;"></i>Envoyer'; }
@@ -552,7 +558,7 @@ window.DS_NOTIFS = {
   },
 
   // ════════════════════════════════════════════════════════════
-  //  PARTAGE RAPPORT (identique v1)
+  //  PARTAGE RAPPORT
   // ════════════════════════════════════════════════════════════
 
   async shareReport(analyseId) {
@@ -582,52 +588,52 @@ window.DS_NOTIFS = {
       { id:'whatsapp', label:'WhatsApp',   icon:'fa-whatsapp',  brand:true,  color:'#25D366', url:`https://wa.me/?text=${encodeURIComponent(titre+'\n'+texte+'\n'+url)}` },
       { id:'telegram', label:'Telegram',   icon:'fa-telegram',  brand:true,  color:'#2CA5E0', url:`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(titre+'\n'+texte)}` },
       { id:'linkedin', label:'LinkedIn',   icon:'fa-linkedin',  brand:true,  color:'#0A66C2', url:`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}&summary=${encodeURIComponent(texte)}` },
-      { id:'email',    label:'Email',      icon:'fa-envelope',  brand:false, color:'#7DD3FC', url:`mailto:?subject=${encodeURIComponent(titre)}&body=${encodeURIComponent(texte+'\n\n'+url)}` },
+      { id:'email',    label:'Email',      icon:'fa-envelope',  brand:false, color:'var(--cyan)', url:`mailto:?subject=${encodeURIComponent(titre)}&body=${encodeURIComponent(texte+'\n\n'+url)}` },
       { id:'twitter',  label:'X / Twitter',icon:'fa-x-twitter', brand:true,  color:'#e2e8f0', url:`https://twitter.com/intent/tweet?text=${encodeURIComponent(titre+' — '+texte)}&url=${encodeURIComponent(url)}` },
       { id:'facebook', label:'Facebook',   icon:'fa-facebook',  brand:true,  color:'#1877F2', url:`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(texte)}` },
       { id:'slack',    label:'Slack',      icon:'fa-slack',     brand:true,  color:'#4A154B', url:`https://slack.com/intl/share?text=${encodeURIComponent(titre+'\n'+texte)}` },
-      { id:'copy',     label:'Copier lien',icon:'fa-link',      brand:false, color:'#a78bfa', url:null },
+      { id:'copy',     label:'Copier lien',icon:'fa-link',      brand:false, color:'var(--violet-2)', url:null },
     ];
 
     modal.innerHTML = `
-      <div style="background:rgba(8,12,22,.99);border:1px solid rgba(125,211,252,.15);border-radius:18px;padding:28px;max-width:480px;width:92%;animation:mIn .24s cubic-bezier(.16,1,.3,1);">
+      <div style="background:var(--bg-elevated);border:1px solid var(--border-v);border-radius:18px;padding:28px;max-width:480px;width:92%;animation:mIn .24s cubic-bezier(.16,1,.3,1);">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
           <div>
-            <div style="font-family:Syne,sans-serif;font-size:15px;font-weight:900;color:#fff;margin-bottom:4px;">
-              <i class="fa-solid fa-share-nodes" style="color:#7DD3FC;margin-right:8px;"></i>Partager le rapport</div>
-            <div style="font-size:9px;color:rgba(255,255,255,.35);">${escHtml(a.entreprise ?? 'Analyse')} · Score ${score}/100</div>
+            <div style="font-family:Syne,sans-serif;font-size:15px;font-weight:900;color:var(--text);margin-bottom:4px;">
+              <i class="fa-solid fa-share-nodes" style="color:var(--cyan);margin-right:8px;"></i>Partager le rapport</div>
+            <div style="font-size:9px;color:var(--text-hint);">${escHtml(a.entreprise ?? 'Analyse')} · Score ${score}/100</div>
           </div>
           <button onclick="document.getElementById('_share_modal')?.remove();URL.revokeObjectURL('${blobURL}')"
-            style="background:rgba(255,255,255,.08);border:none;border-radius:8px;padding:6px 12px;color:rgba(255,255,255,.45);cursor:pointer;">✕</button>
+            style="background:var(--surface-3);border:none;border-radius:8px;padding:6px 12px;color:var(--text-hint);cursor:pointer;">✕</button>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
           ${PLATFORMS.map(p=>`
             <button data-pid="${p.id}" data-url="${p.url??''}"
-              style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);cursor:pointer;transition:background .15s,border-color .15s;font-family:Syne,sans-serif;"
-              onmouseenter="this.style.background='rgba(255,255,255,.08)';this.style.borderColor='${p.color}44'"
-              onmouseleave="this.style.background='rgba(255,255,255,.03)';this.style.borderColor='rgba(255,255,255,.07)'">
+              style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;transition:all .15s;font-family:Syne,sans-serif;"
+              onmouseenter="this.style.background='var(--surface-3)';this.style.borderColor='${p.color.startsWith('var')?p.color:p.color}44'"
+              onmouseleave="this.style.background='var(--surface-2)';this.style.borderColor='var(--border)'">
               <i class="fa-${p.brand?'brands':'solid'} ${p.icon}" style="font-size:18px;color:${p.color};"></i>
-              <span style="font-size:8px;color:rgba(255,255,255,.55);font-weight:700;">${p.label}</span>
+              <span style="font-size:8px;color:var(--text-hint);font-weight:700;">${p.label}</span>
             </button>`).join('')}
         </div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-          <div style="flex:1;height:1px;background:rgba(255,255,255,.07);"></div>
-          <span style="font-size:9px;color:rgba(255,255,255,.25);">OU VIA APPAREIL</span>
-          <div style="flex:1;height:1px;background:rgba(255,255,255,.07);"></div>
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+          <span style="font-size:9px;color:var(--text-hint);">OU VIA APPAREIL</span>
+          <div style="flex:1;height:1px;background:var(--border);"></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-          <button id="_share_wifi" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:12px;border:1px solid rgba(34,197,94,.2);background:rgba(34,197,94,.05);cursor:pointer;font-family:Syne,sans-serif;" onmouseenter="this.style.background='rgba(34,197,94,.12)'" onmouseleave="this.style.background='rgba(34,197,94,.05)'">
-            <i class="fa-solid fa-wifi" style="font-size:18px;color:#22c55e;"></i>
-            <span style="font-size:8px;color:rgba(255,255,255,.55);font-weight:700;">WiFi / AirDrop</span>
+          <button id="_share_wifi" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:12px;border:1px solid var(--success-border);background:var(--success-bg);cursor:pointer;font-family:Syne,sans-serif;" onmouseenter="this.style.background='var(--success-glow)'" onmouseleave="this.style.background='var(--success-bg)'">
+            <i class="fa-solid fa-wifi" style="font-size:18px;color:var(--success);"></i>
+            <span style="font-size:8px;color:var(--text-hint);font-weight:700;">WiFi / AirDrop</span>
           </button>
-          <button id="_share_bt" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:12px;border:1px solid rgba(59,130,246,.2);background:rgba(59,130,246,.05);cursor:pointer;font-family:Syne,sans-serif;" onmouseenter="this.style.background='rgba(59,130,246,.12)'" onmouseleave="this.style.background='rgba(59,130,246,.05)'">
-            <i class="fa-solid fa-bluetooth-b" style="font-size:18px;color:#3b82f6;"></i>
-            <span style="font-size:8px;color:rgba(255,255,255,.55);font-weight:700;">Bluetooth</span>
+          <button id="_share_bt" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:12px;border:1px solid var(--cyan-border);background:var(--cyan-hover);cursor:pointer;font-family:Syne,sans-serif;" onmouseenter="this.style.background='var(--cyan-glow)'" onmouseleave="this.style.background='var(--cyan-hover)'">
+            <i class="fa-solid fa-bluetooth-b" style="font-size:18px;color:var(--cyan);"></i>
+            <span style="font-size:8px;color:var(--text-hint);font-weight:700;">Bluetooth</span>
           </button>
           <a href="${blobURL}" download="rapport-${(a.entreprise??'analyse').replace(/\s/g,'-')}.html"
-            style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:12px;border:1px solid rgba(255,215,0,.2);background:rgba(255,215,0,.05);cursor:pointer;font-family:Syne,sans-serif;text-decoration:none;" onmouseenter="this.style.background='rgba(255,215,0,.12)'" onmouseleave="this.style.background='rgba(255,215,0,.05)'">
-            <i class="fa-solid fa-download" style="font-size:18px;color:#FFD700;"></i>
-            <span style="font-size:8px;color:rgba(255,255,255,.55);font-weight:700;">Télécharger</span>
+            style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:12px;border:1px solid var(--amber-border);background:var(--amber-bg);cursor:pointer;font-family:Syne,sans-serif;text-decoration:none;" onmouseenter="this.style.background='var(--amber-glow)'" onmouseleave="this.style.background='var(--amber-bg)'">
+            <i class="fa-solid fa-download" style="font-size:18px;color:var(--amber);"></i>
+            <span style="font-size:8px;color:var(--text-hint);font-weight:700;">Télécharger</span>
           </a>
         </div>
       </div>`;
@@ -639,7 +645,7 @@ window.DS_NOTIFS = {
       btn.addEventListener('click', async () => {
         const pid = btn.dataset.pid, purl = btn.dataset.url;
         if (pid === 'copy') {
-          try { await navigator.clipboard.writeText(url); showToast('Lien copié ✓','ok'); }
+          try { await navigator.clipboard.writeText(url); showToast('Lien copié','ok'); }
           catch { showToast('Impossible de copier','warn'); }
           modal.remove(); return;
         }
@@ -651,7 +657,7 @@ window.DS_NOTIFS = {
       if (navigator.share) {
         try {
           await navigator.share({ title:titre, text:texte, url, files:[new File([blob],`rapport-${a.entreprise??'analyse'}.html`,{type:'text/html'})] });
-          showToast('Partagé via WiFi/AirDrop ✓','ok'); modal.remove();
+          showToast('Partagé via WiFi/AirDrop','ok'); modal.remove();
         } catch(err) { if (err.name!=='AbortError') { try { await navigator.share({title:titre,text:texte,url}); modal.remove(); } catch {} } }
       } else { showToast('Partagez via votre navigateur (F12 → Share)','info'); }
     });

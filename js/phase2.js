@@ -1,14 +1,7 @@
 // ════════════════════════════════════════════════════════════════
 //  phase2.js — Doctor Smile · Phase 2
-//  ─────────────────────────────────────────────────────────────
-//  ① Prévision trésorerie IA 12 mois  (3 scénarios driver-based)
-//  ② Détection alerte précoce          (trajectoire + signal faible)
-//  ③ Workspace multi-entreprises       (cabinet comptable)
-//  ④ Score de crédit bankable          (dossier banque BICEC/Afriland)
-//  ─────────────────────────────────────────────────────────────
-//  Intégration : <script type="module" src="./js/phase2.js"></script>
-//  (après phase1.js dans dashboard.html)
-//  S'auto-greffe sur DS_VIEWS et nav existante.
+//  Palette harmonisée avec le design system (violet/cyan/amber)
+//  Toutes les couleurs inline remplacées par des variables CSS.
 // ════════════════════════════════════════════════════════════════
 
 // ── CSS Phase 2 ───────────────────────────────────────────────
@@ -18,32 +11,33 @@
   st.id = '_p2_css';
   st.textContent = `
 
-/* ══ Variables communes Phase 2 ═══════════════════════════════ */
+/* ══ Variables communes Phase 2 (utilisent les variables globales) ══ */
 :root {
-  --p2-teal:   #2DD4BF;
-  --p2-amber:  #F59E0B;
-  --p2-violet: #8B5CF6;
-  --p2-rose:   #F43F5E;
-  --p2-gold:   #FFD700;
-  --p2-ice:    #7DD3FC;
-  --p2-card:   rgba(10,14,26,.97);
-  --p2-border: rgba(125,211,252,.12);
-  --p2-surf:   rgba(255,255,255,.03);
+  /* Aliases locaux pour lisibilité, tous basés sur les variables globales */
+  --p2-teal:   var(--color-success);        /* #10b981 → teal */
+  --p2-amber:  var(--color-accent);         /* #F59E0B */
+  --p2-violet: var(--violet);               /* #8B7FF0 → violet */
+  --p2-rose:   var(--color-error);          /* #F43F5E → rouge */
+  --p2-gold:   var(--color-accent);         /* #FFD700 → accent */
+  --p2-ice:    var(--color-primary-dark);    /* #8B7FF0 → cyan */
+  --p2-card:   var(--bg-elevated);
+  --p2-border: var(--border-v);
+  --p2-surf:   var(--surface-2);
 }
 
 /* ══ Nav items Phase 2 ═════════════════════════════════════════ */
 .p2-nav-item {
   width:44px;height:44px;border-radius:11px;display:flex;align-items:center;
-  justify-content:center;cursor:pointer;font-size:16px;color:rgba(255,255,255,.3);
+  justify-content:center;cursor:pointer;font-size:16px;color:var(--text-muted);
   transition:all .2s;position:relative;
 }
-.p2-nav-item:hover { color:var(--p2-ice);background:rgba(125,211,252,.08); }
-.p2-nav-item.active { color:var(--p2-gold);background:rgba(255,215,0,.1); }
+.p2-nav-item:hover { color:var(--p2-ice);background:var(--violet-hover); }
+.p2-nav-item.active { color:var(--p2-gold);background:var(--accent-bg); }
 .p2-nav-item .nav-tip {
   position:absolute;left:calc(100% + 10px);background:var(--p2-card);
   border:1px solid var(--p2-border);border-radius:8px;padding:5px 10px;
   font-family:'Syne',sans-serif;font-size:9px;font-weight:700;white-space:nowrap;
-  color:#fff;opacity:0;transform:translateX(-6px);transition:all .18s;
+  color:var(--text);opacity:0;transform:translateX(-6px);transition:all .18s;
   pointer-events:none;z-index:100;
 }
 .p2-nav-item:hover .nav-tip { opacity:1;transform:translateX(0); }
@@ -58,11 +52,10 @@
 }
 .p2-view-title {
   font-family:'Syne',sans-serif;font-size:clamp(18px,1.6vw,26px);
-  font-weight:900;letter-spacing:-.02em;color:#fff;
+  font-weight:900;letter-spacing:-.02em;color:var(--text);
 }
-.p2-view-title .g { background:linear-gradient(90deg,var(--p2-teal),var(--p2-ice));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent; }
-.p2-view-sub { font-size:10px;color:rgba(255,255,255,.3);margin-top:3px; }
+.p2-view-title .g { background: linear-gradient(135deg, var(--violet-3), var(--cyan-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.p2-view-sub { font-size:10px;color:var(--text-hint);margin-top:3px; }
 
 /* ══ Cards génériques ══════════════════════════════════════════ */
 .p2-card {
@@ -71,11 +64,11 @@
 }
 .p2-card::before {
   content:'';position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(125,211,252,.15),transparent);
+  background:linear-gradient(90deg,transparent,var(--violet-border),transparent);
 }
 .p2-card-title {
   font-family:'Syne',sans-serif;font-size:10px;font-weight:800;
-  letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);
+  letter-spacing:.1em;text-transform:uppercase;color:var(--text-hint);
   margin-bottom:14px;display:flex;align-items:center;gap:8px;
 }
 .p2-card-title i { font-size:11px; }
@@ -93,19 +86,19 @@
 }
 .p2-kpi-val {
   font-family:'Syne',sans-serif;font-size:clamp(18px,1.5vw,26px);
-  font-weight:900;letter-spacing:-.03em;color:#fff;
+  font-weight:900;letter-spacing:-.03em;color:var(--text);
 }
 .p2-kpi-lbl {
-  font-size:9px;color:rgba(255,255,255,.3);letter-spacing:.05em;
+  font-size:9px;color:var(--text-hint);letter-spacing:.05em;
   text-transform:uppercase;margin-top:4px;
 }
 .p2-kpi-trend {
   font-family:'Syne',sans-serif;font-size:8px;font-weight:800;
   padding:2px 7px;border-radius:100px;margin-top:6px;display:inline-block;
 }
-.p2-kpi-up { background:rgba(45,212,191,.1);color:var(--p2-teal); }
-.p2-kpi-dn { background:rgba(244,63,94,.1);color:var(--p2-rose); }
-.p2-kpi-flat { background:rgba(255,255,255,.06);color:rgba(255,255,255,.3); }
+.p2-kpi-up { background:var(--success-bg);color:var(--color-success); }
+.p2-kpi-dn { background:var(--error-bg);color:var(--color-error); }
+.p2-kpi-flat { background:rgba(255,255,255,.06);color:var(--text-hint); }
 
 /* ══ Boutons ═══════════════════════════════════════════════════ */
 .p2-btn {
@@ -114,15 +107,15 @@
   transition:all .18s;border:1px solid transparent;display:inline-flex;
   align-items:center;gap:6px;white-space:nowrap;
 }
-.p2-btn-primary { background:rgba(45,212,191,.1);border-color:rgba(45,212,191,.3);color:var(--p2-teal); }
-.p2-btn-primary:hover { background:rgba(45,212,191,.2);transform:translateY(-1px); }
-.p2-btn-gold { background:rgba(255,215,0,.1);border-color:rgba(255,215,0,.3);color:var(--p2-gold); }
-.p2-btn-gold:hover { background:rgba(255,215,0,.2); }
-.p2-btn-violet { background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.3);color:var(--p2-violet); }
-.p2-btn-violet:hover { background:rgba(139,92,246,.2); }
-.p2-btn-neutral { background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);color:rgba(255,255,255,.5); }
-.p2-btn-neutral:hover { background:rgba(255,255,255,.1);color:#fff; }
-.p2-btn-danger { background:rgba(244,63,94,.08);border-color:rgba(244,63,94,.25);color:var(--p2-rose); }
+.p2-btn-primary { background:var(--success-bg);border-color:var(--success-border);color:var(--color-success); }
+.p2-btn-primary:hover { background:rgba(16,185,129,.2);transform:translateY(-1px); }
+.p2-btn-gold { background:var(--accent-bg);border-color:var(--accent-border);color:var(--color-accent); }
+.p2-btn-gold:hover { background:rgba(245,158,11,.2); }
+.p2-btn-violet { background:var(--violet-bg);border-color:var(--violet-border);color:var(--violet-3); }
+.p2-btn-violet:hover { background:var(--violet-hover); }
+.p2-btn-neutral { background:rgba(255,255,255,.04);border-color:var(--border);color:var(--text-2); }
+.p2-btn-neutral:hover { background:rgba(255,255,255,.1);color:var(--text); }
+.p2-btn-danger { background:var(--error-bg);border-color:var(--error-border);color:var(--color-error); }
 
 /* ══ Tags / Badges ══════════════════════════════════════════════ */
 .p2-badge {
@@ -130,11 +123,11 @@
   border-radius:100px;font-family:'Syne',sans-serif;font-size:7.5px;
   font-weight:800;letter-spacing:.08em;text-transform:uppercase;
 }
-.p2-badge-teal { background:rgba(45,212,191,.1);border:1px solid rgba(45,212,191,.2);color:var(--p2-teal); }
-.p2-badge-amber { background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:var(--p2-amber); }
-.p2-badge-rose { background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:var(--p2-rose); }
-.p2-badge-violet { background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.2);color:var(--p2-violet); }
-.p2-badge-gold { background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.2);color:var(--p2-gold); }
+.p2-badge-teal { background:var(--success-bg);border:1px solid var(--success-border);color:var(--color-success); }
+.p2-badge-amber { background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--color-accent); }
+.p2-badge-rose { background:var(--error-bg);border:1px solid var(--error-border);color:var(--color-error); }
+.p2-badge-violet { background:var(--violet-bg);border:1px solid var(--violet-border);color:var(--violet-3); }
+.p2-badge-gold { background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--color-accent); }
 
 /* ══ ① PRÉVISION TRÉSORERIE ════════════════════════════════════ */
 #p2-forecast-chart-wrap {
@@ -146,20 +139,20 @@
   font-size:9px;font-weight:800;letter-spacing:.06em;cursor:pointer;
   border:1px solid transparent;transition:all .2s;
 }
-.p2-scenario-tab.active-opt  { background:rgba(45,212,191,.12);border-color:rgba(45,212,191,.3);color:var(--p2-teal); }
-.p2-scenario-tab.active-neu  { background:rgba(125,211,252,.1);border-color:rgba(125,211,252,.25);color:var(--p2-ice); }
-.p2-scenario-tab.active-pes  { background:rgba(244,63,94,.1);border-color:rgba(244,63,94,.25);color:var(--p2-rose); }
-.p2-scenario-tab:not([class*="active"]) { background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.08);color:rgba(255,255,255,.3); }
+.p2-scenario-tab.active-opt  { background:var(--success-bg);border-color:var(--success-border);color:var(--color-success); }
+.p2-scenario-tab.active-neu  { background:var(--violet-bg);border-color:var(--violet-border);color:var(--violet-3); }
+.p2-scenario-tab.active-pes  { background:var(--error-bg);border-color:var(--error-border);color:var(--color-error); }
+.p2-scenario-tab:not([class*="active"]) { background:rgba(255,255,255,.03);border-color:var(--border);color:var(--text-2); }
 .p2-fc-month-row {
   display:grid;grid-template-columns:80px repeat(3,1fr);gap:1px;
-  font-size:9px;border-bottom:1px solid rgba(255,255,255,.04);
+  font-size:9px;border-bottom:1px solid var(--border);
   padding:7px 0;
 }
 .p2-fc-month-row:hover { background:rgba(255,255,255,.02); }
 .p2-fc-month-row.header {
   font-family:'Syne',sans-serif;font-size:8px;font-weight:800;
-  letter-spacing:.08em;color:rgba(255,255,255,.25);text-transform:uppercase;
-  padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,.08);
+  letter-spacing:.08em;color:var(--text-hint);text-transform:uppercase;
+  padding-bottom:9px;border-bottom:1px solid var(--border);
 }
 
 /* ══ ② ALERTES PRÉCOCES ════════════════════════════════════════ */
@@ -169,9 +162,9 @@
   border:1px solid transparent;transition:all .2s;
 }
 .p2-alert-card:hover { transform:translateY(-2px); }
-.p2-alert-sev-3 { background:rgba(244,63,94,.06);border-color:rgba(244,63,94,.2); }
-.p2-alert-sev-2 { background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.18); }
-.p2-alert-sev-1 { background:rgba(45,212,191,.04);border-color:rgba(45,212,191,.15); }
+.p2-alert-sev-3 { background:var(--error-bg);border-color:var(--error-border); }
+.p2-alert-sev-2 { background:var(--accent-bg);border-color:var(--accent-border); }
+.p2-alert-sev-1 { background:var(--success-bg);border-color:var(--success-border); }
 .p2-alert-icon {
   width:36px;height:36px;border-radius:10px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;font-size:15px;
@@ -189,7 +182,7 @@
   transition:all .22s;position:relative;overflow:hidden;
 }
 .p2-client-card:hover {
-  border-color:rgba(125,211,252,.25);
+  border-color:var(--violet-border);
   box-shadow:0 12px 40px rgba(0,0,0,.4);
   transform:translateY(-2px);
 }
@@ -211,10 +204,10 @@
 }
 .p2-stat-pill-val {
   font-family:'Syne',sans-serif;font-size:22px;font-weight:900;
-  color:#fff;letter-spacing:-.03em;
+  color:var(--text);letter-spacing:-.03em;
 }
 .p2-stat-pill-lbl {
-  font-size:8.5px;color:rgba(255,255,255,.3);margin-top:4px;
+  font-size:8.5px;color:var(--text-hint);margin-top:4px;
   letter-spacing:.06em;text-transform:uppercase;
 }
 
@@ -234,26 +227,26 @@
 }
 .p2-credit-table th {
   font-family:'Syne',sans-serif;font-size:8px;font-weight:800;
-  letter-spacing:.1em;color:rgba(255,255,255,.25);text-transform:uppercase;
-  padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);
+  letter-spacing:.1em;color:var(--text-hint);text-transform:uppercase;
+  padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);
 }
 .p2-credit-table td {
-  padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);
-  color:rgba(255,255,255,.7);
+  padding:10px 12px;border-bottom:1px solid var(--border);
+  color:var(--text-2);
 }
 .p2-credit-table tr:hover td { background:rgba(255,255,255,.02); }
 .p2-print-btn {
   position:fixed;bottom:28px;right:28px;z-index:7000;
   padding:12px 22px;border-radius:12px;
-  background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(45,212,191,.15));
-  border:1px solid rgba(139,92,246,.4);color:var(--p2-violet);
+  background:linear-gradient(135deg,var(--violet-bg),var(--success-bg));
+  border:1px solid var(--violet-border);color:var(--violet-3);
   font-family:'Syne',sans-serif;font-size:10px;font-weight:800;
   letter-spacing:.06em;cursor:pointer;transition:all .22s;
   display:none;align-items:center;gap:8px;
-  box-shadow:0 8px 32px rgba(139,92,246,.2);
+  box-shadow:0 8px 32px var(--violet-glow);
 }
 .p2-print-btn.show { display:flex; }
-.p2-print-btn:hover { transform:translateY(-2px);box-shadow:0 16px 48px rgba(139,92,246,.3); }
+.p2-print-btn:hover { transform:translateY(-2px);box-shadow:0 16px 48px var(--violet-glow); }
 
 /* ══ Animations ════════════════════════════════════════════════ */
 @keyframes p2FadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -265,7 +258,7 @@
 /* ══ Table de données ══════════════════════════════════════════ */
 .p2-data-empty {
   text-align:center;padding:60px 20px;
-  font-size:11px;color:rgba(255,255,255,.2);
+  font-size:11px;color:var(--text-hint);
 }
 .p2-data-empty i {
   font-size:32px;display:block;margin-bottom:12px;opacity:.15;
@@ -305,9 +298,9 @@ function _p2fmt(n, dec = 0) {
 function _p2fmtK(n) {
   if (n == null || isNaN(n)) return '—';
   const abs = Math.abs(n);
-  if (abs >= 1_000_000) return (n / 1_000_000).toFixed(1) + ' M€';
-  if (abs >= 1_000)     return (n / 1_000).toFixed(0) + ' k€';
-  return n + ' €';
+  if (abs >= 1_000_000) return (n / 1_000_000).toFixed(1) + ' M FCFA';
+  if (abs >= 1_000)     return (n / 1_000).toFixed(0) + ' k FCFA';
+  return n + ' FCFA';
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -316,10 +309,9 @@ function _p2fmtK(n) {
 
 const P2_FORECAST = (() => {
 
-  let _scenario = 'neutral'; // optimistic | neutral | pessimistic
+  let _scenario = 'neutral';
   let _data     = null;
 
-  // ── Génère les projections localement si API hors ligne ────
   function _computeLocal(analyse) {
     const ratios  = analyse?.ratios || [];
     const score   = analyse?.score  || 50;
@@ -327,20 +319,18 @@ const P2_FORECAST = (() => {
     const getRatio = (name) => ratios.find(r =>
       r.name?.toLowerCase().includes(name.toLowerCase()))?.value ?? null;
 
-    const ca       = analyse?.chiffre_affaires || 5000;  // k€ fallback
+    const ca       = analyse?.chiffre_affaires || 5000;
     const treso    = getRatio('trésor') ?? getRatio('cash') ?? (ca * 0.08);
     const bfr_pct  = getRatio('bfr') ?? (ca * 0.15);
     const marge_net = getRatio('marge nette') ?? (score / 20);
     const couv_int  = getRatio('couverture') ?? 3.5;
 
-    // Taux de croissance CA par scénario
     const caGrowth = {
-      optimistic:  1.015,   // +1.5%/mois
-      neutral:     1.005,   // +0.5%/mois
-      pessimistic: 0.995,   // -0.5%/mois
+      optimistic:  1.015,
+      neutral:     1.005,
+      pessimistic: 0.995,
     };
 
-    // Taux de consommation tréso par scénario
     const trGrowth = {
       optimistic:  1.01,
       neutral:     1.00,
@@ -379,7 +369,6 @@ const P2_FORECAST = (() => {
     });
   }
 
-  // ── Rendu SVG du graphe ────────────────────────────────────
   function _drawChart(months, key) {
     const svg = document.getElementById('p2-forecast-svg');
     if (!svg) return;
@@ -390,13 +379,16 @@ const P2_FORECAST = (() => {
     const cW = W - PAD.l - PAD.r;
     const cH = H - PAD.t - PAD.b;
 
-    const COLS = { optimistic:'#2DD4BF', neutral:'#7DD3FC', pessimistic:'#F43F5E' };
-    const scenarios = ['pessimistic','neutral','optimistic'];
-    const col = COLS[key];
+    // Utiliser les variables CSS pour les couleurs des scénarios
+    const cols = {
+      optimistic:  'var(--color-success)',
+      neutral:     'var(--violet-3)',
+      pessimistic: 'var(--color-error)'
+    };
+    const col = cols[key] || 'var(--violet-3)';
 
-    // Calculer min/max
     const vals = months.flatMap(m =>
-      scenarios.map(s => m[s].tresorie)
+      Object.keys(cols).map(s => m[s].tresorie)
     );
     const vMin = Math.min(...vals) * 0.9;
     const vMax = Math.max(...vals) * 1.1;
@@ -405,37 +397,32 @@ const P2_FORECAST = (() => {
     const xOf = (i) => PAD.l + (i / (months.length - 1)) * cW;
     const yOf = (v) => PAD.t + cH - ((v - vMin) / vRange) * cH;
 
-    // Zone confiante (optimistic - pessimistic)
     const area = [
       ...months.map((m, i) => `${i===0?'M':'L'}${xOf(i)},${yOf(m.optimistic.tresorie)}`),
       ...months.slice().reverse().map((m, i, arr) => `L${xOf(arr.length-1-i)},${yOf(m.pessimistic.tresorie)}`),
       'Z'
     ].join(' ');
 
-    // Ligne sélectionnée
     const line = months.map((m, i) =>
       `${i===0?'M':'L'}${xOf(i)},${yOf(m[key].tresorie)}`
     ).join(' ');
 
-    // Labels mois
     const labels = months.map((m, i) =>
       `<text x="${xOf(i)}" y="${H-8}" text-anchor="middle"
         font-family="'Syne',sans-serif" font-size="8"
-        fill="rgba(255,255,255,.25)">${m.label}</text>`
+        fill="var(--text-hint)">${m.label}</text>`
     ).join('');
 
-    // Axe Y (3 valeurs)
     const yAxis = [0, 0.5, 1].map(f => {
       const v = vMin + f * vRange;
       const y = yOf(v);
       return `<text x="${PAD.l - 8}" y="${y + 4}" text-anchor="end"
         font-family="'Syne',sans-serif" font-size="8"
-        fill="rgba(255,255,255,.2)">${_p2fmtK(v)}</text>
+        fill="var(--text-hint)">${_p2fmtK(v)}</text>
         <line x1="${PAD.l}" y1="${y}" x2="${W - PAD.r}" y2="${y}"
-          stroke="rgba(255,255,255,.05)" stroke-width="1"/>`;
+          stroke="var(--border)" stroke-width="1"/>`;
     }).join('');
 
-    // Points tooltips (cercles visibles pour le scénario actif)
     const dots = months.map((m, i) => {
       const v = m[key].tresorie;
       const cx = xOf(i), cy = yOf(v);
@@ -452,7 +439,7 @@ const P2_FORECAST = (() => {
           <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
       ${yAxis}
-      <path d="${area}" fill="rgba(125,211,252,.04)" stroke="none"/>
+      <path d="${area}" fill="var(--violet-bg)" stroke="none"/>
       <path d="${line}" fill="none" stroke="${col}" stroke-width="2.5"
         stroke-linecap="round" stroke-linejoin="round" filter="url(#p2glow)"/>
       ${dots}
@@ -464,19 +451,23 @@ const P2_FORECAST = (() => {
     const wrap = document.getElementById('p2-forecast-table');
     if (!wrap) return;
 
-    const COLS = { optimistic:'var(--p2-teal)', neutral:'var(--p2-ice)', pessimistic:'var(--p2-rose)' };
+    const COLS = {
+      optimistic:  'var(--color-success)',
+      neutral:     'var(--violet-3)',
+      pessimistic: 'var(--color-error)'
+    };
 
     wrap.innerHTML = `
       <div class="p2-fc-month-row header">
         <div>Mois</div>
-        <div style="color:var(--p2-teal);">Optimiste</div>
-        <div style="color:var(--p2-ice);">Neutre</div>
-        <div style="color:var(--p2-rose);">Pessimiste</div>
+        <div style="color:var(--color-success);">Optimiste</div>
+        <div style="color:var(--violet-3);">Neutre</div>
+        <div style="color:var(--color-error);">Pessimiste</div>
       </div>
       ${months.map(m => `
         <div class="p2-fc-month-row">
           <div style="font-family:'Syne',sans-serif;font-size:9px;font-weight:700;
-            color:rgba(255,255,255,.5);">${m.label}</div>
+            color:var(--text-2);">${m.label}</div>
           ${['optimistic','neutral','pessimistic'].map(s => `
             <div style="font-family:'JetBrains Mono',monospace;font-size:9px;
               color:${COLS[s]};font-weight:${_scenario===s?'700':'400'};">
@@ -564,15 +555,15 @@ const P2_FORECAST = (() => {
         <!-- Graphe -->
         <div class="p2-card p2-fu" style="margin-bottom:14px;">
           <div class="p2-card-title">
-            <i class="fa-solid fa-chart-area" style="color:var(--p2-teal);"></i>
+            <i class="fa-solid fa-chart-area" style="color:var(--color-success);"></i>
             Évolution de la trésorerie projetée
           </div>
           <div id="p2-forecast-chart-wrap">
             <svg id="p2-forecast-svg" viewBox="0 0 800 220" preserveAspectRatio="none"></svg>
           </div>
           <div style="display:flex;gap:18px;justify-content:center;margin-top:8px;">
-            ${[['var(--p2-teal)','Optimiste'],['var(--p2-ice)','Neutre'],['var(--p2-rose)','Pessimiste']].map(([c,l])=>`
-              <div style="display:flex;align-items:center;gap:5px;font-size:9px;color:rgba(255,255,255,.4);">
+            ${[['var(--color-success)','Optimiste'],['var(--violet-3)','Neutre'],['var(--color-error)','Pessimiste']].map(([c,l])=>`
+              <div style="display:flex;align-items:center;gap:5px;font-size:9px;color:var(--text-2);">
                 <span style="width:24px;height:2px;background:${c};border-radius:2px;display:inline-block;"></span>${l}
               </div>`).join('')}
           </div>
@@ -581,7 +572,7 @@ const P2_FORECAST = (() => {
         <!-- Tableau mensuel -->
         <div class="p2-card p2-fu">
           <div class="p2-card-title">
-            <i class="fa-solid fa-table" style="color:var(--p2-ice);"></i>
+            <i class="fa-solid fa-table" style="color:var(--violet-3);"></i>
             Détail mensuel — trésorerie fin de mois
           </div>
           <div id="p2-forecast-table" style="overflow-x:auto;"></div>
@@ -590,10 +581,10 @@ const P2_FORECAST = (() => {
         <!-- Hypothèses -->
         <div class="p2-card p2-fu" style="margin-top:14px;">
           <div class="p2-card-title">
-            <i class="fa-solid fa-sliders" style="color:var(--p2-amber);"></i>
+            <i class="fa-solid fa-sliders" style="color:var(--color-accent);"></i>
             Hypothèses du modèle
           </div>
-          <div class="p2-grid-3" style="font-size:10px;color:rgba(255,255,255,.55);gap:8px;">
+          <div class="p2-grid-3" style="font-size:10px;color:var(--text-2);gap:8px;">
             ${[
               ['Croissance CA optimiste','+1.5%/mois'],
               ['Croissance CA neutre',   '+0.5%/mois'],
@@ -604,16 +595,15 @@ const P2_FORECAST = (() => {
             ].map(([k,v])=>`
               <div style="background:var(--p2-surf);border:1px solid var(--p2-border);
                 border-radius:9px;padding:10px 12px;">
-                <div style="font-size:8px;color:rgba(255,255,255,.25);margin-bottom:3px;
+                <div style="font-size:8px;color:var(--text-hint);margin-bottom:3px;
                   font-family:'Syne',sans-serif;font-weight:800;letter-spacing:.06em;">${k}</div>
-                <div style="color:#fff;font-weight:600;">${v}</div>
+                <div style="color:var(--text);font-weight:600;">${v}</div>
               </div>`).join('')}
           </div>
         </div>
 
       </div>`;
 
-    // Render charts + table
     requestAnimationFrame(() => {
       setScenario('neutral');
       _renderTable(_data);
@@ -645,7 +635,6 @@ const P2_ALERTS = (() => {
     const last = sorted[sorted.length - 1];
     const prev = sorted[sorted.length - 2];
 
-    // ── Analyse de trajectoire ───────────────────────────────
     if (prev && last) {
       const scoreDelta = (last.score || 50) - (prev.score || 50);
       const scoreDeltaPct = (scoreDelta / (prev.score || 50)) * 100;
@@ -656,8 +645,8 @@ const P2_ALERTS = (() => {
           title: 'Dégradation rapide du score',
           desc: `Score passé de ${prev.score} à ${last.score}/100 (${scoreDelta.toFixed(0)} pts) — dégradation de ${Math.abs(scoreDeltaPct).toFixed(0)}% sur la dernière période.`,
           icon: 'fa-chart-line-down',
-          color: 'var(--p2-rose)',
-          bg:    'rgba(244,63,94,.08)',
+          color: 'var(--color-error)',
+          bg:    'var(--error-bg)',
           action: 'Analyser les causes',
           delta: scoreDelta,
         });
@@ -667,14 +656,13 @@ const P2_ALERTS = (() => {
           title: 'Signal faible — score en baisse',
           desc: `Recul de ${Math.abs(scoreDelta)} pts détecté. Tendance à surveiller sur les 2 prochains mois.`,
           icon: 'fa-triangle-exclamation',
-          color: 'var(--p2-amber)',
-          bg:    'rgba(245,158,11,.06)',
+          color: 'var(--color-accent)',
+          bg:    'var(--accent-bg)',
           delta: scoreDelta,
         });
       }
     }
 
-    // ── Ratios critiques de la dernière analyse ───────────────
     const ratios = last?.ratios || last?.financialRatios || [];
     const redRatios = ratios.filter(r => r.status === 'red' || r.color === '#ef4444');
 
@@ -684,8 +672,8 @@ const P2_ALERTS = (() => {
         title: 'Accumulation de ratios critiques',
         desc: `${redRatios.length} ratios sont en zone rouge : ${redRatios.slice(0,3).map(r=>r.name).join(', ')}…`,
         icon: 'fa-circle-exclamation',
-        color: 'var(--p2-rose)',
-        bg:    'rgba(244,63,94,.08)',
+        color: 'var(--color-error)',
+        bg:    'var(--error-bg)',
         action: 'Voir les ratios',
       });
     } else if (redRatios.length >= 2) {
@@ -694,12 +682,11 @@ const P2_ALERTS = (() => {
         title: 'Ratios sous les seuils critiques',
         desc: `${redRatios.map(r=>r.name).join(' · ')} nécessitent une attention immédiate.`,
         icon: 'fa-gauge-high',
-        color: 'var(--p2-amber)',
-        bg:    'rgba(245,158,11,.06)',
+        color: 'var(--color-accent)',
+        bg:    'var(--accent-bg)',
       });
     }
 
-    // ── Liquidité ─────────────────────────────────────────────
     const liq = ratios.find(r => r.name?.toLowerCase().includes('liquidit'));
     if (liq?.value != null && liq.value < 0.8) {
       alerts.push({
@@ -707,14 +694,13 @@ const P2_ALERTS = (() => {
         title: 'Risque de rupture de trésorerie',
         desc: `Liquidité générale à ${liq.value?.toFixed(2)} (seuil critique < 0.8). Capacité à honorer les dettes CT compromise.`,
         icon: 'fa-droplet-slash',
-        color: 'var(--p2-rose)',
-        bg:    'rgba(244,63,94,.08)',
+        color: 'var(--color-error)',
+        bg:    'var(--error-bg)',
         action: 'Voir prévision trésorerie',
         actionFn: () => window.DS_VIEWS?.navTo?.('forecast'),
       });
     }
 
-    // ── Altman Z-score ────────────────────────────────────────
     const az = last?.altman_z ?? null;
     if (az !== null && az < 1.23) {
       alerts.push({
@@ -722,8 +708,8 @@ const P2_ALERTS = (() => {
         title: 'Zone de détresse financière — Altman Z',
         desc: `Score Altman Z = ${az?.toFixed(2)} (< 1.23 = zone critique). Risque de défaillance élevé selon modèle Altman révisé Europe.`,
         icon: 'fa-skull-crossbones',
-        color: 'var(--p2-rose)',
-        bg:    'rgba(244,63,94,.08)',
+        color: 'var(--color-error)',
+        bg:    'var(--error-bg)',
       });
     } else if (az !== null && az < 2.0) {
       alerts.push({
@@ -731,20 +717,19 @@ const P2_ALERTS = (() => {
         title: 'Zone grise — Altman Z',
         desc: `Score Altman Z = ${az?.toFixed(2)} (zone grise 1.23–2.0). Surveillance recommandée.`,
         icon: 'fa-circle-half-stroke',
-        color: 'var(--p2-amber)',
-        bg:    'rgba(245,158,11,.06)',
+        color: 'var(--color-accent)',
+        bg:    'var(--accent-bg)',
       });
     }
 
-    // ── Si tout va bien ───────────────────────────────────────
     if (!alerts.length) {
       alerts.push({
         sev: 1,
         title: 'Aucun signal d\'alerte détecté',
         desc: `Tous les indicateurs sont dans des plages acceptables. Prochain contrôle recommandé dans 30 jours.`,
         icon: 'fa-shield-check',
-        color: 'var(--p2-teal)',
-        bg:    'rgba(45,212,191,.06)',
+        color: 'var(--color-success)',
+        bg:    'var(--success-bg)',
       });
     }
 
@@ -786,7 +771,7 @@ const P2_ALERTS = (() => {
         <!-- Trajectoire du score -->
         <div class="p2-grid-2 p2-fu" style="margin-bottom:16px;">
           <div class="p2-card">
-            <div class="p2-card-title"><i class="fa-solid fa-chart-line" style="color:var(--p2-teal);"></i>Trajectoire du score</div>
+            <div class="p2-card-title"><i class="fa-solid fa-chart-line" style="color:var(--color-success);"></i>Trajectoire du score</div>
             ${traj.length < 2 ? `
               <div class="p2-data-empty"><i class="fa-solid fa-chart-line"></i>
                 Réalisez au moins 2 analyses pour voir la trajectoire</div>` : `
@@ -794,31 +779,31 @@ const P2_ALERTS = (() => {
                 ${traj.map((t, i) => {
                   const h = Math.max(8, (t.score / 100) * 70);
                   const isLast = i === traj.length - 1;
-                  const col = t.score >= 75 ? '#10b981' : t.score >= 50 ? '#f59e0b' : '#ef4444';
+                  const col = t.score >= 75 ? 'var(--color-success)' : t.score >= 50 ? 'var(--color-accent)' : 'var(--color-error)';
                   return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
                     <div style="font-family:'Syne',sans-serif;font-size:8px;font-weight:800;
-                      color:${isLast?col:'rgba(255,255,255,.3)'};">${t.score}</div>
-                    <div style="width:100%;height:${h}px;background:${isLast?col:'rgba(255,255,255,.08)'};
+                      color:${isLast?col:'var(--text-hint)'};">${t.score}</div>
+                    <div style="width:100%;height:${h}px;background:${isLast?col:'var(--border)'};
                       border-radius:4px;transition:height 1s ease;"></div>
-                    <div style="font-size:7px;color:rgba(255,255,255,.2);text-align:center;
+                    <div style="font-size:7px;color:var(--text-hint);text-align:center;
                       max-width:36px;overflow:hidden;text-overflow:ellipsis;">${t.label.slice(0,8)}</div>
                   </div>`;
                 }).join('')}
               </div>
-              <div style="margin-top:8px;font-size:10px;color:${trend>0?'var(--p2-teal)':trend<0?'var(--p2-rose)':'rgba(255,255,255,.4)'};">
+              <div style="margin-top:8px;font-size:10px;color:${trend>0?'var(--color-success)':trend<0?'var(--color-error)':'var(--text-2)'};">
                 <i class="fa-solid fa-${trend>0?'arrow-trend-up':trend<0?'arrow-trend-down':'minus'}"></i>
                 ${trend>0?`+${trend} pts vs analyse précédente`:trend<0?`${trend} pts vs analyse précédente`:'Score stable'}
               </div>`}
           </div>
 
           <div class="p2-card">
-            <div class="p2-card-title"><i class="fa-solid fa-gauge" style="color:var(--p2-amber);"></i>État actuel</div>
+            <div class="p2-card-title"><i class="fa-solid fa-gauge" style="color:var(--color-accent);"></i>État actuel</div>
             ${current ? `
               <div style="font-family:'Syne',sans-serif;font-size:42px;font-weight:900;
-                letter-spacing:-.04em;color:${current.score>=75?'#10b981':current.score>=50?'#f59e0b':current.score>=25?'#f97316':'#ef4444'};">
-                ${current.score}<span style="font-size:16px;color:rgba(255,255,255,.2);">/100</span>
+                letter-spacing:-.04em;color:${current.score>=75?'var(--color-success)':current.score>=50?'var(--color-accent)':current.score>=25?'#f97316':'var(--color-error)'};">
+                ${current.score}<span style="font-size:16px;color:var(--text-hint);">/100</span>
               </div>
-              <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;">
+              <div style="font-size:10px;color:var(--text-2);margin-top:4px;">
                 ${current.entreprise || 'Dernière analyse'} · ${current.zone || '—'}
               </div>
               <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;">
@@ -838,7 +823,7 @@ const P2_ALERTS = (() => {
         <!-- Alertes -->
         <div class="p2-card p2-fu">
           <div class="p2-card-title">
-            <i class="fa-solid fa-bell" style="color:var(--p2-rose);"></i>
+            <i class="fa-solid fa-bell" style="color:var(--color-error);"></i>
             Alertes actives — ${alerts.length} détectée${alerts.length>1?'s':''}
           </div>
           ${alerts.map(a => `
@@ -849,16 +834,16 @@ const P2_ALERTS = (() => {
               </div>
               <div style="flex:1;min-width:0;">
                 <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:800;
-                  color:#fff;margin-bottom:5px;">
+                  color:var(--text);margin-bottom:5px;">
                   ${a.sev===3?'🔴':a.sev===2?'🟡':'🟢'} ${a.title}
                 </div>
-                <div style="font-size:10px;color:rgba(255,255,255,.5);line-height:1.6;">
+                <div style="font-size:10px;color:var(--text-2);line-height:1.6;">
                   ${a.desc}
                 </div>
                 ${a.delta != null ? `
                   <div class="p2-traj-bar" style="max-width:220px;">
                     <div class="p2-traj-fill" style="width:${Math.min(100,Math.abs(a.delta)*5)}%;
-                      background:${a.delta<0?'var(--p2-rose)':'var(--p2-teal)'};">
+                      background:${a.delta<0?'var(--color-error)':'var(--color-success)'};">
                     </div>
                   </div>` : ''}
               </div>
@@ -875,17 +860,17 @@ const P2_ALERTS = (() => {
         ${(current?.recommendations||[]).length ? `
         <div class="p2-card p2-fu" style="margin-top:14px;">
           <div class="p2-card-title">
-            <i class="fa-solid fa-lightbulb" style="color:var(--p2-gold);"></i>
+            <i class="fa-solid fa-lightbulb" style="color:var(--color-accent);"></i>
             Actions correctives recommandées
           </div>
           ${(current.recommendations||[]).slice(0,4).map(r => `
-            <div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+            <div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
               <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;
-                background:${r.level==='high'?'var(--p2-rose)':r.level==='medium'?'var(--p2-amber)':'var(--p2-teal)'};">
+                background:${r.level==='high'?'var(--color-error)':r.level==='medium'?'var(--color-accent)':'var(--color-success)'};">
               </div>
               <div>
-                <div style="font-size:10px;font-weight:700;color:#fff;margin-bottom:3px;">${r.title}</div>
-                <div style="font-size:9px;color:rgba(255,255,255,.4);line-height:1.6;">${r.description}</div>
+                <div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:3px;">${r.title}</div>
+                <div style="font-size:9px;color:var(--text-2);line-height:1.6;">${r.description}</div>
               </div>
             </div>`).join('')}
         </div>` : ''}
@@ -910,7 +895,6 @@ const P2_CABINET = (() => {
   let _sort    = 'score_asc';
 
   function _buildClientsFromAnalyses() {
-    // Grouper les analyses par entreprise (nom)
     const map = {};
     (window.S?.analyses || []).forEach(a => {
       const key = a.entreprise || a.userId || 'Entreprise';
@@ -963,22 +947,22 @@ const P2_CABINET = (() => {
   }
 
   function _renderClientCard(c) {
-    const zc = window.ZC?.[c.zone] || {s:'#7DD3FC',bg:'rgba(125,211,252,.1)',l:c.zone};
+    const zc = window.ZC?.[c.zone] || {s:'var(--violet-3)',bg:'var(--violet-bg)',l:c.zone};
     return `
       <div class="p2-client-card p2-fu"
         onclick="P2_CABINET.openClient('${escHtml(c.name)}')">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
           <div style="flex:1;min-width:0;">
             <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:800;
-              color:#fff;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              color:var(--text);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
               ${escHtml(c.name)}</div>
-            <div style="font-size:8.5px;color:rgba(255,255,255,.3);">
+            <div style="font-size:8.5px;color:var(--text-hint);">
               ${c.analyses} analyse${c.analyses>1?'s':''} · ${c.lastDate}
             </div>
           </div>
           <div style="flex-shrink:0;margin-left:8px;">
             <div class="p2-client-score" style="color:${zc.s};">${c.score}</div>
-            <div style="font-size:8px;color:rgba(255,255,255,.25);text-align:right;">/100</div>
+            <div style="font-size:8px;color:var(--text-hint);text-align:right;">/100</div>
           </div>
         </div>
 
@@ -993,14 +977,13 @@ const P2_CABINET = (() => {
                 <i class="fa-solid fa-triangle-exclamation"></i>${c.alertCount}
               </span>` : ''}
             <span style="font-size:9px;font-weight:700;
-              color:${c.trend>0?'var(--p2-teal)':c.trend<0?'var(--p2-rose)':'rgba(255,255,255,.2)'};">
+              color:${c.trend>0?'var(--color-success)':c.trend<0?'var(--color-error)':'var(--text-hint)'};">
               ${c.trend>0?'▲ +':c.trend<0?'▼ ':' '}${c.trend!==0?Math.abs(c.trend)+'pts':'—'}
             </span>
           </div>
         </div>
 
-        <!-- Barre de score -->
-        <div style="margin-top:10px;height:3px;background:rgba(255,255,255,.06);border-radius:2px;">
+        <div style="margin-top:10px;height:3px;background:var(--border);border-radius:2px;">
           <div style="width:${c.score}%;height:100%;background:${zc.s};border-radius:2px;
             transition:width 1s ease;"></div>
         </div>
@@ -1017,7 +1000,7 @@ const P2_CABINET = (() => {
 
   async function render(container) {
     container.innerHTML = `<div class="p2-view">
-      <div style="text-align:center;padding:40px;color:rgba(255,255,255,.3);font-size:11px;">
+      <div style="text-align:center;padding:40px;color:var(--text-hint);font-size:11px;">
         <i class="fa-solid fa-circle-notch fa-spin" style="font-size:22px;margin-bottom:12px;display:block;"></i>
         Chargement des clients…
       </div>
@@ -1041,15 +1024,15 @@ const P2_CABINET = (() => {
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <select onchange="P2_CABINET.setSort(this.value)"
-              style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
-              color:rgba(255,255,255,.6);border-radius:9px;padding:7px 12px;
+              style="background:rgba(255,255,255,.04);border:1px solid var(--border);
+              color:var(--text-2);border-radius:9px;padding:7px 12px;
               font-family:'Syne',sans-serif;font-size:9px;cursor:pointer;outline:none;">
               <option value="score_asc">Score ↑</option>
               <option value="score_desc">Score ↓</option>
               <option value="name_asc">Nom A→Z</option>
               <option value="alertCount_desc">Alertes</option>
             </select>
-            <button class="p2-btn p2-btn-primary" onclick="P2_CABINET.exportCSV()">
+            <button class="p2-btn p2-btn-violet" onclick="P2_CABINET.exportCSV()">
               <i class="fa-solid fa-download"></i>Export CSV
             </button>
           </div>
@@ -1058,10 +1041,10 @@ const P2_CABINET = (() => {
         <!-- Stats cabinet -->
         <div class="p2-cabinet-stats p2-fu">
           ${[
-            [total,'Clients','fa-briefcase','var(--p2-ice)'],
-            [avgScore + '/100','Score moyen','fa-gauge-high',avgScore>=75?'var(--p2-teal)':avgScore>=50?'var(--p2-amber)':'var(--p2-rose)'],
-            [enAlerte,'En alerte','fa-triangle-exclamation',enAlerte>0?'var(--p2-amber)':'var(--p2-teal)'],
-            [zones.critique||0,'Critiques','fa-circle-exclamation','var(--p2-rose)'],
+            [total,'Clients','fa-briefcase','var(--violet-3)'],
+            [avgScore + '/100','Score moyen','fa-gauge-high',avgScore>=75?'var(--color-success)':avgScore>=50?'var(--color-accent)':'var(--color-error)'],
+            [enAlerte,'En alerte','fa-triangle-exclamation',enAlerte>0?'var(--color-accent)':'var(--color-success)'],
+            [zones.critique||0,'Critiques','fa-circle-exclamation','var(--color-error)'],
           ].map(([val,lbl,icon,col]) => `
             <div class="p2-stat-pill">
               <div style="font-size:18px;margin-bottom:6px;color:${col};">
@@ -1073,19 +1056,19 @@ const P2_CABINET = (() => {
 
         <!-- Répartition zones -->
         <div class="p2-card p2-fu" style="margin-bottom:14px;">
-          <div class="p2-card-title"><i class="fa-solid fa-chart-pie" style="color:var(--p2-violet);"></i>Répartition par zone</div>
+          <div class="p2-card-title"><i class="fa-solid fa-chart-pie" style="color:var(--violet-3);"></i>Répartition par zone</div>
           <div style="display:flex;gap:4px;height:10px;border-radius:6px;overflow:hidden;margin-bottom:10px;">
             ${Object.entries(zones).map(([z,n]) => {
-              const col = {saine:'#10b981',vigilance:'#f59e0b',risque:'#f97316',critique:'#ef4444'}[z];
+              const col = {saine:'var(--color-success)',vigilance:'var(--color-accent)',risque:'#f97316',critique:'var(--color-error)'}[z];
               const pct = total ? Math.round((n/total)*100) : 0;
               return pct ? `<div style="width:${pct}%;background:${col};transition:width 1s;"></div>` : '';
             }).join('')}
           </div>
           <div style="display:flex;gap:16px;flex-wrap:wrap;">
             ${Object.entries(zones).map(([z,n]) => {
-              const col = {saine:'#10b981',vigilance:'#f59e0b',risque:'#f97316',critique:'#ef4444'}[z];
+              const col = {saine:'var(--color-success)',vigilance:'var(--color-accent)',risque:'#f97316',critique:'var(--color-error)'}[z];
               const lbl = {saine:'Saine',vigilance:'Vigilance',risque:'Risque',critique:'Critique'}[z];
-              return `<div style="display:flex;align-items:center;gap:5px;font-size:9px;color:rgba(255,255,255,.5);">
+              return `<div style="display:flex;align-items:center;gap:5px;font-size:9px;color:var(--text-2);">
                 <span style="width:8px;height:8px;border-radius:2px;background:${col};display:inline-block;"></span>
                 ${lbl}: <strong style="color:${col};">${n}</strong>
               </div>`;
@@ -1097,14 +1080,14 @@ const P2_CABINET = (() => {
         <div style="margin-bottom:12px;">
           <div style="position:relative;">
             <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:12px;top:50%;
-              transform:translateY(-50%);color:rgba(255,255,255,.2);font-size:11px;"></i>
+              transform:translateY(-50%);color:var(--text-hint);font-size:11px;"></i>
             <input type="text" placeholder="Rechercher un client…"
               oninput="P2_CABINET.setFilter(this.value)"
               style="width:100%;padding:10px 12px 10px 34px;background:rgba(255,255,255,.03);
-              border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#fff;
+              border:1px solid var(--border);border-radius:10px;color:var(--text);
               font-size:11px;outline:none;box-sizing:border-box;transition:border .15s;"
-              onfocus="this.style.borderColor='rgba(125,211,252,.25)'"
-              onblur="this.style.borderColor='rgba(255,255,255,.08)'"/>
+              onfocus="this.style.borderColor='var(--violet-border)'"
+              onblur="this.style.borderColor='var(--border)'"/>
           </div>
         </div>
 
@@ -1159,7 +1142,6 @@ window.P2_CABINET = P2_CABINET;
 
 const P2_CREDIT = (() => {
 
-  // Ratios demandés par les banques camerounaises (BEAC/COBAC)
   const BANK_RATIOS = [
     { key:'current_ratio',    label:'Ratio de liquidité générale',       weight:15, threshold:1.2, unit:'',   desc:'Actif CT / Passif CT' },
     { key:'debt_equity',      label:'Ratio d\'endettement',              weight:20, threshold:2.0, unit:'',   desc:'Dettes totales / Fonds propres', inverse:true },
@@ -1172,12 +1154,12 @@ const P2_CREDIT = (() => {
   ];
 
   const RATING_BANDS = [
-    { min:85, label:'AAA', desc:'Excellent — Financement très probable', color:'#10b981' },
+    { min:85, label:'AAA', desc:'Excellent — Financement très probable', color:'var(--color-success)' },
     { min:70, label:'AA',  desc:'Très bon — Financement probable',       color:'#2DD4BF' },
-    { min:55, label:'A',   desc:'Bon — Favorable sous conditions',       color:'#7DD3FC' },
-    { min:40, label:'BBB', desc:'Satisfaisant — À surveiller',           color:'#f59e0b' },
+    { min:55, label:'A',   desc:'Bon — Favorable sous conditions',       color:'var(--violet-3)' },
+    { min:40, label:'BBB', desc:'Satisfaisant — À surveiller',           color:'var(--color-accent)' },
     { min:25, label:'BB',  desc:'Fragile — Exige des garanties',         color:'#f97316' },
-    { min:0,  label:'B',   desc:'Risqué — Refus probable',               color:'#ef4444' },
+    { min:0,  label:'B',   desc:'Risqué — Refus probable',               color:'var(--color-error)' },
   ];
 
   function _computeCreditScore(analyse) {
@@ -1230,7 +1212,7 @@ const P2_CREDIT = (() => {
   }
 
   function _renderGauge(score, color) {
-    const angle = (score / 100) * 180; // 0→180°
+    const angle = (score / 100) * 180;
     const r = 70, cx = 90, cy = 80;
     const arc = (deg) => {
       const rad = (deg - 180) * Math.PI / 180;
@@ -1244,20 +1226,17 @@ const P2_CREDIT = (() => {
       <svg width="180" height="100" viewBox="0 0 180 100">
         <defs>
           <linearGradient id="p2cg" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%"   stop-color="#ef4444"/>
-            <stop offset="33%"  stop-color="#f59e0b"/>
+            <stop offset="0%"   stop-color="var(--color-error)"/>
+            <stop offset="33%"  stop-color="var(--color-accent)"/>
             <stop offset="66%"  stop-color="#2DD4BF"/>
-            <stop offset="100%" stop-color="#10b981"/>
+            <stop offset="100%" stop-color="var(--color-success)"/>
           </linearGradient>
         </defs>
-        <!-- Fond -->
         <path d="M${20},${cy} A${r},${r} 0 0 1 ${160},${cy}"
-          fill="none" stroke="rgba(255,255,255,.06)" stroke-width="12" stroke-linecap="round"/>
-        <!-- Arc coloré -->
+          fill="none" stroke="var(--border)" stroke-width="12" stroke-linecap="round"/>
         <path d="M${20},${cy} A${r},${r} 0 ${large} 1 ${end.x},${end.y}"
           fill="none" stroke="${color}" stroke-width="12" stroke-linecap="round"
           style="transition:all 1.2s ease;"/>
-        <!-- Aiguille -->
         ${score > 2 ? `<line x1="${cx}" y1="${cy}" x2="${end.x}" y2="${end.y}"
           stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>
           <circle cx="${cx}" cy="${cy}" r="5" fill="${color}"/>` : ''}
@@ -1279,7 +1258,6 @@ const P2_CREDIT = (() => {
 
     const { score, band, details } = _computeCreditScore(a);
 
-    // Afficher le bouton d'impression
     const printBtn = document.getElementById('p2-print-btn');
     if (printBtn) printBtn.classList.add('show');
 
@@ -1303,17 +1281,17 @@ const P2_CREDIT = (() => {
 
         <!-- En-tête dossier -->
         <div class="p2-card p2-fu" style="margin-bottom:14px;
-          background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(45,212,191,.06));">
+          background:linear-gradient(135deg,var(--violet-bg),var(--success-bg));">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
             <div>
-              <div style="font-size:9px;color:rgba(255,255,255,.3);letter-spacing:.1em;
+              <div style="font-size:9px;color:var(--text-hint);letter-spacing:.1em;
                 text-transform:uppercase;font-family:'Syne',sans-serif;margin-bottom:6px;">
                 Dossier de crédit · Doctor Smile™
               </div>
-              <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:900;color:#fff;">
+              <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:900;color:var(--text);">
                 ${escHtml(a.entreprise || 'Entreprise')}
               </div>
-              <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;">
+              <div style="font-size:10px;color:var(--text-2);margin-top:4px;">
                 Émis le ${new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}
                 · Analyse #${(a.id||'').slice(0,8)}
               </div>
@@ -1323,12 +1301,12 @@ const P2_CREDIT = (() => {
               <div class="p2-gauge-val">
                 <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:900;
                   color:${band.color};line-height:1;">${score}</div>
-                <div style="font-size:9px;color:rgba(255,255,255,.3);">/ 100</div>
+                <div style="font-size:9px;color:var(--text-hint);">/ 100</div>
               </div>
               <div style="margin-top:16px;text-align:center;">
                 <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:900;
                   color:${band.color};">${band.label}</div>
-                <div style="font-size:9px;color:rgba(255,255,255,.4);margin-top:3px;
+                <div style="font-size:9px;color:var(--text-2);margin-top:3px;
                   max-width:160px;text-align:center;">${band.desc}</div>
               </div>
             </div>
@@ -1339,7 +1317,7 @@ const P2_CREDIT = (() => {
         <div class="p2-grid-2 p2-fu" style="margin-bottom:14px;">
           <div class="p2-card">
             <div class="p2-card-title">
-              <i class="fa-solid fa-table-cells" style="color:var(--p2-violet);"></i>
+              <i class="fa-solid fa-table-cells" style="color:var(--violet-3);"></i>
               Ratios COBAC / BEAC requis
             </div>
             <table class="p2-credit-table">
@@ -1355,23 +1333,23 @@ const P2_CREDIT = (() => {
                 ${details.map(d => `
                   <tr>
                     <td>
-                      <div style="font-weight:600;color:#fff;">${d.label}</div>
-                      <div style="font-size:8px;color:rgba(255,255,255,.25);">${d.desc}</div>
+                      <div style="font-weight:600;color:var(--text);">${d.label}</div>
+                      <div style="font-size:8px;color:var(--text-hint);">${d.desc}</div>
                     </td>
                     <td style="text-align:right;font-family:'JetBrains Mono',monospace;
-                      color:${d.val===null?'rgba(255,255,255,.2)':d.pct>=70?'#10b981':d.pct>=40?'#f59e0b':'#ef4444'};">
+                      color:${d.val===null?'var(--text-hint)':d.pct>=70?'var(--color-success)':d.pct>=40?'var(--color-accent)':'var(--color-error)'};">
                       ${d.val !== null ? `${d.val?.toFixed(2)}${d.unit}` : '—'}
                     </td>
-                    <td style="text-align:right;font-size:9px;color:rgba(255,255,255,.3);">
+                    <td style="text-align:right;font-size:9px;color:var(--text-hint);">
                       ${d.inverse?'<':'>'} ${d.threshold}${d.unit}
                     </td>
                     <td style="text-align:right;">
                       <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
-                        <div style="width:40px;height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;">
-                          <div style="width:${d.pct}%;height:100%;background:${d.pct>=70?'#10b981':d.pct>=40?'#f59e0b':'#ef4444'};"></div>
+                        <div style="width:40px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
+                          <div style="width:${d.pct}%;height:100%;background:${d.pct>=70?'var(--color-success)':d.pct>=40?'var(--color-accent)':'var(--color-error)'};"></div>
                         </div>
                         <span style="font-size:9px;font-weight:700;
-                          color:${d.pct>=70?'#10b981':d.pct>=40?'#f59e0b':'#ef4444'};">
+                          color:${d.pct>=70?'var(--color-success)':d.pct>=40?'var(--color-accent)':'var(--color-error)'};">
                           ${d.pct}%
                         </span>
                       </div>
@@ -1382,15 +1360,14 @@ const P2_CREDIT = (() => {
           </div>
 
           <div style="display:flex;flex-direction:column;gap:14px;">
-            <!-- Avis de la banque simulé -->
             <div class="p2-card" style="background:${band.color}0D;border-color:${band.color}33;">
               <div class="p2-card-title" style="color:${band.color};">
                 <i class="fa-solid fa-landmark"></i>Avis de financement simulé
               </div>
-              <div style="font-size:11px;color:#fff;font-weight:700;margin-bottom:8px;">
+              <div style="font-size:11px;color:var(--text);font-weight:700;margin-bottom:8px;">
                 Notation : ${band.label} — ${band.desc}
               </div>
-              <div style="font-size:10px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:14px;">
+              <div style="font-size:10px;color:var(--text-2);line-height:1.7;margin-bottom:14px;">
                 ${score >= 70 ?
                   `Le profil financier de l'entreprise est solide. Un financement peut être accordé avec des conditions standard. Taux préférentiel envisageable.` :
                 score >= 40 ?
@@ -1405,32 +1382,31 @@ const P2_CREDIT = (() => {
               </div>
             </div>
 
-            <!-- Points forts / axes d'amélioration -->
             <div class="p2-card" style="flex:1;">
-              <div class="p2-card-title"><i class="fa-solid fa-list-check" style="color:var(--p2-gold);"></i>Pour renforcer votre dossier</div>
+              <div class="p2-card-title"><i class="fa-solid fa-list-check" style="color:var(--color-accent);"></i>Pour renforcer votre dossier</div>
               ${details
                 .filter(d => d.pct < 60 && d.val !== null)
                 .slice(0, 3)
                 .map(d => `
                   <div style="display:flex;gap:10px;margin-bottom:10px;">
-                    <i class="fa-solid fa-circle-arrow-up" style="color:var(--p2-amber);margin-top:2px;font-size:11px;flex-shrink:0;"></i>
-                    <div style="font-size:10px;color:rgba(255,255,255,.55);line-height:1.6;">
-                      <strong style="color:#fff;">${d.label}</strong> : ${d.val?.toFixed(2)}${d.unit}
+                    <i class="fa-solid fa-circle-arrow-up" style="color:var(--color-accent);margin-top:2px;font-size:11px;flex-shrink:0;"></i>
+                    <div style="font-size:10px;color:var(--text-2);line-height:1.6;">
+                      <strong style="color:var(--text);">${d.label}</strong> : ${d.val?.toFixed(2)}${d.unit}
                       → objectif ${d.inverse?'<':'>'} ${d.threshold}${d.unit}
                     </div>
                   </div>`).join('') ||
-                `<div style="font-size:10px;color:rgba(255,255,255,.3);">
-                  <i class="fa-solid fa-shield-check" style="color:var(--p2-teal);margin-right:6px;"></i>
+                `<div style="font-size:10px;color:var(--text-hint);">
+                  <i class="fa-solid fa-shield-check" style="color:var(--color-success);margin-right:6px;"></i>
                   Tous les ratios sont dans les seuils requis !</div>`}
             </div>
           </div>
         </div>
 
-        <!-- Mentions légales dossier -->
+        <!-- Mentions légales -->
         <div class="p2-card p2-fu"
-          style="background:rgba(255,255,255,.01);border-color:rgba(255,255,255,.05);">
-          <div style="font-size:8.5px;color:rgba(255,255,255,.2);line-height:1.8;">
-            <strong style="color:rgba(255,255,255,.35);">⚠️ Avertissement</strong> —
+          style="background:rgba(255,255,255,.01);border-color:var(--border);">
+          <div style="font-size:8.5px;color:var(--text-hint);line-height:1.8;">
+            <strong style="color:var(--text-2);">⚠️ Avertissement</strong> —
             Ce rapport est généré automatiquement par Doctor Smile™ à partir des données financières fournies.
             Il ne constitue pas un avis bancaire officiel et ne remplace pas une analyse par un professionnel agréé.
             La notation simulée est indicative et basée sur des critères généraux COBAC/BEAC.
@@ -1461,7 +1437,6 @@ const P2_CREDIT = (() => {
       if (data.url) window.open(data.url, '_blank');
       else _p2toast('Export PDF généré', 'ok');
     } catch {
-      // Fallback : ouvrir la page print
       window.print();
     }
   }
@@ -1469,8 +1444,8 @@ const P2_CREDIT = (() => {
   function _p2toast(msg, type) {
     const t = document.createElement('div');
     t.style.cssText = `position:fixed;top:20px;right:20px;z-index:10000;
-      padding:12px 18px;border-radius:12px;background:rgba(5,9,18,.97);
-      color:#fff;font-size:11px;border:1px solid ${type==='ok'?'rgba(45,212,191,.3)':'rgba(244,63,94,.3)'};
+      padding:12px 18px;border-radius:12px;background:var(--bg-elevated);
+      color:var(--text);font-size:11px;border:1px solid ${type==='ok'?'var(--success-border)':'var(--error-border)'};
       transform:translateX(320px);transition:transform .35s;`;
     t.textContent = msg;
     document.body.appendChild(t);
@@ -1492,7 +1467,6 @@ function _p2InjectViews() {
   const main = document.getElementById('main');
   if (!main || document.getElementById('view-forecast')) return;
 
-  // ── 4 nouvelles view-panes ─────────────────────────────────
   const views = [
     { id:'forecast',  title:'Trésorerie <span class="g">IA</span>',         sub:'Projections 12 mois',          content:'forecast-content'  },
     { id:'early',     title:'Alertes <span class="g">Précoces</span>',       sub:'Signaux faibles & trajectoire', content:'early-content'     },
@@ -1508,7 +1482,6 @@ function _p2InjectViews() {
     main.appendChild(pane);
   });
 
-  // ── Bouton impression flottant pour le crédit ─────────────
   const printBtn = document.createElement('button');
   printBtn.id = 'p2-print-btn';
   printBtn.className = 'p2-print-btn';
@@ -1518,31 +1491,24 @@ function _p2InjectViews() {
 }
 
 function _p2InjectNav() {
-  // Désactivé : navigation maintenant intégrée directement dans dashboard.html
   return;
 }
 
-// ── Navigation Phase 2 ────────────────────────────────────────
 function _p2NavTo(view) {
-  // Désactiver tous les nav items
   document.querySelectorAll('.nav-item, .p2-nav-item').forEach(el => {
     el.classList.remove('active');
   });
 
-  // Activer le bon
   document.querySelector(`.p2-nav-item[data-view="${view}"]`)?.classList.add('active');
   document.querySelector(`.nav-item[data-view="${view}"]`)?.classList.add('active');
 
-  // Basculer les vues
   document.querySelectorAll('.view-pane').forEach(pane => {
     pane.classList.toggle('active', pane.id === `view-${view}`);
   });
 
-  // Masquer le bouton print si on quitte crédit
   const printBtn = document.getElementById('p2-print-btn');
   if (printBtn) printBtn.classList.toggle('show', view === 'credit');
 
-  // Rendre la vue
   const contentEl = document.getElementById(`${view}-content`);
   if (!contentEl) return;
 
@@ -1553,7 +1519,6 @@ function _p2NavTo(view) {
   else if (view === 'credit')   P2_CREDIT.render(contentEl, a);
 }
 
-// Exposer pour que les autres modules puissent appeler
 window.DS_VIEWS = window.DS_VIEWS || {};
 const _origNavTo = window.DS_VIEWS.navTo?.bind(window.DS_VIEWS);
 if (_origNavTo && !window.DS_VIEWS._p2hooked) {
@@ -1563,13 +1528,11 @@ if (_origNavTo && !window.DS_VIEWS._p2hooked) {
     if (p2Views.includes(view)) {
       _p2NavTo(view);
     } else {
-      // Masquer le bouton print quand on quitte credit
       document.getElementById('p2-print-btn')?.classList.remove('show');
       _origNavTo(view);
     }
   };
 }
-
 
 // ════════════════════════════════════════════════════════════════
 //  INIT
@@ -1579,25 +1542,6 @@ if (_origNavTo && !window.DS_VIEWS._p2hooked) {
   function _boot() {
     _p2InjectViews();
     _p2InjectNav();
-
-    // Patch DS_VIEWS.navTo : Désactivé au profit d'une intégration directe dans ds-views.js
-    /*
-    let _tries = 0;
-    const _wait = setInterval(() => {
-      _tries++;
-      if (_tries > 30) { clearInterval(_wait); return; }
-      if (window.DS_VIEWS?.navTo && !window.DS_VIEWS._p2hooked) {
-        window.DS_VIEWS._p2hooked = true;
-        const orig = window.DS_VIEWS.navTo.bind(window.DS_VIEWS);
-        window.DS_VIEWS.navTo = (view) => {
-          const p2Views = ['forecast','early','cabinet','credit'];
-          if (p2Views.includes(view)) _p2NavTo(view);
-          else { document.getElementById('p2-print-btn')?.classList.remove('show'); orig(view); }
-        };
-        clearInterval(_wait);
-      }
-    }, 200);
-    */
   }
 
   if (document.readyState === 'loading') {
@@ -1607,7 +1551,6 @@ if (_origNavTo && !window.DS_VIEWS._p2hooked) {
   }
 })();
 
-// API publique
 window.DS_PHASE2 = {
   forecast: P2_FORECAST,
   alerts:   P2_ALERTS,
@@ -1616,4 +1559,4 @@ window.DS_PHASE2 = {
   navTo:    _p2NavTo,
 };
 
-console.log('%c[phase2.js] ✓ Chargé — Trésorerie · Alertes · Cabinet · Crédit Bankable', 'color:#2DD4BF;font-weight:bold');
+console.log('%c[phase2.js] ✓ Chargé — Trésorerie · Alertes · Cabinet · Crédit Bankable', 'color:var(--color-success);font-weight:bold');

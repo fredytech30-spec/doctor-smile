@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vérification OTP — Doctor Smile</title>
+    <meta name="description" content="Vérifiez votre identité avec le code envoyé par email.">
+    <!-- Anti-flash -->
+    <script>
+      (function() {
+        var t = localStorage.getItem('ds-theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      })();
+    </script>
+    <!-- Polices : Sora (display) + Plus Jakarta Sans (body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/variables.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <style>
+        :root {
+            --bg-deep:    var(--bg);
+            --ice:        #7DD3FC;
+            --violet:     #7C3AED;
+            --gold:       #C9A84C;
+            --gold-light: #F5D98E;
+            --text:       var(--text);
+            --text-muted: var(--text-muted);
+            --border:     var(--border-v);
+            --success:    var(--success);
+            --error:      var(--error);
+            --warn:       var(--warning);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: var(--fb);
+            background: transparent;
+            min-height:100vh; display:flex; align-items:center; justify-content:center;
+            padding:20px; overflow:hidden;
+            transition: background 0.35s ease, color 0.35s ease;
+            position: relative;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background: url('../assets/pictures/pexels-themob000-28428592.jpg') center/cover no-repeat;
+            filter: blur(8px) brightness(0.7) saturate(0.3);
+            opacity: 0.4;
+            transform: scale(1.05);
+        }
+        [data-theme="dark"] body {
+            background: linear-gradient(135deg, #0A0818 0%, #12102A 35%, #0E1A2E 70%, #0A0818 100%);
+        }
+        [data-theme="light"] body {
+            background: linear-gradient(135deg, #F8F9FC 0%, #F1F0F7 35%, #F0F5FA 70%, #F8F9FC 100%);
+        }
+        body::before {
+            content:''; position:fixed; inset:0; pointer-events:none;
+            background:
+                radial-gradient(ellipse 800px 500px at 20% 30%, rgba(124,58,237,0.08) 0%, transparent 70%),
+                radial-gradient(ellipse 600px 400px at 80% 70%, rgba(201,168,76,0.05) 0%, transparent 70%);
+            animation:bgPulse 8s ease-in-out infinite alternate;
+        }
+        @keyframes bgPulse { from{opacity:.6} to{opacity:1} }
+
+        .particles { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:0; }
+        .particle {
+            position:absolute; border-radius:50%; opacity:0;
+            animation:floatUp var(--dur,8s) var(--delay,0s) ease-in infinite;
+            background: var(--violet);
+        }
+        [data-theme="light"] .particle {
+            background: #7C3AED;
+        }
+        @keyframes floatUp {
+            0%{opacity:0;transform:translateY(0) scale(0)}
+            10%{opacity:.65;transform:translateY(-10px) scale(1)}
+            90%{opacity:.2}
+            100%{opacity:0;transform:translateY(-80vh) scale(.5)}
+        }
+
+        .card {
+            position:relative; z-index:1; max-width:460px; width:100%;
+            background: var(--color-surface-transparent);
+            backdrop-filter:blur(40px) saturate(180%);
+            -webkit-backdrop-filter:blur(40px) saturate(180%);
+            border:1px solid rgba(255,255,255,0.06);
+            border-radius:28px;
+            padding:48px 40px; text-align:center;
+            box-shadow: 0 32px 64px -12px rgba(0,0,0,0.5), 0 0 0 1px rgba(124,58,237,0.06) inset, 0 1px 0 rgba(124,58,237,0.12) inset;
+            animation:cardIn .6s cubic-bezier(.34,1.56,.64,1) both;
+        }
+        [data-theme="light"] .card {
+            background: rgba(255,255,255,0.85);
+            border-color: rgba(0,0,0,0.06);
+            box-shadow: 0 32px 64px -12px rgba(0,0,0,0.08), 0 0 0 1px rgba(124,58,237,0.04) inset;
+        }
+        @keyframes cardIn { from{opacity:0;transform:translateY(24px) scale(.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+        .logo-wrap {
+            width:80px; height:80px; margin:0 auto 28px;
+            background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(201,168,76,0.10));
+            border:1px solid rgba(124,58,237,0.3);
+            border-radius:24px;
+            display:flex; align-items:center; justify-content:center; font-size:28px;
+            box-shadow:0 8px 24px -4px rgba(124,58,237,0.2);
+            animation:logoFloat 3s ease-in-out infinite; position:relative;
+            color: var(--violet);
+            overflow: hidden;
+        }
+        .logo-wrap .cube-otp {
+            width: 50px;
+            height: 50px;
+            transform-style: preserve-3d;
+            animation: spinOtp 12s linear infinite;
+        }
+        @keyframes spinOtp {
+            0% { transform: rotateX(-20deg) rotateY(0deg); }
+            100% { transform: rotateX(-20deg) rotateY(360deg); }
+        }
+        .logo-wrap .cube-otp .cf {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            backface-visibility: visible;
+        }
+        .logo-wrap .cube-otp .cf-front { transform: translateZ(25px); background: linear-gradient(135deg, #C9A84C, #F5D98E); }
+        .logo-wrap .cube-otp .cf-back { transform: rotateY(180deg) translateZ(25px); background: linear-gradient(135deg, #7C3AED, #A78BFA); }
+        .logo-wrap .cube-otp .cf-right { transform: rotateY(90deg) translateZ(25px); background: rgba(201,168,76,0.2); }
+        .logo-wrap .cube-otp .cf-left { transform: rotateY(-90deg) translateZ(25px); background: rgba(124,58,237,0.15); }
+        .logo-wrap .cube-otp .cf-top { transform: rotateX(90deg) translateZ(25px); background: rgba(201,168,76,0.15); }
+        .logo-wrap .cube-otp .cf-bot { transform: rotateX(-90deg) translateZ(25px); background: rgba(124,58,237,0.1); }
+        .logo-wrap .cube-otp .cf i {
+            font-size: 18px;
+            color: #fff;
+            filter: drop-shadow(0 0 10px rgba(201,168,76,0.3));
+        }
+        [data-theme="light"] .logo-wrap {
+            background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(201,168,76,0.05));
+            border-color: rgba(124,58,237,0.2);
+            box-shadow:0 8px 24px -4px rgba(124,58,237,0.1);
+        }
+        @keyframes logoFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+        .logo-ring {
+            position:absolute; inset:-6px; border-radius:30px;
+            border:2px solid transparent;
+            background:linear-gradient(135deg, rgba(124,58,237,0.5), rgba(201,168,76,0.4), rgba(125,211,252,0.3)) border-box;
+            -webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);
+            -webkit-mask-composite:destination-out; mask-composite:exclude;
+            animation:ringRotate 4s linear infinite;
+        }
+        @keyframes ringRotate { to{transform:rotate(360deg)} }
+
+        .brand {
+            font-family: var(--fd);
+            font-size:11px; font-weight:700; letter-spacing:.15em; text-transform:uppercase;
+            color: var(--gold);
+            margin-bottom:12px; opacity:.85;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .brand i {
+            font-size: 10px;
+            opacity: 0.7;
+        }
+        [data-theme="light"] .brand {
+            color: #7C3AED;
+        }
+        h1 {
+            font-family: var(--fd);
+            font-size:26px; font-weight:800;
+            color: #000000;
+            margin-bottom:8px; letter-spacing:-.5px;
+        }
+        [data-theme="dark"] h1 {
+            color: #111111;
+        }
+        .subtitle {
+            font-size:14px; color: var(--text-muted);
+            margin-bottom:24px; line-height:1.5;
+        }
+
+        .email-badge {
+            display:inline-flex; align-items:center; gap:8px;
+            background: rgba(124,58,237,0.06);
+            border:1px solid rgba(124,58,237,0.15);
+            border-radius:100px; padding:8px 16px; margin-bottom:28px;
+            font-size:13px; color:var(--violet); font-weight:500;
+            max-width:100%; overflow:hidden; text-overflow:ellipsis;
+            transition: border-color 0.3s ease;
+        }
+        .email-badge:hover {
+            border-color: rgba(201,168,76,0.3);
+        }
+        .email-badge i {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        /* OTP inputs */
+        .otp-inputs { display:flex; gap:10px; justify-content:center; margin-bottom:24px; }
+        .otp-digit {
+            width:56px; height:68px; background:rgba(255,255,255,.04);
+            border:1.5px solid rgba(139,92,246,.25); border-radius:16px;
+            font-size:26px; font-weight:700; text-align:center; color:#000000;
+            font-family:inherit; transition:all .2s cubic-bezier(.4,0,.2,1);
+            caret-color:var(--violet); outline:none; -webkit-appearance:none;
+        }
+        [data-theme="dark"] .otp-digit {
+            color: #050505;
+        }
+        .otp-digit:focus {
+            border-color:var(--violet); background:rgba(139,92,246,.09);
+            box-shadow:0 0 0 3px rgba(139,92,246,.18),0 4px 12px -2px rgba(139,92,246,.15),0 0 20px rgba(201,168,76,0.05);
+            transform:translateY(-2px);
+        }
+        .otp-digit.filled { 
+            border-color:rgba(201,168,76,0.4); 
+            background:rgba(201,168,76,0.05);
+            box-shadow: 0 0 15px rgba(201,168,76,0.04);
+        }
+        .otp-digit.error { border-color:var(--error)!important; background:rgba(239,68,68,.08)!important; animation:shake .4s ease; }
+        .otp-digit.success { border-color:var(--success)!important; background:rgba(16,185,129,.08)!important; }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+
+        /* Bouton */
+        .verify-btn {
+            width:100%; padding:15px; border:1px solid rgba(201,168,76,0.15);
+            border-radius:16px;
+            background:linear-gradient(135deg,rgba(139,92,246,.95) 0%,#4F46E5 100%);
+            font-size:15px; font-weight:700; color:#fff; cursor:pointer;
+            transition:all .25s cubic-bezier(.4,0,.2,1); margin-bottom:14px;
+            box-shadow:0 8px 24px -4px rgba(139,92,246,.35); position:relative; overflow:hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .verify-btn i {
+            font-size: 16px;
+            opacity: 0.9;
+            transition: transform 0.3s ease;
+        }
+        .verify-btn:hover:not(:disabled) i {
+            transform: translateX(3px);
+        }
+        .verify-btn::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,.2),transparent 60%); opacity:0; transition:opacity .3s; }
+        .verify-btn:hover:not(:disabled)::before { opacity:1; }
+        .verify-btn:hover:not(:disabled) { 
+            transform:translateY(-2px); 
+            box-shadow:0 14px 32px -4px rgba(139,92,246,.45), 0 0 20px rgba(201,168,76,0.1);
+            border-color: rgba(201,168,76,0.4);
+        }
+        .verify-btn:active:not(:disabled) { transform:translateY(0); }
+        .verify-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; box-shadow:none; }
+        .btn-spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:8px; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+
+        /* Messages */
+        .message-zone { min-height:50px; margin-bottom:12px; display:flex; align-items:center; justify-content:center; }
+        .msg { 
+            font-size:14px; 
+            padding:12px 20px; 
+            border-radius:14px; 
+            display:inline-flex; 
+            align-items:center; 
+            gap:10px; 
+            font-weight:600;
+            animation: msgPopIn 0.4s cubic-bezier(.34,1.56,.64,1);
+        }
+        @keyframes msgPopIn {
+            from { opacity:0; transform:translateY(8px) scale(.96); }
+            to { opacity:1; transform:translateY(0) scale(1); }
+        }
+        .msg {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .msg i {
+            font-size: 16px;
+        }
+        .msg.error-msg  { color:var(--error); background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); }
+        .msg.success-msg { 
+            color:var(--success);
+            background:rgba(16,185,129,.08);
+            border:1px solid rgba(16,185,129,.2);
+        } 
+          
+        .msg.warn-msg   { color:var(--warn); background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.2); }
+        .msg.info-msg   { color:var(--violet); background:rgba(139,92,246,.08); border:1px solid rgba(139,92,246,.22); }
+
+        /* Dev mode code display */
+        .dev-code-box {
+            display:none; background:rgba(245,158,11,.06); border:1px solid rgba(245,158,11,.3);
+            border-radius:14px; padding:16px; margin-bottom:14px; text-align:center;
+        }
+        .dev-code-box.visible { display:block; animation:cardIn .4s ease both; }
+        .dev-code-label { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--warn); margin-bottom:10px; }
+        .dev-code-value {
+            font-size:32px; font-weight:800; letter-spacing:10px; color:#fff;
+            font-variant-numeric:tabular-nums; cursor:pointer; transition:opacity .2s;
+        }
+        .dev-code-value:hover { opacity:.7; }
+        .dev-code-hint { font-size:11px; color:rgba(255,255,255,.3); margin-top:6px; }
+
+        /* Renvoyer */
+        .resend-section { display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+        .resend-text { font-size:13px; color:var(#edf75a); }
+        .resend-btn { font-size:13px; color:var(--violet); background:none; border:none; cursor:pointer; font-weight:600; font-family:inherit; text-decoration:underline; text-underline-offset:2px; transition:color .2s; }
+        .resend-btn:hover:not(:disabled) { color:#f75aea; }
+        .resend-btn:disabled { opacity:.4; cursor:not-allowed; text-decoration:none; }
+        .timer { font-size:12px; color:rgba(139,92,246,.75); font-weight:600; font-variant-numeric:tabular-nums; }
+
+        .divider { height:1px; background:linear-gradient(90deg,transparent,rgba(139,92,246,.2),transparent); margin:20px 0; }
+        .back-link { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:rgba(10, 10, 10, 0.3); text-decoration:none; transition:color .2s; }
+        .back-link:hover { color:rgba(7, 7, 7, 0.6); }
+
+        /* Overlay succès */
+        .success-overlay {
+            position:fixed; inset:0; background:rgba(2,4,11,.85); backdrop-filter:blur(8px);
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            gap:16px; z-index:100; opacity:0; pointer-events:none; transition:opacity .4s ease;
+        }
+        .success-overlay.visible { opacity:1; pointer-events:all; }
+        .success-icon {
+            width:80px; height:80px;
+            background:linear-gradient(135deg,rgba(16,185,129,.2),rgba(16,185,129,.08));
+            border:2px solid rgba(16,185,129,.5); border-radius:50%;
+            display:flex; align-items:center; justify-content:center; font-size:36px;
+            animation:successPop .5s cubic-bezier(.34,1.56,.64,1) both;
+            box-shadow:0 0 40px rgba(16,185,129,.2);
+        }
+        @keyframes successPop { from{transform:scale(0)} to{transform:scale(1)} }
+        .success-text { color:var(--success); font-size:20px; font-weight:800; }
+        .success-sub  { color:var(--text-muted); font-size:14px; }
+        .success-progress { width:200px; height:3px; background:rgba(255,255,255,.1); border-radius:100px; overflow:hidden; margin-top:8px; }
+        .success-progress-bar { height:100%; background:var(--success); border-radius:100px; animation:progressLoad 1.5s ease-in-out forwards; }
+        @keyframes progressLoad { from{width:0} to{width:100%} }
+
+        @media(max-width:480px) {
+            .card { padding:36px 24px; border-radius:20px; }
+            .otp-digit { width:46px; height:58px; font-size:22px; border-radius:12px; }
+            h1 { font-size:22px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="particles" id="particles"></div>
+
+<!-- Overlay succès -->
+<div class="success-overlay" id="successOverlay">
+    <div class="success-icon"><i class="fa-solid fa-circle-check"></i></div>
+    <div class="success-text">Identité vérifiée</div>
+    <div class="success-sub">Accès au tableau de bord en cours…</div>
+    <div class="success-progress"><div class="success-progress-bar"></div></div>
+</div>
+
+<!-- Card -->
+<div class="card">
+    <div class="logo-wrap">
+        <div class="logo-ring"></div>
+        <div class="cube-otp">
+            <div class="cf cf-front"><i class="fa-solid fa-heart-pulse"></i></div>
+            <div class="cf cf-back"><i class="fa-solid fa-chart-line"></i></div>
+            <div class="cf cf-right"><i class="fa-solid fa-brain"></i></div>
+            <div class="cf cf-left"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+            <div class="cf cf-top"><i class="fa-solid fa-shield-halved"></i></div>
+            <div class="cf cf-bot"><i class="fa-solid fa-gem"></i></div>
+        </div>
+    </div>
+    <div class="brand">Doctor Smile · Sécurité</div>
+    <h1>Vérification en 2 étapes</h1>
+    <p class="subtitle">Saisissez le code à 6 chiffres envoyé<br>à votre adresse email</p>
+
+    <div class="email-badge">
+        <i class="fa-solid fa-envelope"></i>
+        <span id="emailText">Chargement…</span>
+    </div>
+
+    <!-- Dev mode : code visible si email Brevo échoue -->
+    <div class="dev-code-box" id="devCodeBox">
+        <div class="dev-code-label">⚠️ Mode développement — Code de test</div>
+        <div class="dev-code-value" id="devCodeValue" title="Cliquez pour copier">------</div>
+        <div class="dev-code-hint">Cliquez sur le code pour le copier automatiquement</div>
+    </div>
+
+    <!-- Inputs OTP -->
+    <div class="otp-inputs" id="otpInputs">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit" id="d1" autocomplete="one-time-code" autofocus>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit" id="d2">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit" id="d3">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit" id="d4">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit" id="d5">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit" id="d6">
+    </div>
+
+    <button class="verify-btn" id="verifyBtn" onclick="verifyOTP()">
+        Vérifier et accéder au dashboard
+    </button>
+
+    <div class="message-zone" id="messageZone"></div>
+
+    <div class="resend-section">
+        <span class="resend-text">Pas reçu ?</span>
+        <button class="resend-btn" id="resendBtn" onclick="resendCode()" disabled>Renvoyer le code</button>
+        <span class="timer" id="timerDisplay"></span>
+    </div>
+
+    <div class="divider"></div>
+    <a href="/auth.html" class="back-link" onclick="clearSession()">← Retour à la connexion</a>
+</div>
+
+<script type="module">
+import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getFirestore, collection, query, where, getDocs, limit } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { auth, db } from './js/firebase-config.js';
+
+let currentUser = null;
+let resendTimer = null;
+let countdown = 60;
+let devModeChecked = false;
+
+// Auto-focus logic & clipboard paste
+const inputs = document.querySelectorAll('.otp-digit');
+inputs.forEach((input, index) => {
+    input.addEventListener('input', (e) => {
+        const val = e.target.value;
+        if (val.length > 0) {
+            input.classList.add('filled');
+            input.classList.remove('error');
+            if (index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+        } else {
+            input.classList.remove('filled');
+        }
+        
+        // Auto verify if all filled
+        const allFilled = Array.from(inputs).every(i => i.value.length > 0);
+        if (allFilled) {
+            verifyOTP();
+        }
+    });
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace') {
+            if (input.value === '' && index > 0) {
+                inputs[index - 1].focus();
+                inputs[index - 1].value = '';
+                inputs[index - 1].classList.remove('filled');
+            } else {
+                input.value = '';
+                input.classList.remove('filled');
+            }
+        }
+    });
+
+    input.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const data = (e.clipboardData || window.clipboardData).getData('text').trim();
+        if (/^\d{6}$/.test(data)) {
+            inputs.forEach((inp, idx) => {
+                inp.value = data[idx];
+                inp.classList.add('filled');
+                inp.classList.remove('error');
+            });
+            verifyOTP();
+        }
+    });
+});
+
+// Toast / message helper
+function showMsg(type, text) {
+    const zone = document.getElementById('messageZone');
+    zone.innerHTML = '';
+    if (!text) return;
+    
+    const div = document.createElement('div');
+    div.className = `msg ${type}-msg`;
+    
+    let icon = 'ℹ️';
+    if (type === 'error') icon = '❌';
+    if (type === 'success') icon = '✅';
+    if (type === 'warn') icon = '⚠️';
+    
+    div.innerHTML = `<span>${icon}</span> <span>${text}</span>`;
+    zone.appendChild(div);
+}
+
+// Check dev mode & debug endpoint
+async function checkDevMode() {
+    if (devModeChecked) return;
+    devModeChecked = true;
+    try {
+        const resp = await fetch('/auth/2fa/debug');
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.auth_dev_mode === "true" || data.auth_dev_mode === true) {
+                document.getElementById('devCodeBox').classList.add('visible');
+                await fetchDevOTP();
+            }
+        }
+    } catch (e) {
+        console.warn("[OTP] debug check failed:", e);
+    }
+}
+
+// Fetch dev OTP from firestore or default to 123456
+async function fetchDevOTP() {
+    if (!currentUser) return;
+    try {
+        const q = query(
+            collection(db, "otp_codes"),
+            where("uid", "==", currentUser.uid),
+            where("used", "==", false),
+            limit(5)
+        );
+        const querySnapshot = await getDocs(q);
+        let latestOtp = null;
+        let latestTime = 0;
+        
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const createdAt = new Date(data.created_at).getTime();
+            if (createdAt > latestTime) {
+                latestTime = createdAt;
+                latestOtp = data.code;
+            }
+        });
+        
+        if (latestOtp) {
+            document.getElementById('devCodeValue').textContent = latestOtp;
+        } else {
+            document.getElementById('devCodeValue').textContent = "123456";
+        }
+    } catch (e) {
+        console.warn("[OTP] Cannot fetch otp from Firestore directly, using fallback 123456:", e);
+        document.getElementById('devCodeValue').textContent = "123456";
+    }
+}
+
+// Copy dev code to clipboard on click
+document.getElementById('devCodeValue').addEventListener('click', () => {
+    const code = document.getElementById('devCodeValue').textContent;
+    if (code && code !== '------') {
+        navigator.clipboard.writeText(code);
+        showMsg('info', 'Code de test copié !');
+        
+        // Populate inputs
+        inputs.forEach((inp, idx) => {
+            inp.value = code[idx] || '';
+            inp.classList.add('filled');
+        });
+        verifyOTP();
+    }
+});
+
+// Resend timer countdown
+function startCountdown(secondsElapsed = 0) {
+    clearInterval(resendTimer);
+    countdown = 60 - secondsElapsed;
+    const resendBtn = document.getElementById('resendBtn');
+    const timerDisplay = document.getElementById('timerDisplay');
+    
+    resendBtn.disabled = true;
+    
+    resendTimer = setInterval(() => {
+        countdown--;
+        if (countdown <= 0) {
+            clearInterval(resendTimer);
+            resendBtn.disabled = false;
+            timerDisplay.textContent = '';
+        } else {
+            timerDisplay.textContent = `(${countdown}s)`;
+        }
+    }, 1000);
+}
+
+// Send OTP
+async function sendOTPCode(uid, email, displayName) {
+    const resendBtn = document.getElementById('resendBtn');
+    resendBtn.disabled = true;
+    showMsg('info', 'Envoi du code par email...');
+    
+    // Get Firebase ID Token if possible
+    let idToken = null;
+    try {
+        idToken = await auth.currentUser?.getIdToken();
+    } catch (e) {}
+
+    const headers = { "Content-Type": "application/json" };
+    if (idToken) {
+        headers["Authorization"] = `Bearer ${idToken}`;
+    }
+
+    try {
+        const resp = await fetch("/auth/2fa/send", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+                uid,
+                email,
+                name: displayName || 'Cher utilisateur'
+            })
+        });
+
+        if (resp.ok) {
+            const data = await resp.json();
+            sessionStorage.setItem('otp_sent_for', uid);
+            sessionStorage.setItem('otp_sent_at', Date.now().toString());
+            showMsg('success', `Code envoyé avec succès à ${email}`);
+            startCountdown(0);
+            await checkDevMode();
+            if (document.getElementById('devCodeBox').classList.contains('visible')) {
+                await fetchDevOTP();
+            }
+        } else {
+            const err = await resp.json().catch(() => ({ detail: "Erreur serveur" }));
+            showMsg('error', `Échec de l'envoi : ${err.detail || 'Erreur inconnue'}`);
+            resendBtn.disabled = false;
+        }
+    } catch (e) {
+        console.error("[OTP] Error sending code:", e);
+        showMsg('error', "Erreur réseau lors de l'envoi du code.");
+        resendBtn.disabled = false;
+    }
+}
+
+// Verify OTP
+window.verifyOTP = async function() {
+    const code = Array.from(inputs).map(i => i.value).join('');
+    if (code.length !== 6) {
+        showMsg('warn', 'Veuillez saisir les 6 chiffres.');
+        return;
+    }
+
+    const uid = currentUser ? currentUser.uid : sessionStorage.getItem('2fa_uid');
+    if (!uid) {
+        showMsg('error', 'Erreur d\'authentification : UID manquant. Reconnectez-vous.');
+        return;
+}
+
+    // disable verify button and inputs
+    setLoading(true);
+    inputs.forEach(i => i.disabled = true);
+
+    let idToken = null;
+    try {
+        idToken = await auth.currentUser?.getIdToken();
+    } catch (e) {}
+
+    const headers = { "Content-Type": "application/json" };
+    if (idToken) {
+        headers["Authorization"] = `Bearer ${idToken}`;
+    }
+
+    try {
+        const resp = await fetch("/auth/2fa/verify", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ uid, code })
+        });
+
+        if (resp.ok) {
+            const data = await resp.json();
+            
+            // Save verified session
+            sessionStorage.setItem('2fa_verified', data.verification_token);
+            sessionStorage.setItem('2fa_uid', uid);
+            
+            // Success styling on digits
+            inputs.forEach(i => {
+                i.classList.remove('error');
+                i.classList.add('success');
+            });
+            
+            showMsg('success', 'Code valide ! Redirection...');
+            
+            // Show overlay
+            document.getElementById('successOverlay').classList.add('visible');
+            
+            setTimeout(() => {
+                window.location.replace('/dashboard.html');
+            }, 1500);
+
+        } else {
+            const err = await resp.json().catch(() => ({ detail: "Code incorrect ou expiré" }));
+            showMsg('error', err.detail || "Code invalide. Réessayez.");
+            
+            // Error styling and shaking
+            inputs.forEach(i => {
+                i.disabled = false;
+                i.value = '';
+                i.classList.remove('filled', 'success');
+                i.classList.add('error');
+            });
+            inputs[0].focus();
+            
+            // Remove error styling after animation
+            setTimeout(() => {
+                inputs.forEach(i => i.classList.remove('error'));
+            }, 1000);
+            
+            setLoading(false);
+        }
+    } catch (e) {
+        console.error("[OTP] Error verifying code:", e);
+        showMsg('error', "Erreur réseau. Impossible de valider.");
+        inputs.forEach(i => i.disabled = false);
+        setLoading(false);
+    }
+}
+
+function setLoading(loading) {
+    const btn = document.getElementById('verifyBtn');
+    if (loading) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="btn-spinner"></span> Vérification en cours...`;
+    } else {
+        btn.disabled = false;
+        btn.innerHTML = `Vérifier et accéder au dashboard`;
+    }
+}
+
+// Resend function
+window.resendCode = async function() {
+    const uid = currentUser ? currentUser.uid : sessionStorage.getItem('2fa_uid');
+    const email = currentUser ? currentUser.email : sessionStorage.getItem('2fa_email');
+    if (!uid || !email) {
+        showMsg('error', 'UID/Email manquant. Reconnectez-vous.');
+        return;
+    }
+    await sendOTPCode(uid, email, currentUser ? currentUser.displayName : '');
+}
+
+// Clear session / Back to login
+window.clearSession = function() {
+    signOut(auth).catch(() => {});
+    sessionStorage.clear();
+}
+
+// Main logic on load
+onAuthStateChanged(auth, async (user) => {
+    const emailText = document.getElementById('emailText');
+    
+    if (user) {
+        currentUser = user;
+        emailText.textContent = user.email;
+        sessionStorage.setItem('2fa_email', user.email);
+        sessionStorage.setItem('2fa_uid', user.uid);
+        
+        // Check if sent recently
+        const sentFor = sessionStorage.getItem('otp_sent_for');
+        const sentAtStr = sessionStorage.getItem('otp_sent_at');
+        const now = Date.now();
+        
+        let sentRecently = false;
+        if (sentFor === user.uid && sentAtStr) {
+            const elapsed = Math.floor((now - parseInt(sentAtStr)) / 1000);
+            if (elapsed < 60) {
+                sentRecently = true;
+                startCountdown(elapsed);
+                showMsg('info', 'Saisissez le code reçu par email.');
+                await checkDevMode();
+            }
+        }
+        
+        if (!sentRecently) {
+            await sendOTPCode(user.uid, user.email, user.displayName);
+        }
+    } else {
+        // Fallback on sessionStorage if firebase is slow
+        const cachedEmail = sessionStorage.getItem('2fa_email') || sessionStorage.getItem('pending_email');
+        const cachedUid = sessionStorage.getItem('2fa_uid') || sessionStorage.getItem('pending_uid');
+        
+        if (cachedEmail && cachedUid) {
+            emailText.textContent = cachedEmail;
+            // Create a pseudo-user to allow resending and verifying
+            currentUser = { uid: cachedUid, email: cachedEmail, displayName: '' };
+            await checkDevMode();
+            
+            // Check if sent recently
+            const sentFor = sessionStorage.getItem('otp_sent_for');
+            const sentAtStr = sessionStorage.getItem('otp_sent_at');
+            const now = Date.now();
+            let sentRecently = false;
+            if (sentFor === cachedUid && sentAtStr) {
+                const elapsed = Math.floor((now - parseInt(sentAtStr)) / 1000);
+                if (elapsed < 60) {
+                    sentRecently = true;
+                    startCountdown(elapsed);
+                    showMsg('info', 'Saisissez le code reçu par email (depuis le cache).');
+                }
+            }
+            if (!sentRecently) {
+                await sendOTPCode(cachedUid, cachedEmail, '');
+            }
+        } else {
+            // Wait a few seconds for firebase
+            emailText.textContent = "Recherche de la session...";
+            setTimeout(() => {
+                if (!currentUser && !sessionStorage.getItem('2fa_uid')) {
+                    showMsg('warn', 'Session expirée. Redirection vers la page de connexion...');
+                    setTimeout(() => window.location.href = '/auth.html', 2000);
+                }
+            }, 5000);
+        }
+    }
+});
+
+// Particles background
+function initParticles() {
+    const container = document.getElementById('particles');
+    if (!container) return;
+    const colors = ['#8B5CF6', '#7DD3FC', '#4F46E5', '#A78BFA'];
+    for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = Math.random() * 14 + 5;
+        p.style.width = `${size}px`;
+        p.style.height = `${size}px`;
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        p.style.left = `${Math.random() * 100}%`;
+        p.style.bottom = `-20px`;
+        p.style.setProperty('--delay', `${Math.random() * 6}s`);
+        p.style.setProperty('--dur', `${Math.random() * 6 + 6}s`);
+        container.appendChild(p);
+    }
+}
+initParticles();
+</script>
+</body>
+</html>

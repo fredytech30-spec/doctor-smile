@@ -1,3 +1,1 @@
-"""
-Backend package initialization
-"""
+# Doctor Smile App Package

@@ -25,6 +25,8 @@ window.DS_MASTER_AGENT = (() => {
     notifications: true,
     scoreThreshold: 40,
     cashflowWatch: true,
+    tone:        'coaching',   // coaching | strict | growth | conservative
+    customInstructions: '',    // instructions personnalisées pour l'agent
   };
 
   function _loadCfg() {
@@ -36,7 +38,7 @@ window.DS_MASTER_AGENT = (() => {
     const cfg = { ..._loadCfg(), ...updates };
     localStorage.setItem('ds_agent_cfg', JSON.stringify(cfg));
     _restart();
-    _log('Configuration mise à jour', '#a78bfa');
+    _log('Configuration mise à jour', 'var(--violet-3)');
     renderConfig();
   }
 
@@ -44,21 +46,21 @@ window.DS_MASTER_AGENT = (() => {
 
   /* ── Couleurs selon statut ───────────────────────────────────── */
   const COLORS = {
-    monitoring: '#7DD3FC',
-    thinking:   '#FFD700',
-    alerting:   '#ef4444',
-    idle:       'rgba(255,255,255,.2)',
+    monitoring: 'var(--cyan)',
+    thinking:   'var(--amber)',
+    alerting:   'var(--error)',
+    idle:       'var(--text-hint)',
   };
 
   const STATUS_LABELS = {
-    monitoring: '● Surveillance active',
-    thinking:   '◌ Analyse en cours…',
-    alerting:   '⚠ Alerte détectée !',
-    idle:       '○ En attente de données',
+    monitoring: 'Surveillance active',
+    thinking:   'Analyse en cours…',
+    alerting:   'Alerte détectée !',
+    idle:       'En attente de données',
   };
 
   /* ── Journal de bord ─────────────────────────────────────────── */
-  function _log(msg, color = '#7DD3FC') {
+  function _log(msg, color = 'var(--cyan)') {
     const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     _journal.unshift({ msg, color, time: now });
     if (_journal.length > 30) _journal.pop();
@@ -69,21 +71,56 @@ window.DS_MASTER_AGENT = (() => {
     const el = document.getElementById('agent-logs-view');
     if (!el) return;
     if (!_journal.length) {
-      el.innerHTML = `<div style="padding:20px;text-align:center;font-size:10px;color:rgba(255,255,255,.2);">Journal vide</div>`;
+      el.innerHTML = `<div style="padding:20px;text-align:center;font-size:10px;color:var(--text-hint);">Journal vide</div>`;
       return;
     }
     el.innerHTML = _journal.map(j => `
-      <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);">
-        <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.25);white-space:nowrap;">${j.time}</span>
-        <span style="font-size:10px;color:${j.color};line-height:1.4;">${j.msg}</span>
+      <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text-hint);opacity:0.5;white-space:nowrap;">${j.time}</span>
+        <span style="font-size:10px;color:${j.color};line-height:1.4;font-weight:600;">${j.msg.replace(/⚠/g, '<i class="fa-solid fa-triangle-exclamation"></i>').replace(/✓/g, '<i class="fa-solid fa-check"></i>')}</span>
       </div>
     `).join('');
   }
 
+  /* ── Switch Tabs ───────────────────────────────────────────── */
+  window._agentTab = function(tab) {
+    // Buttons
+    const btnI = document.getElementById('agent-tab-insights');
+    const btnJ = document.getElementById('agent-tab-journal');
+    const btnP = document.getElementById('agent-tab-predict');
+
+    // Panels
+    const panI = document.getElementById('agent-panel-insights');
+    const panJ = document.getElementById('agent-panel-journal');
+    const panP = document.getElementById('agent-panel-predict');
+
+    if (!btnI || !panI) return;
+
+    // Reset all
+    [btnI, btnJ, btnP].forEach(b => {
+      if (!b) return;
+      b.style.background = 'transparent';
+      b.style.borderBottom = '2px solid transparent';
+      b.style.color = 'var(--text-muted)';
+    });
+    [panI, panJ, panP].forEach(p => { if (p) p.style.display = 'none'; });
+
+    // Activate
+    const activeBtn = tab === 'insights' ? btnI : tab === 'journal' ? btnJ : btnP;
+    const activePan = tab === 'insights' ? panI : tab === 'journal' ? panJ : panP;
+
+    if (activeBtn) {
+      activeBtn.style.background = 'rgba(167,139,250,.08)';
+      activeBtn.style.borderBottom = '2px solid var(--color-violet-light)';
+      activeBtn.style.color = 'var(--color-violet-light)';
+    }
+    if (activePan) activePan.style.display = 'block';
+  };
+
   /* ── Init ────────────────────────────────────────────────────── */
   function init() {
-    console.log('%c[Master Agent v2] Initialisation…', 'color:#A78BFA;font-weight:bold;');
-    _log('Master Agent v2 démarré', '#a78bfa');
+    console.log('%c[Master Agent v2] Initialisation…', 'color:var(--violet-3);font-weight:bold;');
+    _log('Master Agent v2 démarré', 'var(--violet-3)');
     _restart();
     _updateHeartbeat();
   }
@@ -103,12 +140,12 @@ window.DS_MASTER_AGENT = (() => {
 
     if (!analyse) {
       setStatus('idle');
-      _log(`Cycle #${_loopCount} — En attente d'une analyse`, 'rgba(255,255,255,.3)');
+      _log(`Cycle #${_loopCount} — En attente d'une analyse`, 'var(--text-hint)');
       return;
     }
 
     setStatus('thinking');
-    _log(`Cycle #${_loopCount} — Analyse de ${analyse.entreprise || 'l\'entreprise'}…`, '#FFD700');
+    _log(`Cycle #${_loopCount} — Analyse de ${analyse.entreprise || 'l\'entreprise'}…`, 'var(--amber)');
 
     // Simulate thinking
     await new Promise(r => setTimeout(r, 1800));
@@ -130,9 +167,9 @@ window.DS_MASTER_AGENT = (() => {
 
     _log(
       tensions.length > 0
-        ? `⚠ ${tensions.length} tension(s) détectée(s)`
-        : `✓ Aucune anomalie — Score : ${analyse.score || '?'}/100`,
-      tensions.length > 0 ? '#ef4444' : '#10b981'
+        ? `Tension(s) détectée(s)`
+        : `Aucune anomalie — Score : ${analyse.score || '?'}/100`,
+      tensions.length > 0 ? 'var(--error)' : 'var(--success)'
     );
 
     renderInsights();
@@ -149,6 +186,12 @@ window.DS_MASTER_AGENT = (() => {
     }
     if (score < cfg.scoreThreshold) {
       t.push({ type: 'anomaly', title: 'Score de santé fragile', desc: `Score ${score}/100 — En dessous du seuil de vigilance (${cfg.scoreThreshold}).`, severity: score < 25 ? 'critical' : 'high' });
+    }
+    
+    // --- Actions réelles ---
+    if (score < 30) {
+      _log("Action Agent : Préparation d'une demande de co-signature urgente", 'var(--error)');
+      // Ici on pourrait appeler l'API /cosign/request automatiquement
     }
     const ratios = analyse.ratios || {};
     if (ratios.liquidite_generale !== undefined && ratios.liquidite_generale < 1) {
@@ -184,7 +227,7 @@ window.DS_MASTER_AGENT = (() => {
     if (_insights.length > 10) _insights.pop();
 
     if (insight.severity === 'critical' && _loadCfg().notifications) {
-      window.DS_SUPPLEMENT?.alerts?.push?.(`⚠ [IA] ${insight.title}`, 'danger');
+      window.DS_SUPPLEMENT?.alerts?.push?.(`[IA] ${insight.title}`, 'danger');
     }
   }
 
@@ -216,8 +259,8 @@ window.DS_MASTER_AGENT = (() => {
     if (tag) {
       tag.textContent = STATUS_LABELS[_status];
       tag.style.color = color;
-      tag.style.borderColor = color + '44';
-      tag.style.background = color + '11';
+      tag.style.borderColor = `var(--border)`;
+      tag.style.background = `var(--surface-2)`;
     }
 
     // Status text
@@ -232,36 +275,36 @@ window.DS_MASTER_AGENT = (() => {
 
     if (!_insights.length) {
       el.innerHTML = `
-        <div style="padding:50px 20px;text-align:center;color:rgba(255,255,255,.18);">
+        <div style="padding:50px 20px;text-align:center;color:var(--text-hint);">
           <i class="fa-solid fa-shield-check" style="font-size:36px;display:block;margin-bottom:14px;opacity:.3;"></i>
           <div style="font-family:Syne,sans-serif;font-size:11px;font-weight:800;">Aucune anomalie détectée</div>
-          <div style="font-size:10px;margin-top:6px;line-height:1.6;">L'IA surveille vos finances en continu.<br>Importez une analyse pour commencer.</div>
+          <div style="font-size:10px;margin-top:6px;line-height:1.6;">L'IA surveille vos finances en continu.<br>Importez une liasse pour commencer.</div>
         </div>`;
       return;
     }
 
     const SICON = { critical: 'fa-triangle-exclamation', high: 'fa-circle-exclamation', ok: 'fa-circle-check', info: 'fa-lightbulb', info2: 'fa-lightbulb' };
-    const SCOL  = { critical: '#ef4444', high: '#f59e0b', ok: '#10b981', info: '#a78bfa', opportunity: '#a78bfa' };
+    const SCOL  = { critical: 'var(--error)', high: 'var(--amber)', ok: 'var(--success)', info: 'var(--violet-3)', opportunity: 'var(--violet-3)' };
 
     el.innerHTML = _insights.map(i => {
-      const col = SCOL[i.severity] || '#7DD3FC';
+      const col = SCOL[i.severity] || 'var(--cyan)';
       const ico = SICON[i.severity] || 'fa-lightbulb';
       return `
-        <div style="background:${col}08;border:1px solid ${col}22;border-left:3px solid ${col};
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-left:3px solid ${col};
           border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;
           animation:slideInAgent .3s ease-out;">
-          <div style="width:34px;height:34px;border-radius:8px;background:${col}15;color:${col};
+          <div style="width:34px;height:34px;border-radius:8px;background:var(--surface-3);color:${col};
             display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;">
             <i class="fa-solid ${ico}"></i>
           </div>
           <div style="flex:1;min-width:0;">
-            <div style="font-family:Syne,sans-serif;font-size:11px;font-weight:800;color:#fff;margin-bottom:4px;">${i.title}</div>
-            <div style="font-size:9.5px;color:rgba(255,255,255,.5);line-height:1.6;">${i.desc}</div>
-            <div style="font-size:8px;color:rgba(255,255,255,.2);margin-top:6px;">Détecté à ${i.time}</div>
+            <div style="font-family:Syne,sans-serif;font-size:11px;font-weight:800;color:var(--text);margin-bottom:4px;">${i.title}</div>
+            <div style="font-size:9.5px;color:var(--text-2);line-height:1.6;">${i.desc}</div>
+            <div style="font-size:8px;color:var(--text-hint);margin-top:6px;">Détecté à ${i.time}</div>
           </div>
           <button onclick="window.DS_MASTER_AGENT._dismissInsight(${i.id})"
-            style="background:none;border:none;color:rgba(255,255,255,.2);cursor:pointer;font-size:11px;flex-shrink:0;align-self:flex-start;padding:2px;"
-            title="Ignorer">×</button>
+            style="background:none;border:none;color:var(--text-hint);cursor:pointer;font-size:14px;flex-shrink:0;align-self:flex-start;padding:2px;"
+            title="Ignorer"><i class="fa-solid fa-xmark"></i></button>
         </div>`;
     }).join('');
   }
@@ -277,14 +320,14 @@ window.DS_MASTER_AGENT = (() => {
     }
     el.style.display = 'flex';
     el.innerHTML = `
-      <div style="font-family:Syne,sans-serif;font-size:8px;font-weight:900;letter-spacing:.1em;color:rgba(167,139,250,.4);text-transform:uppercase;margin-bottom:4px;">
+      <div style="font-family:Syne,sans-serif;font-size:8px;font-weight:900;letter-spacing:.1em;color:var(--violet-3);opacity:0.6;text-transform:uppercase;margin-bottom:4px;">
         <i class="fa-solid fa-sparkles"></i> Insights prioritaires
       </div>
       ${critical.map(i => `
         <div class="chat-ai-insight">
-          <i class="fa-solid fa-triangle-exclamation" style="color:#ef4444;"></i>
+          <i class="fa-solid fa-triangle-exclamation" style="color:var(--error);"></i>
           <span>${i.title}</span>
-          <button onclick="window.DS_VIEWS?.navTo('agent')" style="background:none;border:none;color:#7DD3FC;font-size:8.5px;font-weight:800;text-decoration:underline;cursor:pointer;margin-left:auto;">Voir</button>
+          <button onclick="window.DS_VIEWS?.navTo('agent')" style="background:none;border:none;color:var(--cyan);font-size:8.5px;font-weight:800;text-decoration:underline;cursor:pointer;margin-left:auto;">Voir</button>
         </div>
       `).join('')}
     `;
@@ -311,14 +354,20 @@ window.DS_MASTER_AGENT = (() => {
     }
 
     const focusOpts = [
-      { v: 'growth',   l: '📈 Croissance',  d: 'Priorité aux opportunités' },
-      { v: 'balanced', l: '⚖️ Équilibré',   d: 'Croissance et sécurité' },
-      { v: 'security', l: '🛡 Sécurité',    d: 'Minimiser les risques' },
+      { v: 'growth',   l: 'Croissance',  i: 'fa-chart-line', d: 'Priorité aux opportunités' },
+      { v: 'balanced', l: 'Équilibré',   i: 'fa-scale-balanced', d: 'Croissance et sécurité' },
+      { v: 'security', l: 'Sécurité',    i: 'fa-shield-halved', d: 'Minimiser les risques' },
     ];
     const proactOpts = [
-      { v: 'low',    l: 'Faible',  d: 'Alertes urgentes seulement' },
-      { v: 'medium', l: 'Moyen',   d: 'Alertes importantes' },
-      { v: 'high',   l: 'Élevé',   d: 'Toutes les suggestions' },
+      { v: 'low',    l: 'Faible',  i: 'fa-gauge-low', d: 'Alertes urgentes seulement' },
+      { v: 'medium', l: 'Moyen',   i: 'fa-gauge', d: 'Alertes importantes' },
+      { v: 'high',   l: 'Élevé',   i: 'fa-gauge-high', d: 'Toutes les suggestions' },
+    ];
+    const toneOpts = [
+      { v: 'strict',       l: 'Strict',        i: 'fa-gavel',               d: 'Direct, analytique et franc' },
+      { v: 'coaching',     l: 'Coaching',      i: 'fa-graduation-cap',      d: 'Pédagogue et explicatif' },
+      { v: 'growth',       l: 'Opportuniste',  i: 'fa-rocket',              d: 'Expansion et rentabilité' },
+      { v: 'conservative', l: 'Prudent',       i: 'fa-vault',               d: 'Préservation du capital' },
     ];
 
     el.innerHTML = `
@@ -326,68 +375,117 @@ window.DS_MASTER_AGENT = (() => {
 
         <!-- Focus -->
         <div>
-          <div style="font-family:Syne,sans-serif;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:10px;">
-            <i class="fa-solid fa-crosshairs" style="margin-right:5px;color:#7DD3FC;"></i>Orientation stratégique
+          <div style="font-family:Syne,sans-serif;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-hint);margin-bottom:10px;">
+            <i class="fa-solid fa-crosshairs" style="margin-right:5px;color:var(--cyan);"></i>Orientation stratégique
           </div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
             ${focusOpts.map(o => `
               <button onclick="window.DS_MASTER_AGENT.saveCfg({focus:'${o.v}'})"
-                style="padding:10px 8px;border-radius:10px;border:1px solid ${cfg.focus===o.v?'rgba(125,211,252,.5)':'rgba(255,255,255,.08)'};
-                background:${cfg.focus===o.v?'rgba(125,211,252,.1)':'rgba(255,255,255,.03)'};
-                color:${cfg.focus===o.v?'#7DD3FC':'rgba(255,255,255,.45)'};
+                style="padding:10px 8px;border-radius:10px;border:1px solid ${cfg.focus===o.v?'var(--cyan)':'var(--border)'};
+                background:${cfg.focus===o.v?'var(--cyan-hover)':'var(--surface-2)'};
+                color:${cfg.focus===o.v?'var(--cyan)':'var(--text-2)'};
                 font-family:Syne,sans-serif;font-size:9px;font-weight:800;cursor:pointer;
                 transition:all .18s;text-align:center;line-height:1.5;">
-                <div style="font-size:16px;margin-bottom:4px;">${o.l.split(' ')[0]}</div>
-                <div>${o.l.split(' ').slice(1).join(' ')}</div>
-                <div style="font-size:8px;color:rgba(255,255,255,.3);margin-top:3px;">${o.d}</div>
+                <div style="font-size:16px;margin-bottom:4px;"><i class="fa-solid ${o.i}"></i></div>
+                <div>${o.l}</div>
+                <div style="font-size:8px;color:var(--text-hint);margin-top:3px;">${o.d}</div>
               </button>`).join('')}
+          </div>
+        </div>
+
+        <!-- Personnalité / Ton de l'Agent IA -->
+        <div>
+          <div style="font-family:Syne,sans-serif;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-hint);margin-bottom:10px;">
+            <i class="fa-solid fa-circle-nodes" style="margin-right:5px;color:var(--p3-agent);"></i>Personnalité &amp; Ton
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+            ${toneOpts.map(o => `
+              <button onclick="window.DS_MASTER_AGENT.saveCfg({tone:'${o.v}'})"
+                style="padding:10px 8px;border-radius:10px;border:1px solid ${cfg.tone===o.v?'var(--p3-agent)':'var(--border)'};
+                background:${cfg.tone===o.v?'rgba(167,139,250,.08)':'var(--surface-2)'};
+                color:${cfg.tone===o.v?'var(--p3-agent)':'var(--text-2)'};
+                font-family:Syne,sans-serif;font-size:9px;font-weight:800;cursor:pointer;
+                transition:all .18s;text-align:center;line-height:1.5;">
+                <div style="font-size:14px;margin-bottom:4px;color:${cfg.tone===o.v?'var(--p3-agent)':'var(--text-hint)'};"><i class="fa-solid ${o.i}"></i></div>
+                <div>${o.l}</div>
+                <div style="font-size:8px;color:var(--text-hint);margin-top:3px;">${o.d}</div>
+              </button>`).join('')}
+          </div>
+        </div>
+
+        <!-- Instructions personnalisées -->
+        <div>
+          <div style="font-family:Syne,sans-serif;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-hint);margin-bottom:10px;">
+            <i class="fa-solid fa-file-signature" style="margin-right:5px;color:var(--violet-3);"></i>Instructions personnalisées
+          </div>
+          <div style="position:relative;">
+            <textarea id="agent-custom-instructions"
+              placeholder="Ex: Alerte-moi si la rentabilité nette passe en dessous de 8%. Privilégie l'analyse du BFR..."
+              style="width:100%;min-height:75px;padding:12px;border-radius:10px;
+              border:1px solid var(--border);background:var(--surface-2);color:var(--text);
+              font-family:inherit;font-size:10px;line-height:1.5;resize:vertical;outline:none;
+              transition:border-color .2s;"
+              onfocus="this.style.borderColor='var(--violet-3)'"
+              onblur="this.style.borderColor='var(--border)'"
+            >${cfg.customInstructions || ''}</textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+              <button onclick="window.DS_MASTER_AGENT.saveCfg({customInstructions:document.getElementById('agent-custom-instructions').value})"
+                style="padding:6px 14px;border-radius:8px;
+                background:var(--violet-bg);border:1px solid var(--violet-border);color:var(--violet-3);
+                font-family:Syne,sans-serif;font-size:9px;font-weight:800;cursor:pointer;
+                transition:all .18s;"
+                onmouseenter="this.style.background='var(--violet-hover)'"
+                onmouseleave="this.style.background='var(--violet-bg)'">
+                <i class="fa-solid fa-floppy-disk" style="margin-right:5px;"></i>Enregistrer les instructions
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- Proactivité -->
         <div>
-          <div style="font-family:Syne,sans-serif;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:10px;">
-            <i class="fa-solid fa-bolt" style="margin-right:5px;color:#FFD700;"></i>Niveau de proactivité
+          <div style="font-family:Syne,sans-serif;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-hint);margin-bottom:10px;">
+            <i class="fa-solid fa-bolt" style="margin-right:5px;color:var(--amber);"></i>Niveau de proactivité
           </div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
             ${proactOpts.map(o => `
               <button onclick="window.DS_MASTER_AGENT.saveCfg({proactivity:'${o.v}'})"
-                style="padding:9px 6px;border-radius:10px;border:1px solid ${cfg.proactivity===o.v?'rgba(255,215,0,.5)':'rgba(255,255,255,.08)'};
-                background:${cfg.proactivity===o.v?'rgba(255,215,0,.08)':'rgba(255,255,255,.03)'};
-                color:${cfg.proactivity===o.v?'#FFD700':'rgba(255,255,255,.45)'};
+                style="padding:9px 6px;border-radius:10px;border:1px solid ${cfg.proactivity===o.v?'var(--amber)':'var(--border)'};
+                background:${cfg.proactivity===o.v?'var(--amber-hover)':'var(--surface-2)'};
+                color:${cfg.proactivity===o.v?'var(--amber)':'var(--text-2)'};
                 font-family:Syne,sans-serif;font-size:9px;font-weight:800;cursor:pointer;transition:all .18s;text-align:center;">
                 <div>${o.l}</div>
-                <div style="font-size:8px;color:rgba(255,255,255,.3);margin-top:3px;">${o.d}</div>
+                <div style="font-size:8px;color:var(--text-hint);margin-top:3px;">${o.d}</div>
               </button>`).join('')}
           </div>
         </div>
 
         <!-- Fréquence -->
         <div>
-          <div style="font-family:Syne,sans-serif;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:10px;">
-            <i class="fa-solid fa-clock" style="margin-right:5px;color:#a78bfa;"></i>Fréquence d'analyse
+          <div style="font-family:Syne,sans-serif;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-hint);margin-bottom:10px;">
+            <i class="fa-solid fa-clock" style="margin-right:5px;color:var(--violet-3);"></i>Fréquence d'analyse
           </div>
           <div style="display:flex;align-items:center;gap:12px;">
             <input type="range" min="30" max="300" step="30" value="${cfg.frequency}"
               oninput="this.nextElementSibling.textContent=this.value+'s'"
               onchange="window.DS_MASTER_AGENT.saveCfg({frequency:parseInt(this.value)})"
-              style="flex:1;accent-color:#a78bfa;">
-            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#a78bfa;min-width:36px;">${cfg.frequency}s</span>
+              style="flex:1;accent-color:var(--violet-3);">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--violet-3);min-width:36px;">${cfg.frequency}s</span>
           </div>
-          <div style="font-size:9px;color:rgba(255,255,255,.25);margin-top:5px;">Cycle toutes les ${cfg.frequency}s · ${Math.round(cfg.frequency/60)} min</div>
+          <div style="font-size:9px;color:var(--text-hint);margin-top:5px;">Cycle toutes les ${cfg.frequency}s · ${Math.round(cfg.frequency/60)} min</div>
         </div>
 
         <!-- Seuil d'alerte -->
         <div>
-          <div style="font-family:Syne,sans-serif;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:10px;">
-            <i class="fa-solid fa-gauge" style="margin-right:5px;color:#ef4444;"></i>Seuil d'alerte (score)
+          <div style="font-family:Syne,sans-serif;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-hint);margin-bottom:10px;">
+            <i class="fa-solid fa-gauge" style="margin-right:5px;color:var(--error);"></i>Seuil d'alerte (score)
           </div>
           <div style="display:flex;align-items:center;gap:12px;">
             <input type="range" min="20" max="70" step="5" value="${cfg.scoreThreshold}"
               oninput="this.nextElementSibling.textContent=this.value+'/100'"
               onchange="window.DS_MASTER_AGENT.saveCfg({scoreThreshold:parseInt(this.value)})"
-              style="flex:1;accent-color:#ef4444;">
-            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#ef4444;min-width:52px;">${cfg.scoreThreshold}/100</span>
+              style="flex:1;accent-color:var(--error);">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--error);min-width:52px;">${cfg.scoreThreshold}/100</span>
           </div>
         </div>
 
@@ -395,18 +493,18 @@ window.DS_MASTER_AGENT = (() => {
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <button onclick="window.DS_MASTER_AGENT.saveCfg({notifications:!window.DS_MASTER_AGENT.getCfg().notifications})"
             style="flex:1;padding:9px 14px;border-radius:9px;
-            border:1px solid ${cfg.notifications?'rgba(16,185,129,.4)':'rgba(255,255,255,.1)'};
-            background:${cfg.notifications?'rgba(16,185,129,.08)':'rgba(255,255,255,.03)'};
-            color:${cfg.notifications?'#10b981':'rgba(255,255,255,.4)'};
+            border:1px solid ${cfg.notifications?'var(--success-border)':'var(--border)'};
+            background:${cfg.notifications?'var(--success-bg)':'var(--surface-2)'};
+            color:${cfg.notifications?'var(--success)':'var(--text-hint)'};
             font-family:Syne,sans-serif;font-size:9px;font-weight:800;cursor:pointer;transition:all .18s;">
             <i class="fa-solid ${cfg.notifications?'fa-bell':'fa-bell-slash'}" style="margin-right:5px;"></i>
             Notifications ${cfg.notifications?'ON':'OFF'}
           </button>
           <button onclick="window.DS_MASTER_AGENT.saveCfg({cashflowWatch:!window.DS_MASTER_AGENT.getCfg().cashflowWatch})"
             style="flex:1;padding:9px 14px;border-radius:9px;
-            border:1px solid ${cfg.cashflowWatch?'rgba(125,211,252,.4)':'rgba(255,255,255,.1)'};
-            background:${cfg.cashflowWatch?'rgba(125,211,252,.08)':'rgba(255,255,255,.03)'};
-            color:${cfg.cashflowWatch?'#7DD3FC':'rgba(255,255,255,.4)'};
+            border:1px solid ${cfg.cashflowWatch?'var(--cyan-border)':'var(--border)'};
+            background:${cfg.cashflowWatch?'var(--cyan-hover)':'var(--surface-2)'};
+            color:${cfg.cashflowWatch?'var(--cyan)':'var(--text-hint)'};
             font-family:Syne,sans-serif;font-size:9px;font-weight:800;cursor:pointer;transition:all .18s;">
             <i class="fa-solid fa-water" style="margin-right:5px;"></i>
             Cashflow ${cfg.cashflowWatch?'ON':'OFF'}
@@ -416,19 +514,17 @@ window.DS_MASTER_AGENT = (() => {
         <!-- Bouton forcer analyse -->
         <button onclick="window.DS_MASTER_AGENT._forceAnalyze()"
           style="width:100%;padding:12px;border-radius:10px;
-          background:linear-gradient(135deg,rgba(167,139,250,.15),rgba(125,211,252,.08));
-          border:1px solid rgba(167,139,250,.3);color:#a78bfa;
+          background:var(--violet-bg);
+          border:1px solid var(--violet-border);color:var(--violet-3);
           font-family:Syne,sans-serif;font-size:10px;font-weight:800;
-          cursor:pointer;transition:all .2s;letter-spacing:.05em;"
-          onmouseenter="this.style.background='linear-gradient(135deg,rgba(167,139,250,.25),rgba(125,211,252,.12))'"
-          onmouseleave="this.style.background='linear-gradient(135deg,rgba(167,139,250,.15),rgba(125,211,252,.08))'">
+          cursor:pointer;transition:all .2s;letter-spacing:.05em;">
           <i class="fa-solid fa-play" style="margin-right:7px;"></i>Lancer une analyse maintenant
         </button>
       </div>`;
   }
 
   function _forceAnalyze() {
-    _log('Analyse manuelle déclenchée', '#FFD700');
+    _log('Analyse manuelle déclenchée', 'var(--amber)');
     _analyze();
   }
 
