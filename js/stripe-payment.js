@@ -442,36 +442,6 @@ export async function showPaymentModal(currentPlan = 'standard') {
     });
   });
 }
-                    </button>`
-                  : key === 'standard'
-                    ? `<button disabled style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,.1);
-                        background:transparent;color:rgba(255,255,255,.3);font-size:11px;cursor:not-allowed;">
-                        Gratuit
-                      </button>`
-                    : `<button data-payment-btn data-plan="${key}" onclick="window.DS_PAYMENT?.startCheckout('${key}')"
-                        style="width:100%;padding:10px;border-radius:8px;border:none;cursor:pointer;
-                        font-family:'Syne',sans-serif;font-size:11px;font-weight:800;letter-spacing:.05em;
-                        background:${isPopular ? '#FFD700' : 'rgba(139,127,240,.15)'};
-                        color:${isPopular ? '#000' : '#8B7FF0'};">
-                        Passer ${plan.name} →
-                      </button>`
-                }
-              </div>`;
-          }).join('')}
-        </div>
-
-        <div style="margin-top:20px;text-align:center;font-size:10px;color:rgba(255,255,255,.25);">
-          🔒 Paiement sécurisé par NotchPay ou Fapshi · Annulation à tout moment · Pas de frais cachés
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.remove();
-    });
-  }
-}
 
 // ── Helpers UI ────────────────────────────────────────────────
 function showPaymentLoading(show, plan) {
