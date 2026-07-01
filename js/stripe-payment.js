@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════════
 //  stripe-payment.js — Doctor Smile
-//  Gestion des paiements Stripe côté frontend
+//  Gestion des paiements via NotchPay et Fapshi côté frontend
 // ════════════════════════════════════════════════════════════════
 
 const API_BASE = (() => {
@@ -26,9 +26,9 @@ export async function startCheckout(plan) {
 
     showPaymentLoading(true, plan);
 
-    // Récupérer l'opérateur et la devise sélectionnés dans le modal
-    const operator = (document.querySelector('input[name="payment-operator"]:checked')||{}).value || 'notchpay';
-    const currency = operator === 'notchpay' ? 'XAF' : 'EUR';
+    // Récupérer l'opérateur sélectionné dans le modal
+    const operator = (window.DS_PAYMENT?.selectedOperator || 'notchpay').trim().toLowerCase();
+    const currency = 'XAF';
 
     const response = await fetchWithAuth(`${API_BASE}/payment/create-checkout`, {
       method: 'POST',
@@ -36,8 +36,8 @@ export async function startCheckout(plan) {
         plan,
         operator,
         currency,
-        success_url: `${window.location.origin}/dashboard.html?payment=success`,
-        cancel_url:  `${window.location.origin}/dashboard.html?payment=cancelled`,
+        success_url: `${window.location.origin}/dashboard.html?payment=success&operator=${encodeURIComponent(operator)}`,
+        cancel_url:  `${window.location.origin}/dashboard.html?payment=cancelled&operator=${encodeURIComponent(operator)}`,
       }),
     });
 
@@ -57,6 +57,7 @@ export async function startCheckout(plan) {
     if (data?.session_id) {
       localStorage.setItem('ds_last_payment_ref', data.session_id);
       localStorage.setItem('ds_last_payment_plan', plan);
+      localStorage.setItem('ds_last_payment_operator', operator);
     }
 
     // Rediriger vers NotchPay (checkout_url = authorization_url)
@@ -84,7 +85,7 @@ export async function startCheckout(plan) {
     window.location.href = checkoutUrl;
 
   } catch (err) {
-    console.error('[Stripe] Erreur checkout:', err);
+    console.error('[Payment] Erreur checkout:', err);
     showPaymentError(err && err.message ? err.message : 'Erreur lors de la création du paiement. Réessayez.');
 
     // Stop loader toujours
@@ -101,13 +102,14 @@ export async function startCheckout(plan) {
   }
 }
 
-// ── Vérifier le résultat après retour Stripe ──────────────────
+// ── Vérifier le résultat après retour de paiement ───────────────
 export async function checkPaymentResult() {
   const params      = new URLSearchParams(window.location.search);
   const status      = params.get('payment');
   const sessionId   = params.get('session_id');
   const paymentRef  = params.get('payment_ref') || sessionId || localStorage.getItem('ds_last_payment_ref');
   const paymentPlan = params.get('plan') || localStorage.getItem('ds_last_payment_plan');
+  const paymentOperator = params.get('operator') || localStorage.getItem('ds_last_payment_operator') || 'notchpay';
 
   if (status === 'success') {
     showToastPayment('Paiement reçu — activation du plan…', 'info');
@@ -117,7 +119,11 @@ export async function checkPaymentResult() {
         const { fetchWithAuth } = await import('./utils.js');
         const res = await fetchWithAuth(`${API_BASE}/payment/verify-payment`, {
           method: 'POST',
-          body: JSON.stringify({ reference: paymentRef }),
+          body: JSON.stringify({
+            reference: paymentRef,
+            operator: paymentOperator,
+            plan: paymentPlan,
+          }),
         });
         if (res.ok) {
           const data = await res.json();
@@ -126,6 +132,7 @@ export async function checkPaymentResult() {
             showToastPayment(`🎉 Plan ${data.plan || paymentPlan || ''} activé !`, 'ok');
             localStorage.removeItem('ds_last_payment_ref');
             localStorage.removeItem('ds_last_payment_plan');
+            localStorage.removeItem('ds_last_payment_operator');
           } else {
             showToastPayment(`Paiement en cours de confirmation (${data.status || 'statut inconnu'})`, 'warn');
           }
@@ -151,6 +158,7 @@ export async function checkPaymentResult() {
     showToastPayment('Paiement annulé.', 'warn');
     localStorage.removeItem('ds_last_payment_ref');
     localStorage.removeItem('ds_last_payment_plan');
+    localStorage.removeItem('ds_last_payment_operator');
     window.history.replaceState({}, '', window.location.pathname);
   }
 }
@@ -189,35 +197,37 @@ export async function loadPlans() {
 // ── Rendu du modal de paiement ────────────────────────────────
 export async function showPaymentModal(currentPlan = 'standard') {
   const plans = await loadPlans();
+  let selectedOperator = 'notchpay';
+  window.DS_PAYMENT = window.DS_PAYMENT || {};
+  window.DS_PAYMENT.selectedOperator = selectedOperator;
+
+  const operatorCard = (operator, emoji, title, subtitle, checked = false) => `
+    <button type="button" class="operator-choice ${checked ? 'operator-selected' : ''}" data-operator="${operator}"
+      style="cursor:pointer;position:relative;border:2px solid var(--border);border-radius:16px;padding:18px;background:rgba(255,255,255,0.04);transition:all 0.25s var(--ease);
+             display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;text-align:center;color:#fff;">
+      <span style="font-size:26px;display:block;">${emoji}</span>
+      <span style="font-size:14px;font-weight:800;">${title}</span>
+      <span style="font-size:10px;color:var(--muted-2);line-height:1.4;">${subtitle}</span>
+    </button>
+  `;
 
   const content = `
-    <div style="margin-bottom:32px; background:rgba(255,255,255,0.03); padding:20px; border-radius:16px; border:1px solid rgba(255,255,255,0.06); text-align:center;">
+    <div style="margin-bottom:32px;">
       <div style="font-size:10px; font-weight:800; color:var(--ice); text-transform:uppercase; letter-spacing:0.15em; margin-bottom:16px; opacity:0.8;">Méthode de paiement</div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:440px; margin:0 auto;">
-        <label class="operator-choice" style="cursor:pointer; position:relative;">
-          <input type="radio" name="payment-operator" value="notchpay" checked style="display:none;">
-          <div class="op-card" style="padding:16px; border-radius:12px; border:1px solid var(--border); text-align:center; transition:all 0.3s var(--ease-spring);">
-            <div style="font-size:24px; margin-bottom:6px;">📱</div>
-            <div style="font-size:13px; font-weight:700; color:#fff;">NotchPay</div>
-            <div style="font-size:9px; color:var(--muted-2);">Mobile Money et cartes en XAF</div>
-          </div>
-        </label>
-        <label class="operator-choice" style="cursor:pointer; position:relative;">
-          <input type="radio" name="payment-operator" value="stripe" style="display:none;">
-          <div class="op-card" style="padding:16px; border-radius:12px; border:1px solid var(--border); text-align:center; transition:all 0.3s var(--ease-spring);">
-            <div style="font-size:24px; margin-bottom:6px;">💳</div>
-            <div style="font-size:13px; font-weight:700; color:#fff;">Stripe</div>
-            <div style="font-size:9px; color:var(--muted-2);">International (EUR)</div>
-          </div>
-        </label>
+      <div id="payment-operator-row" style="display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:440px; margin:0 auto;">
+        ${operatorCard('notchpay', '📱', 'NotchPay', 'Mobile Money + cartes en XAF', true)}
+        ${operatorCard('fapshi', '💰', 'Fapshi', 'Alternative locale en XAF', false)}
       </div>
     </div>
     
     <style>
-      .operator-choice input:checked + .op-card {
+      .operator-choice {
+        outline: none;
+      }
+      .operator-choice.operator-selected {
         border-color: var(--ice) !important;
-        background: rgba(139,127,240,0.1);
-        box-shadow: 0 0 20px rgba(139,127,240,0.15);
+        background: rgba(139,127,240,0.18) !important;
+        box-shadow: 0 0 24px rgba(139,127,240,0.22) !important;
         transform: translateY(-2px);
       }
       .payment-plan-card {
@@ -319,12 +329,32 @@ export async function showPaymentModal(currentPlan = 'standard') {
               Choisir un plan
             </div>
             <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:4px;">
-              Tous les plans incluent un essai gratuit de 14 jours
+              Sélectionnez d'abord votre méthode de paiement (NotchPay ou Fapshi), puis le plan
             </div>
           </div>
           <button onclick="document.getElementById('payment-modal').remove()"
             style="background:rgba(255,255,255,.06);border:none;border-radius:8px;
             padding:8px 12px;color:rgba(255,255,255,.5);cursor:pointer;font-size:16px;">✕</button>
+        </div>
+
+        <div style="margin-bottom:32px;">
+          <div style="font-size:10px; font-weight:800; color:rgba(255,255,255,.6); text-transform:uppercase; letter-spacing:0.15em; margin-bottom:16px; text-align:center;">Méthode de paiement</div>
+          <div id="payment-operator-row" style="display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:440px; margin:0 auto;">
+            <button type="button" class="operator-choice operator-selected" data-operator="notchpay"
+              style="cursor:pointer;position:relative;border:2px solid var(--border);border-radius:16px;padding:18px;background:rgba(255,255,255,0.04);transition:all 0.25s ease;
+                     display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;text-align:center;color:#fff;">
+              <span style="font-size:26px;display:block;">📱</span>
+              <span style="font-size:14px;font-weight:800;">NotchPay</span>
+              <span style="font-size:10px;color:rgba(255,255,255,.5);line-height:1.4;">Mobile Money + cartes en XAF</span>
+            </button>
+            <button type="button" class="operator-choice" data-operator="fapshi"
+              style="cursor:pointer;position:relative;border:2px solid var(--border);border-radius:16px;padding:18px;background:rgba(255,255,255,0.04);transition:all 0.25s ease;
+                     display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;text-align:center;color:#fff;">
+              <span style="font-size:26px;display:block;">💰</span>
+              <span style="font-size:14px;font-weight:800;">Fapshi</span>
+              <span style="font-size:10px;color:rgba(255,255,255,.5);line-height:1.4;">Alternative locale en XAF</span>
+            </button>
+          </div>
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
@@ -361,6 +391,58 @@ export async function showPaymentModal(currentPlan = 'standard') {
                       background:transparent;color:rgba(255,255,255,.3);font-size:11px;cursor:not-allowed;">
                       Plan actuel
                     </button>`
+                  : `<button data-payment-btn data-plan="${key}" onclick="window.DS_PAYMENT?.startCheckout('${key}')"
+                      style="width:100%;padding:10px;border-radius:8px;border:none;
+                      background:${isPopular ? '#FFD700' : '#8B7FF0'};
+                      color:${isPopular ? '#000' : '#fff'};
+                      font-weight:800;font-size:11px;cursor:pointer;transition:all .2s;">
+                      Activer ${plan.name}
+                    </button>`
+                }
+              </div>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    
+    // Ajouter les gestionnaires d'événements pour le choix d'opérateur
+    setTimeout(() => {
+      const operatorChoices = modal.querySelectorAll('.operator-choice');
+      operatorChoices.forEach(choice => {
+        choice.addEventListener('click', () => {
+          selectedOperator = choice.dataset.operator || 'notchpay';
+          window.DS_PAYMENT = window.DS_PAYMENT || {};
+          window.DS_PAYMENT.selectedOperator = selectedOperator;
+          modal.querySelectorAll('.operator-choice').forEach(item => {
+            item.classList.toggle('operator-selected', item === choice);
+          });
+        });
+      });
+    }, 100);
+  }
+
+  // Après que le modal soit rendu (que ce soit via Modal ou fallback),
+  // ajouter les gestionnaires d'événements pour le choix d'opérateur
+  requestAnimationFrame(() => {
+    const operatorChoices = document.querySelectorAll('.operator-choice');
+    operatorChoices.forEach(choice => {
+      if (!choice.hasEventListener) {
+        choice.addEventListener('click', () => {
+          selectedOperator = choice.dataset.operator || 'notchpay';
+          window.DS_PAYMENT = window.DS_PAYMENT || {};
+          window.DS_PAYMENT.selectedOperator = selectedOperator;
+          document.querySelectorAll('.operator-choice').forEach(item => {
+            item.classList.toggle('operator-selected', item === choice);
+          });
+        });
+        choice.hasEventListener = true;
+      }
+    });
+  });
+}
+                    </button>`
                   : key === 'standard'
                     ? `<button disabled style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,.1);
                         background:transparent;color:rgba(255,255,255,.3);font-size:11px;cursor:not-allowed;">
@@ -379,7 +461,7 @@ export async function showPaymentModal(currentPlan = 'standard') {
         </div>
 
         <div style="margin-top:20px;text-align:center;font-size:10px;color:rgba(255,255,255,.25);">
-          🔒 Paiement sécurisé par Stripe · Annulation à tout moment · Pas de frais cachés
+          🔒 Paiement sécurisé par NotchPay ou Fapshi · Annulation à tout moment · Pas de frais cachés
         </div>
       </div>
     `;
