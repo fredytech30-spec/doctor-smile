@@ -35,7 +35,7 @@ reportlab==4.2.2
 watchfiles==0.24.0
 
 # Email - Brevo (ex-Sendinblue) - Python 3.12 compatible
-sib-api-v3-sdk==8.5.0
+sib-api-v3-sdk==7.6.0
 resend==2.0.0
 sendgrid==6.10.0
 email-validator==2.2.0
