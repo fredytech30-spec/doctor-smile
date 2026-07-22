@@ -10,9 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-  <!-- CSS : tokens → composants → page-spécifique -->
-  <link rel="stylesheet" href="assets/css/variables.css">
-  <link rel="stylesheet" href="assets/css/components.css">
+  <!-- CSS : Design System unifié → composants → page-spécifique -->
+  <link rel="stylesheet" href="assets/css/design-system.css">
+  <link rel="stylesheet" href="assets/css/ui-components.css">
   <link rel="stylesheet" href="assets/css/dashboard.css">
   <!-- Librairies externes -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -20,7 +20,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <!-- Paiement + navigation (avant les modules dashboard) -->
-  <script type="module" src="./js/stripe-payment.js"></script>
+  <script type="module" src="./js/payment.js"></script>
   <script src="./js/navigation.js"></script>
   <script src="./js/ui-components.js"></script>
   <script type="module" src="./js/ds-admin.js"></script>
@@ -188,7 +188,19 @@
         <i class="fa-solid fa-folder-open"></i>
         <span class="nav-label">Documents</span>
       </div>
-      <div class="nav-item" data-view="parametres" onclick="DS?.navTo('parametres')">
+      <div class="nav-item" data-view="marketplace" onclick="window.location.href='marketplace.html'">
+        <i class="fa-solid fa-graduation-cap"></i>
+        <span class="nav-label">Marketplace</span>
+      </div>
+      <div class="nav-item" data-view="chatbot" onclick="window.location.href='chatbot.html'">
+        <i class="fa-solid fa-robot"></i>
+        <span class="nav-label">Chatbot IA</span>
+      </div>
+      <div class="nav-item" data-view="notifications" onclick="window.location.href='notifications.html'">
+        <i class="fa-solid fa-bell"></i>
+        <span class="nav-label">Notifications</span>
+      </div>
+      <div class="nav-item" data-view="parametres" onclick="window.location.href='settings.html'">
         <i class="fa-solid fa-sliders"></i>
         <span class="nav-label">Paramètres</span>
       </div>
@@ -276,14 +288,46 @@
               </div>
             </div>
             <div class="topbar-right">
+              <!-- Plan Badge -->
               <div class="badge standard" id="plan-badge">…</div>
+              
+              <!-- Analytics Summary Button -->
+              <button class="topbar-icon-btn analytics-summary" id="analytics-summary-btn" onclick="window.DS_ANALYTICS?.showSummary()" title="Résumé Analytique & Tendances">
+                <i class="fa-solid fa-chart-line"></i>
+                <span class="btn-badge" id="analytics-badge">0</span>
+              </button>
+              
+              <!-- Email Reports Button -->
+              <button class="topbar-icon-btn email-reports" id="email-reports-btn" onclick="window.DS_EMAIL?.showReportSettings()" title="Rapports Email Automatiques">
+                <i class="fa-solid fa-envelope"></i>
+                <span class="btn-badge" id="email-badge">0</span>
+              </button>
+              
+              <!-- Theme Toggle -->
               <button class="topbar-icon-btn theme-toggle" id="theme-toggle" aria-label="Basculer en mode clair" onclick="toggleTheme()" title="Basculer le thème">
                 <i class="fa-solid fa-sun" id="theme-icon"></i>
               </button>
-              <button onclick="if(window.DS_SHARE) DS_SHARE.open(); else console.warn('DS_SHARE not ready')" class="topbar-icon-btn" title="Partager l'analyse courante"><i class="fa-solid fa-share-nodes"></i></button>
-              <div class="topbar-icon-btn notif" id="notif-bell" onclick="if(window.DS_NOTIFS) DS_NOTIFS.togglePanel(); else console.warn('DS_NOTIFS not ready')" title="Notifications"><i class="fa-solid fa-bell"></i></div>
-              <button onclick="if(window.DS && DS.navTo) DS.navTo('parametres'); else console.warn('DS not ready')" class="topbar-icon-btn" title="Profil"><i class="fa-solid fa-user"></i></button>
-              <button onclick="if(window.DS_PROFILE && DS_PROFILE.logout) DS_PROFILE.logout(); else console.warn('DS_PROFILE not ready')" class="topbar-icon-btn" title="Déconnexion"><i class="fa-solid fa-power-off"></i></button>
+              
+              <!-- Share -->
+              <button onclick="if(window.DS_SHARE) DS_SHARE.open(); else console.warn('DS_SHARE not ready')" class="topbar-icon-btn" title="Partager l'analyse courante">
+                <i class="fa-solid fa-share-nodes"></i>
+              </button>
+              
+              <!-- Notifications with Active Badge -->
+              <div class="topbar-icon-btn notif" id="notif-bell" onclick="if(window.DS_NOTIFS) DS_NOTIFS.togglePanel(); else console.warn('DS_NOTIFS not ready')" title="Notifications">
+                <i class="fa-solid fa-bell"></i>
+                <span class="notif-badge" id="notif-count">0</span>
+              </div>
+              
+              <!-- Profile -->
+              <button onclick="if(window.DS && DS.navTo) DS.navTo('parametres'); else console.warn('DS not ready')" class="topbar-icon-btn" title="Profil">
+                <i class="fa-solid fa-user"></i>
+              </button>
+              
+              <!-- Logout -->
+              <button onclick="if(window.DS_PROFILE && DS_PROFILE.logout) DS_PROFILE.logout(); else console.warn('DS_PROFILE not ready')" class="topbar-icon-btn" title="Déconnexion">
+                <i class="fa-solid fa-power-off"></i>
+              </button>
             </div>
           </div>
 
@@ -434,6 +478,120 @@
                 </div>
                 <div class="alerts-list" id="alerts-list">
                   <!-- Generated dynamically in renderMeta/renderRecos or fallback default mockup warnings -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2.5: F1 - Cash-Burn & Runway (Suivi Trésorerie Critique) -->
+            <div class="dashboard-row-2-5">
+              <div class="card cash-burn-card fu" style="transition-delay:.20s;">
+                <div class="card-title-mockup">Suivi Trésorerie Critique <i class="fa-solid fa-circle-info info-icon" title="Cash-Burn & Runway: Indicateurs vitaux de survie financière."></i></div>
+                <div id="cash-burn-runway">
+                  <!-- Cash-Burn & Runway rendered dynamically -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2.6: F2 - Simulateur de Financement & Capacité d'Emprunt -->
+            <div class="dashboard-row-2-6">
+              <div class="card financing-simulator-card fu" style="transition-delay:.22s;">
+                <div class="card-title-mockup">Simulateur de Financement <i class="fa-solid fa-circle-info info-icon" title="Testez l'impact d'un crédit sur votre capacité d'emprunt et votre score."></i></div>
+                
+                <div class="financing-inputs">
+                  <div class="financing-input-group">
+                    <label class="financing-label">Montant Crédit (XAF)</label>
+                    <input type="number" id="financing-amount" class="financing-input" placeholder="Ex: 5000000" value="5000000">
+                  </div>
+                  <div class="financing-input-group">
+                    <label class="financing-label">Durée (mois)</label>
+                    <select id="financing-duration" class="financing-select">
+                      <option value="6">6 mois</option>
+                      <option value="12" selected>12 mois</option>
+                      <option value="24">24 mois</option>
+                      <option value="36">36 mois</option>
+                      <option value="60">60 mois</option>
+                    </select>
+                  </div>
+                  <button class="btn btn-primary financing-simulate-btn" onclick="window.FINANCING_SIMULATOR.simulateAndRender()">
+                    <i class="fa-solid fa-play"></i>
+                    Simuler
+                  </button>
+                </div>
+                
+                <div id="financing-simulation">
+                  <!-- Simulation results rendered dynamically -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2.7: F3 - Système d'Alertes Précoces (Early Warning) -->
+            <div class="dashboard-row-2-7">
+              <div class="card early-warnings-card fu" style="transition-delay:.24s;">
+                <div class="card-title-mockup">Alertes Précoces <i class="fa-solid fa-circle-info info-icon" title="Signaux faibles et alertes automatiques basés sur l'évolution de vos ratios."></i></div>
+                <div id="early-warnings">
+                  <!-- Early warnings rendered dynamically -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2.8: F4 - Benchmarking Sectoriel Anonymisé -->
+            <div class="dashboard-row-2-8">
+              <div class="card sector-benchmark-card fu" style="transition-delay:.26s;">
+                <div class="card-title-mockup">Benchmarking Sectoriel <i class="fa-solid fa-circle-info info-icon" title="Comparez vos performances à la moyenne de votre secteur (données anonymisées)."></i></div>
+                <div id="sector-benchmark">
+                  <!-- Sector benchmark rendered dynamically -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2.9: F5 - Générateur de Rapports Destinés aux Tiers -->
+            <div class="dashboard-row-2-9">
+              <div class="card report-generator-card fu" style="transition-delay:.28s;">
+                <div class="card-title-mockup">Générateur de Rapports <i class="fa-solid fa-circle-info info-icon" title="Générez des rapports professionnels pour banques, investisseurs ou partenaires."></i></div>
+                
+                <div class="report-controls">
+                  <div class="report-type-selector">
+                    <label class="report-label">Type de rapport</label>
+                    <select id="report-type" class="report-select">
+                      <option value="bancaire">Rapport Bancaire</option>
+                      <option value="investisseur">Rapport Investisseur</option>
+                      <option value="partenaire">Rapport Partenaire</option>
+                    </select>
+                  </div>
+                  <button class="btn btn-primary report-generate-btn" onclick="window.REPORT_GENERATOR.generateAndRender()">
+                    <i class="fa-solid fa-file-lines"></i>
+                    Générer
+                  </button>
+                </div>
+                
+                <div id="report-preview">
+                  <!-- Report preview rendered dynamically -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2.10: F6 - Plan d'Action Correctif Dynamique (To-Do List) -->
+            <div class="dashboard-row-2-10">
+              <div class="card action-plan-card fu" style="transition-delay:.30s;">
+                <div class="card-title-mockup">Plan d'Action Correctif <i class="fa-solid fa-circle-info info-icon" title="Actions prioritaires pour améliorer votre situation financière."></i></div>
+                <div id="action-plan">
+                  <!-- Action plan rendered dynamically -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2.11: F7 - Gestion Historiques (Analyses + Conversations IA) -->
+            <div class="dashboard-row-2-11">
+              <div class="card history-card fu" style="transition-delay:.32s;">
+                <div class="card-title-mockup">Historique <i class="fa-solid fa-circle-info info-icon" title="Historique de vos analyses et conversations IA."></i></div>
+                <div id="analyses-history">
+                  <!-- Analyses history rendered dynamically -->
+                </div>
+              </div>
+              <div class="card history-card fu" style="transition-delay:.34s;">
+                <div class="card-title-mockup">Conversations IA <i class="fa-solid fa-circle-info info-icon" title="Historique de vos conversations avec l'assistant IA."></i></div>
+                <div id="conversations-history">
+                  <!-- Conversations history rendered dynamically -->
                 </div>
               </div>
             </div>
@@ -744,14 +902,14 @@
                 <div id="riskmatrix-3d" style="height:220px;position:relative;"></div>
               </div>
             </div>
-            <!-- Tornado + Altman Z -->
+            <!-- Tornado + piliers de vulnérabilité -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
               <div class="card fu" style="padding:16px;">
                 <div class="card-title"><i class="fa-solid fa-tornado" style="color:#F59E0B;"></i>Analyse de sensibilité — Tornado 3D</div>
                 <div id="tornado-3d" style="height:240px;position:relative;"></div>
               </div>
               <div class="card fu" style="padding:16px;">
-                <div class="card-title"><i class="fa-solid fa-z" style="color:#8B7FF0;"></i>Altman Z™ — Décomposition 5 variables</div>
+                <div class="card-title"><i class="fa-solid fa-shield-halved" style="color:#8B7FF0;"></i>Piliers de vulnérabilité — IVF/100</div>
                 <div id="altmanz-3d" style="height:240px;position:relative;"></div>
               </div>
             </div>
@@ -1097,10 +1255,6 @@
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <!-- Appel vocal IA + TTS/STT (boutons #tts-call, #tts-auto, modal #_cmod) -->
-  <script src="./js/ds-call.js"></script>
-  <!-- TTS avec ElevenLabs + boutons/selecteur de voix -->
-  <script src="./js/ds-tts.js"></script>
 
   <!-- Modules Doctor Smile -->
   <script src="./js/ui-components.js"></script>
@@ -1116,16 +1270,20 @@
   <script type="module" src="./js/dashboard.js"></script>
   <script type="module" src="./js/dashboard-extra.js"></script>
   <script src="./js/ds-chat-brain.js"></script>
-  <script src="./js/dashboard-charts-advanced.js"></script>
   <script src="./js/ds-preprocess.js"></script>
   <script src="./js/supplement.js"></script>
   <script type="module" src="./js/ds-onboarding.js"></script>
   <script type="module" src="./js/phase1.js"></script>
   <script type="module" src="./js/phase2.js"></script>
-  <script src="./js/ds-master-agent.js"></script>
   <script type="module" src="./js/phase3.js"></script>
   <script type="module" src="./js/ds-nav-overflow.js"></script>
   <script src="./js/theme-toggle.js"></script>
+  <!-- Nouveaux modules v4.0 -->
+  <script type="module" src="./js/ds-marketplace.js"></script>
+  <script type="module" src="./js/ds-chatbot.js"></script>
+  <script type="module" src="./js/ds-notifications.js"></script>
+  <script type="module" src="./js/ds-settings.js"></script>
+  <script type="module" src="./js/ds-v4.js"></script>
   <script>
     function showPaymentNotReady(plan) {
       const msg = `Paiement indisponible pour "${plan}" (DS_PAYMENT non chargé).`;

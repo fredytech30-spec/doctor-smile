@@ -30,6 +30,7 @@ Fallback silencieux si Tesseract non installé → pdfplumber seul.
 
 from __future__ import annotations
 
+import asyncio
 import io
 import json
 import logging
@@ -179,6 +180,58 @@ class OcrService:
             "warnings":   warnings,
         }
 
+    async def extract_text_sample(
+        self,
+        pdf_bytes: bytes,
+        pages: int = 1,
+        max_chars: int = 5000,
+    ) -> str:
+        """Retourne un extrait textuel rapide pour la classification."""
+        result = await asyncio.to_thread(self.extract, pdf_bytes)
+        rows = result.get("rows", [])
+        meta = result.get("meta", {})
+
+        parts: list[str] = []
+        if isinstance(meta, dict):
+            parts.extend(str(v) for v in meta.values() if v)
+        for row in rows[:pages * 3]:
+            if isinstance(row, dict):
+                parts.append(" ".join(str(v) for v in row.values() if v is not None))
+            else:
+                parts.append(str(row))
+
+        sample = "\n".join(parts).strip()
+        if len(sample) > max_chars:
+            sample = sample[:max_chars]
+        return sample
+
+    async def extract_text_and_tables(
+        self,
+        pdf_bytes: bytes,
+        document_type: str = "balance_sheet",
+        language: str = "FR",
+    ) -> dict[str, Any]:
+        """Retourne le texte et les tableaux extraits pour le pipeline."""
+        result = await asyncio.to_thread(self.extract, pdf_bytes)
+        rows = result.get("rows", [])
+        meta = result.get("meta", {})
+
+        text_parts: list[str] = []
+        if isinstance(meta, dict):
+            text_parts.extend(str(v) for v in meta.values() if v)
+        for row in rows:
+            if isinstance(row, dict):
+                text_parts.append(" ".join(str(v) for v in row.values() if v is not None))
+            else:
+                text_parts.append(str(row))
+
+        return {
+            "text": "\n".join(text_parts).strip(),
+            "tables": rows,
+            "confidence": result.get("confidence", 0.0),
+            "method": result.get("method", "unknown"),
+        }
+
     # ────────────────────────────────────────────────────────────
     #  STRATÉGIE 1 — pdfplumber (tableaux structurés)
     # ────────────────────────────────────────────────────────────
@@ -221,7 +274,6 @@ class OcrService:
             warnings.append(f"pdfplumber : {exc}")
             return [], "none"
 
-        # Fusionner kv dans rows si rows insuffisant
         if kv:
             rows = self._merge_kv_into_rows(rows, kv)
 
@@ -290,8 +342,84 @@ class OcrService:
             return [], "none"
 
         if not kv:
+            # Fallback ligne par ligne pour les bilans contenant des comptes hors labels explicites
+            rows = self._parse_account_rows_from_text(text)
+            if rows:
+                return rows, "tesseract_ocr_fallback"
             return [], "none"
         return [kv], "tesseract_ocr"
+
+    def _try_tesseract_image(
+        self, image_bytes: bytes, warnings: list[str]
+    ) -> tuple[list[dict], str]:
+        try:
+            from PIL import Image
+            import pytesseract
+        except ImportError:
+            warnings.append(
+                "OCR image non disponible. Installez : pip install pytesseract pillow && apt-get install tesseract-ocr tesseract-ocr-fra"
+            )
+            return [], "none"
+
+        kv: dict[str, Any] = {}
+        try:
+            text = "\n".join(text_parts).strip()
+            if not text:
+                try:
+                    text = pdf_bytes.decode("utf-8", errors="ignore")
+                except Exception:
+                    text = ""
+            image = Image.open(io.BytesIO(image_bytes))
+            if image.mode != 'L':
+                image = image.convert('L')
+            image = image.resize((image.width * 2, image.height * 2), Image.LANCZOS)
+
+            config = "--oem 3 --psm 6 -l fra+eng"
+            text = pytesseract.image_to_string(image, config=config)
+            kv.update(self._parse_text_lines(text))
+
+            try:
+                data = pytesseract.image_to_data(image, config=config, output_type=pytesseract.Output.DICT)
+                kv.update(self._parse_tesseract_tsv(data))
+            except Exception:
+                pass
+
+        except Exception as exc:
+            warnings.append(f"OCR image Tesseract : {exc}")
+            return [], "none"
+
+        if not kv:
+            rows = self._parse_account_rows_from_text(text)
+            if rows:
+                return rows, "tesseract_image_fallback"
+            return [], "none"
+        return [kv], "tesseract_image"
+
+    def extract_image(self, image_bytes: bytes, filename: str = "image.jpg") -> dict[str, Any]:
+        """
+        Extrait les données financières depuis une image.
+        """
+        log.info("[OCR] Traitement image %s (%d Ko)", filename, len(image_bytes) // 1024)
+        warnings: list[str] = []
+
+        rows, method = self._try_tesseract_image(image_bytes, warnings)
+        if not rows:
+            warnings.append("Aucune donnée financière extraite de l'image.")
+            rows = [{}]
+
+        rows = self._normalize_extracted(rows)
+        meta = self._extract_meta(rows)
+        confidence = self._data_quality(rows)
+
+        log.info("[OCR] Méthode=%s rows=%d qualité=%.2f", method, len(rows), confidence)
+
+        return {
+            "rows": rows,
+            "meta": meta,
+            "confidence": round(confidence, 2),
+            "method": method,
+            "warnings": warnings,
+        }
 
     # ────────────────────────────────────────────────────────────
     #  PARSING DU TEXTE LIGNE PAR LIGNE
@@ -342,6 +470,32 @@ class OcrService:
             fake_line = " ".join(words)
             result.update(self._parse_text_lines(fake_line))
         return result
+
+    def _parse_account_rows_from_text(self, text: str) -> list[dict[str, Any]]:
+        """Fallback simple pour extraire lignes compte/montant depuis du texte OCR."""
+        rows: list[dict[str, Any]] = []
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            account_match = re.search(r"\b([1-9][0-9]{1,7})\b", line)
+            if not account_match:
+                continue
+
+            account_num = account_match.group(1)
+            amounts = [
+                self._parse_french_number(m)
+                for m in _NUM_RE.findall(line)
+                if self._parse_french_number(m) is not None
+            ]
+            if not amounts:
+                continue
+
+            amount = amounts[-1]
+            rows.append({account_num: amount})
+
+        return rows
 
     # ────────────────────────────────────────────────────────────
     #  NORMALISATION POST-EXTRACTION
@@ -480,6 +634,256 @@ class OcrService:
         # Enrichir le premier row avec les clés manquantes
         merged = {**kv, **rows[0]}
         return [merged] + rows[1:]
+
+    # ────────────────────────────────────────────────────────────
+    #  MÉTHODES SPÉCIFIQUES DOCTOR SMILE v4.0
+    #  Extraction Balance OHADA et Grand Livre
+    # ────────────────────────────────────────────────────────────
+    def extract_balance(self, file_path: str, file_type: str) -> dict[str, Any]:
+        """
+        Extrait les données de la balance OHADA
+        
+        Args:
+            file_path: Chemin vers le fichier
+            file_type: Type de fichier (pdf, xlsx, csv, txt)
+            
+        Returns:
+            Dict avec données de la balance
+        """
+        try:
+            log.info(f"[OCR] Extraction balance OHADA: {file_path}")
+            
+            # Lecture du fichier
+            if file_type == 'pdf':
+                with open(file_path, 'rb') as f:
+                    pdf_bytes = f.read()
+                    result = self.extract(pdf_bytes, file_path)
+                    rows = result.get('rows', [])
+            elif file_type in ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tiff', 'tif']:
+                with open(file_path, 'rb') as f:
+                    image_bytes = f.read()
+                    result = self.extract_image(image_bytes, file_path)
+                    rows = result.get('rows', [])
+            elif file_type in ['xlsx', 'csv']:
+                import pandas as pd
+                if file_type == 'xlsx':
+                    df = pd.read_excel(file_path)
+                else:
+                    df = pd.read_csv(file_path)
+                rows = df.to_dict('records')
+            elif file_type == 'txt':
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                # Parsing simple du texte
+                rows = self._parse_text_balance(content)
+            else:
+                raise ValueError(f"Type non supporté: {file_type}")
+            
+            # Conversion vers format balance OHADA
+            balance_data = self._convert_to_ohada_balance(rows)
+            
+            return {
+                'accounts': balance_data.get('accounts', []),
+                'total_debit': balance_data.get('total_debit', 0),
+                'total_credit': balance_data.get('total_credit', 0),
+                'is_balanced': balance_data.get('is_balanced', False),
+                'confidence': 0.6  # Confiance OCR fallback
+            }
+            
+        except Exception as e:
+            log.error(f"[OCR] Erreur extraction balance: {e}")
+            return {'error': str(e), 'accounts': [], 'total_debit': 0, 'total_credit': 0}
+    
+    def extract_general_ledger(self, file_path: str, file_type: str) -> dict[str, Any]:
+        """
+        Extrait les données du Grand Livre
+        
+        Args:
+            file_path: Chemin vers le fichier
+            file_type: Type de fichier
+            
+        Returns:
+            Dict avec données du Grand Livre
+        """
+        try:
+            log.info(f"[OCR] Extraction Grand Livre: {file_path}")
+            
+            # Lecture du fichier
+            if file_type == 'pdf':
+                with open(file_path, 'rb') as f:
+                    pdf_bytes = f.read()
+                    result = self.extract(pdf_bytes, file_path)
+                    rows = result.get('rows', [])
+            elif file_type in ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tiff', 'tif']:
+                with open(file_path, 'rb') as f:
+                    image_bytes = f.read()
+                    result = self.extract_image(image_bytes, file_path)
+                    rows = result.get('rows', [])
+            elif file_type in ['xlsx', 'csv']:
+                import pandas as pd
+                if file_type == 'xlsx':
+                    df = pd.read_excel(file_path)
+                else:
+                    df = pd.read_csv(file_path)
+                rows = df.to_dict('records')
+            elif file_type == 'txt':
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                rows = self._parse_text_general_ledger(content)
+            else:
+                raise ValueError(f"Type non supporté: {file_type}")
+            
+            # Conversion vers format Grand Livre
+            ledger_data = self._convert_to_general_ledger(rows)
+            
+            return {
+                'auxiliary_accounts': ledger_data.get('auxiliary_accounts', []),
+                'confidence': 0.6  # Confiance OCR fallback
+            }
+            
+        except Exception as e:
+            log.error(f"[OCR] Erreur extraction Grand Livre: {e}")
+            return {'error': str(e), 'auxiliary_accounts': []}
+    
+    def extract_text_from_pdf(self, file_path: str) -> str:
+        """
+        Extrait le texte d'un PDF
+        
+        Args:
+            file_path: Chemin vers le fichier PDF
+            
+        Returns:
+            Texte extrait
+        """
+        try:
+            import pdfplumber
+            text = ""
+            with pdfplumber.open(file_path) as pdf:
+                for page in pdf.pages:
+                    text += page.extract_text() + "\n"
+            return text
+        except ImportError:
+            # Fallback PyMuPDF
+            try:
+                import fitz
+                doc = fitz.open(file_path)
+                text = ""
+                for page in doc:
+                    text += page.get_text()
+                doc.close()
+                return text
+            except ImportError:
+                log.error("[OCR] Ni pdfplumber ni PyMuPDF installés")
+                return ""
+    
+    def _parse_text_balance(self, content: str) -> list[dict]:
+        """Parse un texte de balance en lignes structurées"""
+        lines = content.split('\n')
+        rows = []
+        
+        for line in lines:
+            # Recherche de patterns de comptes OHADA (2 chiffres minimum)
+            if re.search(r'\b\d{2,}\b', line):
+                # Extraction du numéro de compte et du montant
+                account_match = re.search(r'(\d{2,})\s+(.+?)\s+(\d+[.,]\d+|\d+)', line)
+                if account_match:
+                    account_num = account_match.group(1)
+                    account_name = account_match.group(2).strip()
+                    amount = self._parse_french_number(account_match.group(3))
+                    
+                    rows.append({
+                        'account_number': account_num,
+                        'account_name': account_name,
+                        'amount': amount or 0
+                    })
+        
+        return rows
+    
+    def _parse_text_general_ledger(self, content: str) -> list[dict]:
+        """Parse un texte de Grand Livre en lignes structurées"""
+        lines = content.split('\n')
+        rows = []
+        
+        for line in lines:
+            # Recherche de patterns de comptes auxiliaires (6 chiffres)
+            if re.search(r'\b\d{6}\b', line):
+                # Extraction du numéro de compte, date, libellé et montant
+                ledger_match = re.search(r'(\d{6})\s+(.+?)\s+(\d{4}-\d{2}-\d{2})?\s*(\d+[.,]\d+|\d+)', line)
+                if ledger_match:
+                    account_num = ledger_match.group(1)
+                    description = ledger_match.group(2).strip()
+                    date = ledger_match.group(3) if ledger_match.group(3) else ''
+                    amount = self._parse_french_number(ledger_match.group(4))
+                    
+                    rows.append({
+                        'account_number': account_num,
+                        'description': description,
+                        'date': date,
+                        'amount': amount or 0
+                    })
+        
+        return rows
+    
+    def _convert_to_ohada_balance(self, rows: list[dict]) -> dict[str, Any]:
+        """Convertit les lignes extraites en format balance OHADA"""
+        accounts = []
+        total_debit = 0
+        total_credit = 0
+        
+        for row in rows:
+            account_num = row.get('account_number', '')
+            if len(account_num) >= 2 and account_num.isdigit():
+                amount = row.get('amount', 0)
+                
+                # Détermination débit/crédit (simplifié)
+                debit_balance = amount if amount > 0 else 0
+                credit_balance = abs(amount) if amount < 0 else 0
+                
+                accounts.append({
+                    'account_number': account_num,
+                    'account_name': row.get('account_name', f'Compte {account_num}'),
+                    'debit_balance': debit_balance,
+                    'credit_balance': credit_balance
+                })
+                
+                total_debit += debit_balance
+                total_credit += credit_balance
+        
+        return {
+            'accounts': accounts,
+            'total_debit': total_debit,
+            'total_credit': total_credit,
+            'is_balanced': abs(total_debit - total_credit) < 100
+        }
+    
+    def _convert_to_general_ledger(self, rows: list[dict]) -> dict[str, Any]:
+        """Convertit les lignes extraites en format Grand Livre"""
+        auxiliary_accounts = {}
+        
+        for row in rows:
+            account_num = row.get('account_number', '')
+            if len(account_num) == 6 and account_num.isdigit():
+                if account_num not in auxiliary_accounts:
+                    auxiliary_accounts[account_num] = {
+                        'account_number': account_num,
+                        'account_name': row.get('description', f'Compte {account_num}'),
+                        'entries': [],
+                        'balance': 0
+                    }
+                
+                amount = row.get('amount', 0)
+                auxiliary_accounts[account_num]['entries'].append({
+                    'date': row.get('date', ''),
+                    'description': row.get('description', ''),
+                    'debit': amount if amount > 0 else 0,
+                    'credit': abs(amount) if amount < 0 else 0
+                })
+                
+                auxiliary_accounts[account_num]['balance'] += amount
+        
+        return {
+            'auxiliary_accounts': list(auxiliary_accounts.values())
+        }
 
 
 # ── Singleton ──────────────────────────────────────────────────

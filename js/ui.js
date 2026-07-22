@@ -242,7 +242,7 @@ document.head.appendChild(rs);
 (function(){
   const el=document.querySelector('#typewriter-line');
   if(!el) return;
-  const phrases=['Avant la faillite.','Avec 95%+ de précision.','En 0.3 seconde.','Votre médecin IA 24h/24.','Grâce à XGBoost + GPT-4.'];
+  const phrases=['Avant la faillite.','Avec 95%+ de précision.','En 0.3 seconde.','Votre médecin IA 24h/24.','Grâce à SYSCOHADA + IA.'];
   let pi=0,ci=0,deleting=false;
   el.textContent='';
   function type(){
@@ -308,11 +308,11 @@ function toggleBilling(){
     el.textContent = isAnnual ? annual : monthly;
   });
   document.querySelectorAll('.p-price-annual').forEach((el, i) => {
-    const saves = [120, 240, 480];
-    const annuals = [468, 948, 1908];
+    const saves = [30000, 60000, 120000];
+    const annuals = [300000, 600000, 1200000];
     el.style.opacity = isAnnual ? '1' : '0.3';
     el.textContent = isAnnual
-      ? `Soit ${annuals[i]}€/an — économisez ${saves[i]}€`
+      ? `Soit ${annuals[i]} FCFA/an — économisez ${saves[i]} FCFA`
       : 'Facturation mensuelle sans engagement';
   });
 }

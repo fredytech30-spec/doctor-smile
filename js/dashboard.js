@@ -350,6 +350,40 @@ function setupRealtimeListeners(uid) {
 }
 
 // ════════════════════════════════════════════════════════════════
+//  CLEANUP — Nettoyer les listeners Firestore
+// ════════════════════════════════════════════════════════════════
+function cleanupRealtimeListeners() {
+  if (S._unsubProfile) {
+    S._unsubProfile();
+    S._unsubProfile = null;
+  }
+  if (S._unsubAbonnement) {
+    S._unsubAbonnement();
+    S._unsubAbonnement = null;
+  }
+  if (S._unsubAnalyses) {
+    S._unsubAnalyses();
+    S._unsubAnalyses = null;
+  }
+  
+  // Nettoyer le timer de pipeline
+  if (S.pipelineTimer) {
+    clearInterval(S.pipelineTimer);
+    S.pipelineTimer = null;
+  }
+  
+  // Nettoyer les listeners de notifications
+  if (window.DS_NOTIFS?._state?._unsub) {
+    window.DS_NOTIFS._state._unsub();
+    window.DS_NOTIFS._state._unsub = null;
+  }
+}
+
+// Exposer la fonction de cleanup globalement
+window.DS_DASH = window.DS_DASH || {};
+window.DS_DASH.cleanup = cleanupRealtimeListeners;
+
+// ════════════════════════════════════════════════════════════════
 //  KPI
 // ════════════════════════════════════════════════════════════════
 function updateKPIs() {
@@ -379,6 +413,7 @@ function updateKPIs() {
 //  CHARGER UNE ANALYSE
 // ════════════════════════════════════════════════════════════════
 function loadAnalyse(a) {
+  console.log('[loadAnalyse] Chargement analyse:', a?.id, 'Données:', Object.keys(a || {}));
   S.currentAnalyse=a;
   renderSidebar();
   const plan=S.abonnement?.plan||S.profile?.plan||'standard';
@@ -417,25 +452,33 @@ function loadAnalyse(a) {
   const tl     = a.scoreHistory || a.tl || [score];
   const recos  = normalizeRecos(a.recommendations || a.recos || []);
   const wi     = normalizeWI(a.whatifParams || a.wi || [], ratios);
+  const cbr    = a.cash_burn_runway || null; // F1: Cash-Burn & Runway
+  const ew     = a.early_warnings || []; // F3: Early Warnings
+  const sb     = a.sector_benchmark || null; // F4: Sector Benchmark
+  const ap     = a.action_plan || null; // F6: Action Plan
 
   const _lad = tsToDate(a.createdAt);
   window._lastAnalyseDate = _lad;
   setTopbarDate(_lad);
   renderRing(score, zone);
   renderMeta(a, zone);
-  renderShap(shap);
-  setTimeout(() => renderRadar(radar), 180);
   renderRatios(ratios);
-  renderWI(wi);
-  setTimeout(() => renderTimeline(tl), 280);
   renderRecos(recos);
   // Nouveaux éléments mockup
   renderTendance(tl);
   renderAlerts(recos, zone, a);
   renderRisques(ratios, zone);
+  // F1: Cash-Burn & Runway
+  renderCashBurnRunway(cbr);
+  // F3: Early Warnings
+  renderEarlyWarnings(ew);
+  // F4: Sector Benchmark
+  renderSectorBenchmark(sb);
+  // F6: Action Plan
+  renderActionPlan(ap);
+  // F7: Load histories
+  window.HISTORY_MANAGER.loadAndRenderAll();
   if (S.convId !== a.id) window.DS_CHAT?.initChat(a, zone);
-  setTimeout(() => _initScatterBoth(a), 200);
-  setTimeout(() => _initScatterBoth(a), 800);
   fu();
   const ZM={saine:.6,vigilance:1.0,risque:1.3,critique:1.6};
   const prob=Math.round((100-score)*(ZM[zone]||1)*.85);
@@ -452,8 +495,6 @@ function loadAnalyse(a) {
       window.DS_VIEWS.renderVisualisations();
     }
     window.DS_EXTRA?.renderTimelineFixed(tl,'tl-svg');
-    // Rendu des graphiques 3D avancés
-    render3DVisualizations(score, zone, ratios, a);
   },300);
   setTimeout(()=>window.DS_EXTRA?.initSmartAlerts(a),800);
   setTimeout(()=>window._DS_injectExportBtn?.(),500);
@@ -464,125 +505,6 @@ function loadAnalyse(a) {
 // ════════════════════════════════════════════════════════════════
 //  SIDEBAR
 // ════════════════════════════════════════════════════════════════
-// ════════════════════════════════════════════════════════════════
-//  RENDU DES GRAPHIQUES 3D AVANCÉS
-// ════════════════════════════════════════════════════════════════
-function render3DVisualizations(score, zone, ratios, analysis) {
-  // Vérifier que Three.js est chargé
-  if (typeof window.THREE === 'undefined') {
-    console.warn('[3D] Three.js non chargé, les graphiques 3D ne seront pas affichés');
-    return;
-  }
-
-  // retry max pour éviter les race conditions de chargement (race entre modules)
-  const MAX_WAIT_MS = 3000;
-  const STEP_MS = 350;
-  const start = render3DVisualizations._startTs || Date.now();
-  if (!render3DVisualizations._startTs) render3DVisualizations._startTs = start;
-
-  // Vérifier que le conteneur speedometer existe
-  const speedContainer = document.getElementById('speedometer-3d');
-  if (!speedContainer) {
-    console.warn('[3D] Conteneurs 3D non trouvés dans le DOM');
-    return;
-  }
-
-  // Vérifier que les fonctions de rendu 3D sont disponibles
-  const renderers = {
-    speedometer: window.DS_EXTRA_ADVANCED?.render3DSpeedometer || window.DS_EXTRA?.render3DSpeedometer || window.render3DSpeedometer,
-    scorecard: window.DS_EXTRA_ADVANCED?.render3DScoreCard || window.DS_EXTRA?.render3DScoreCard || window.render3DScoreCard,
-    frbfr: window.DS_EXTRA_ADVANCED?.render3DFRBFR || window.DS_EXTRA?.render3DFRBFR || window.render3DFRBFR,
-    riskmatrix: window.DS_EXTRA_ADVANCED?.render3DRiskMatrix || window.DS_EXTRA?.render3DRiskMatrix || window.render3DRiskMatrix,
-    tornado: window.DS_EXTRA_ADVANCED?.render3DTornado || window.DS_EXTRA?.render3DTornado || window.render3DTornado,
-    altmanz: window.DS_EXTRA_ADVANCED?.render3DAltmanZ || window.DS_EXTRA?.render3DAltmanZ || window.render3DAltmanZ
-  };
-
-  // Si aucun renderer advanced n'est dispo, on attend jusqu'à MAX_WAIT_MS
-  if (!Object.values(renderers).some(Boolean)) {
-    const elapsed = Date.now() - start;
-    if (elapsed < MAX_WAIT_MS) {
-      console.warn('[3D] Rendu avance non encore pret — retry', elapsed + 'ms');
-      setTimeout(() => {
-        // reset startTs pour un nouveau cycle
-        render3DVisualizations._startTs = null;
-        render3DVisualizations(score, zone, ratios, analysis);
-      }, STEP_MS);
-      return;
-    }
-    console.warn('[3D] Timed out avant chargement renderers — rendu annulé');
-    return;
-  }
-
-  // Déterminer la zone de couleur
-  const zoneMap = {
-    'saine': 'saine',
-    'vigilance': 'vigilance',
-    'risque': 'risque',
-    'critique': 'critique'
-  };
-  const zoneKey = zoneMap[zone] || 'vigilance';
-
-  // 1. Speedometer 3D
-  if (renderers.speedometer) {
-    try {
-      renderers.speedometer('speedometer-3d', score, zoneKey, 'Score Santé');
-      console.log('[3D] Speedometer rendu avec score:', score, 'zone:', zoneKey);
-    } catch (e) {
-      console.warn('[3D] Erreur speedometer:', e);
-    }
-  }
-
-  // 2. Score Card 3D (multi-piliers)
-  if (renderers.scorecard) {
-    try {
-      renderers.scorecard('scorecard-3d', ratios, score, zoneKey);
-      console.log('[3D] ScoreCard rendu');
-    } catch (e) {
-      console.warn('[3D] Erreur scorecard:', e);
-    }
-  }
-
-  // 3. FR/BFR 3D
-  if (renderers.frbfr) {
-    try {
-      renderers.frbfr('frbfr-3d', ratios, score, zoneKey);
-      console.log('[3D] FR/BFR rendu');
-    } catch (e) {
-      console.warn('[3D] Erreur frbfr:', e);
-    }
-  }
-
-  // 4. Risk Matrix 3D
-  if (renderers.riskmatrix) {
-    try {
-      renderers.riskmatrix('riskmatrix-3d', ratios, score, zoneKey);
-      console.log('[3D] RiskMatrix rendu');
-    } catch (e) {
-      console.warn('[3D] Erreur riskmatrix:', e);
-    }
-  }
-
-  // 5. Tornado 3D
-  if (renderers.tornado) {
-    try {
-      renderers.tornado('tornado-3d', ratios, score, zoneKey);
-      console.log('[3D] Tornado rendu');
-    } catch (e) {
-      console.warn('[3D] Erreur tornado:', e);
-    }
-  }
-
-  // 6. Altman Z 3D
-  if (renderers.altmanz) {
-    try {
-      renderers.altmanz('altmanz-3d', ratios, score, zoneKey);
-      console.log('[3D] AltmanZ rendu');
-    } catch (e) {
-      console.warn('[3D] Erreur altmanz:', e);
-    }
-  }
-}
-
 function renderSidebar(filter=S.filterText) {
   const list=S.analyses.filter(a=>{
     const q=filter.toLowerCase();
@@ -669,33 +591,71 @@ function normalizeRadar(raw) {
 }
 
 function normalizeRecos(raw) {
-  const LM={high:'high',medium:'medium',low:'low',critical:'high',warning:'medium',info:'low'};
-  const ICON={ high:'triangle-exclamation', medium:'chart-line', low:'seedling' };
-  // ✅ Utiliser les variables CSS
-  const CATS={
-    high:   { label:'Urgent',   color:'var(--color-error)', bg:'var(--error-bg)',   ring:'var(--error-ring)'  },
-    medium: { label:'Important',color:'var(--color-accent)', bg:'var(--accent-bg)',  ring:'var(--accent-ring)' },
+  const LM = { high:'high', medium:'medium', low:'low', critical:'high', warning:'medium', info:'low' };
+  const ICON = { high:'triangle-exclamation', medium:'chart-line', low:'seedling' };
+  const URGENCY_LABELS = {
+    immediate:   { fr: 'Immédiat',   horizon: '🔴 Action sous 48h', lvl: 'high'   },
+    court_terme: { fr: 'Court terme', horizon: '🟠 30 jours',         lvl: 'medium' },
+    moyen_terme: { fr: 'Conseil',     horizon: '🟡 90 jours',         lvl: 'low'    },
+  };
+  const CATS = {
+    high:   { label:'Urgent',   color:'var(--color-error)',   bg:'var(--error-bg)',   ring:'var(--error-ring)'   },
+    medium: { label:'Important',color:'var(--color-accent)',  bg:'var(--accent-bg)',  ring:'var(--accent-ring)'  },
     low:    { label:'Conseil',  color:'var(--color-success)', bg:'var(--success-bg)', ring:'var(--success-ring)' },
   };
-  const WEIGHT={high:3,medium:2,low:1};
-  return raw.map((r,i)=>{
-    const lvl  = LM[r.level??r.lvl??r.priority]??'medium';
-    const cat  = CATS[lvl];
-    const icon = r.icon??(ICON[lvl]??'lightbulb');
-    const rawDesc = r.description??r.desc??r.d??'';
-    const stepLines = rawDesc.split(/[;]/).map(s=>s.trim()).filter(s=>s.length>8);
-    const steps = (r.steps??r.actions??[]).length
-      ? (r.steps??r.actions)
-      : stepLines.length > 1 ? stepLines : [];
-    const shortDesc = steps.length ? stepLines[0] || rawDesc : rawDesc;
+  const WEIGHT = { high:3, medium:2, low:1 };
+
+  return raw.map((r, i) => {
+    // --- Level resolution: urgency (new) > level (old) ---
+    let lvl;
+    if (r.urgency && URGENCY_LABELS[r.urgency]) {
+      lvl = URGENCY_LABELS[r.urgency].lvl;
+    } else {
+      lvl = LM[r.level ?? r.lvl ?? r.priority] ?? 'medium';
+    }
+    const cat     = CATS[lvl];
+    const icon    = r.icon ?? (ICON[lvl] ?? 'lightbulb');
+
+    // --- Description: prefer detail (terrain action) over description ---
+    const actionText   = r.detail ?? '';
+    const contextText  = r.description ?? r.desc ?? r.d ?? '';
+    const primaryDesc  = actionText || contextText;
+
+    // Steps: if we have both detail & description, show description as context
+    let steps = r.steps ?? r.actions ?? [];
+    if (!steps.length && actionText && contextText && actionText !== contextText) {
+      steps = [actionText];
+    } else if (!steps.length && contextText.includes(';')) {
+      steps = contextText.split(';').map(s => s.trim()).filter(s => s.length > 8);
+    }
+
+    // --- Horizon: urgency label > explicit horizon ---
+    const urgData = URGENCY_LABELS[r.urgency];
+    const horizon = r.horizon ?? r.timeframe ?? r.delai ?? (urgData?.horizon) ?? null;
+
+    // --- Metric: compte SYSCOHADA as a chip ---
+    const metric = r.compte ? `Cpte ${r.compte}` : (r.metric ?? r.kpi ?? null);
+
+    // --- Impact score chip ---
+    const impactLabel = r.impact_score
+      ? (r.impact_score > 0 ? `+${r.impact_score} pts` : `${r.impact_score} pts`)
+      : (r.impact ?? r.expectedImpact ?? null);
+
+    // --- Urgency emoji in tag ---
+    const emoji = r.emoji ?? (lvl === 'high' ? '🔴' : lvl === 'medium' ? '🟠' : '🟡');
+
     return {
-      lvl, cat, icon, weight: WEIGHT[lvl],
-      t:    r.title??r.t??'Recommandation',
-      d:    shortDesc,
+      lvl, cat, icon, emoji, weight: WEIGHT[lvl],
+      t:       r.title ?? r.t ?? 'Recommandation',
+      d:       primaryDesc,
+      detail:  actionText,
+      context: contextText,
       steps,
-      impact:    r.impact??r.expectedImpact??null,
-      horizon:   r.horizon??r.timeframe??r.delai??null,
-      metric:    r.metric??r.kpi??null,
+      impact:  impactLabel,
+      horizon,
+      metric,
+      compte:  r.compte ?? null,
+      urgency: r.urgency ?? null,
       idx: i,
     };
   });
@@ -748,45 +708,833 @@ function renderMeta(a,zone) {
   el.innerHTML=`
     <div class="score-meta-row"><span class="sml">Probabilité défaut</span><span class="smv ${pcClass}">${prob}%</span></div>
     <div class="score-meta-row"><span class="sml">Indice confiance</span><span class="smv ice">${a.confidence??a.conf??'—'}%</span></div>
-    <div class="score-meta-row"><span class="sml">Modèle ensemble</span><span class="smv muted">${a.model??'—'}</span></div>
-    <div class="score-meta-row"><span class="sml">AUC ROC</span><span class="smv gold">${a.auc??'—'}</span></div>`;
+    <div class="score-meta-row"><span class="sml">Moteur</span><span class="smv muted">SYSCOHADA v4.0</span></div>`;
 }
 
-function renderShap(sv) {
-  const el=document.getElementById('shap-list'); if(!el) return;
-  el.innerHTML=sv.map(s=>`
-    <div class="shap-item">
-      <div class="shap-row">
-        <span class="shap-name">${s.n}</span>
-        <span class="shap-v ${s.pos?'p':'n'}">${s.pos?'+':''}${s.v}</span>
+/* ─── F1: Cash-Burn & Runway (Suivi Trésorerie Critique) ─────────────── */
+function renderCashBurnRunway(cbr) {
+  const el = document.getElementById('cash-burn-runway');
+  if (!el || !cbr) return;
+  
+  const { cash_burn_mensuel, runway_mois, tresorerie_actuelle, alerte_niveau, alerte_message, devise } = cbr;
+  
+  // Couleur selon niveau d'alerte
+  const alerteColors = {
+    'CRITIQUE': 'var(--error)',
+    'ELEVE': 'var(--warning)',
+    'MOYEN': 'var(--amber)',
+    'NORMAL': 'var(--success)'
+  };
+  const alerteColor = alerteColors[alerte_niveau] || 'var(--text-muted)';
+  
+  // Formatage des nombres
+  const formatNumber = (num) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(0) + 'K';
+    return num.toFixed(0);
+  };
+  
+  el.innerHTML = `
+    <div class="cash-burn-container">
+      <div class="cash-burn-header">
+        <div class="cash-burn-title">
+          <i class="fa-solid fa-fire-flame-curved"></i>
+          <span>Suivi Trésorerie Critique</span>
+        </div>
+        <div class="cash-burn-badge" style="color: ${alerteColor}; border-color: ${alerteColor};">
+          ${alerte_niveau}
+        </div>
       </div>
-      <div class="bar-bg"><div class="bar-fill ${s.pos?'p':'n'}" id="sb${s.n.replace(/\W/g,'')}" style="width:0%"></div></div>
-    </div>`).join('');
-  setTimeout(()=>sv.forEach(s=>{const b=document.getElementById('sb'+s.n.replace(/\W/g,''));if(b)b.style.width=s.p+'%';}),280);
+      
+      <div class="cash-burn-metrics">
+        <div class="cash-burn-metric">
+          <div class="metric-label">Runway</div>
+          <div class="metric-value">${runway_mois === Infinity ? '∞' : runway_mois + ' mois'}</div>
+          <div class="metric-sub">Avant épuisement</div>
+        </div>
+        
+        <div class="cash-burn-metric">
+          <div class="metric-label">Cash-Burn Mensuel</div>
+          <div class="metric-value">${formatNumber(cash_burn_mensuel)} ${devise}</div>
+          <div class="metric-sub">Consommation/mois</div>
+        </div>
+        
+        <div class="cash-burn-metric">
+          <div class="metric-label">Trésorerie Actuelle</div>
+          <div class="metric-value">${formatNumber(tresorerie_actuelle)} ${devise}</div>
+          <div class="metric-sub">Disponible</div>
+        </div>
+      </div>
+      
+      <div class="cash-burn-alert" style="border-left-color: ${alerteColor};">
+        <i class="fa-solid fa-circle-info" style="color: ${alerteColor};"></i>
+        <span>${alerte_message}</span>
+      </div>
+      
+      <!-- Runway Progress Bar -->
+      <div class="runway-progress">
+        <div class="runway-bar" style="width: ${Math.min(100, (runway_mois / 12) * 100)}%; background: ${alerteColor};"></div>
+        <div class="runway-labels">
+          <span>0 mois</span>
+          <span>6 mois</span>
+          <span>12+ mois</span>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
-function renderRadar(dims) {
-  const svg=document.getElementById('radar'); if(!svg||!dims.length) return;
-  const cx=120,cy=120,r=85,n=dims.length;
-  const ang=dims.map((_,i)=>i/n*2*Math.PI-Math.PI/2);
-  let g='',ax='';
-  [20,40,60,80,100].forEach(p=>{
-    const pts=ang.map(a=>{const d=r*p/100;return `${cx+d*Math.cos(a)},${cy+d*Math.sin(a)}`;}).join(' ');
-    g+=`<polygon points="${pts}" fill="none" stroke="var(--border-v)" stroke-width="1"/>`;
-  });
-  ang.forEach((a,i)=>{
-    ax+=`<line x1="${cx}" y1="${cy}" x2="${cx+r*Math.cos(a)}" y2="${cy+r*Math.sin(a)}" stroke="var(--border-v)" stroke-width="1"/>`;
-    const lx=cx+(r+16)*Math.cos(a),ly=cy+(r+16)*Math.sin(a);
-    ax+=`<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" font-family="Syne,sans-serif" font-size="8" font-weight="700" letter-spacing="1" fill="var(--text-2)">${dims[i].l.toUpperCase()}</text>`;
-  });
-  const bench=ang.map(a=>{const d=r*.7;return `${cx+d*Math.cos(a)},${cy+d*Math.sin(a)}`;}).join(' ');
-  const data=dims.map((d,i)=>{const dr=r*d.v/100;return `${cx+dr*Math.cos(ang[i])},${cy+dr*Math.sin(ang[i])}`;}).join(' ');
-  svg.innerHTML=`<defs><linearGradient id="rg2" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="var(--violet-3)"/><stop offset="1" stop-color="var(--violet-bg)"/></linearGradient></defs>
-    ${g}${ax}
-    <polygon points="${bench}" fill="none" stroke="var(--color-accent)" stroke-width="1" stroke-dasharray="4,3" opacity=".5"/>
-    <polygon points="${data}" fill="url(#rg2)" stroke="var(--violet-2)" stroke-width="1.5"/>
-    ${dims.map((d,i)=>{const dr=r*d.v/100,px=cx+dr*Math.cos(ang[i]),py=cy+dr*Math.sin(ang[i]);return `<circle cx="${px}" cy="${py}" r="3.5" fill="var(--violet-3)" stroke="var(--bg-base)" stroke-width="1.5"/>`;}).join('')}`;
+/* ─── F2: Simulateur de Financement & Capacité d'Emprunt ───────────── */
+window.FINANCING_SIMULATOR = {
+  currentSimulation: null,
+  
+  async simulateFinancing(montantCredit, dureeMois = 12) {
+    const analyseId = window._lastAnalyse?.id;
+    if (!analyseId) {
+      console.error('[FINANCING_SIMULATOR] Aucune analyse courante');
+      return null;
+    }
+    
+    try {
+      const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
+      const response = await fetch(`${API_BASE}/analyses/simulate-financing`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('firebase_token')}`
+        },
+        body: JSON.stringify({
+          analyse_id: analyseId,
+          montant_credit: montantCredit,
+          duree_mois: dureeMois
+        })
+      });
+      
+      if (!response.ok) throw new Error('Erreur lors de la simulation');
+      
+      const result = await response.json();
+      window.FINANCING_SIMULATOR.currentSimulation = result.simulation;
+      return result.simulation;
+      
+    } catch (error) {
+      console.error('[FINANCING_SIMULATOR] Erreur:', error);
+      return null;
+    }
+  },
+  
+  async simulateAndRender() {
+    const montantInput = document.getElementById('financing-amount');
+    const dureeSelect = document.getElementById('financing-duration');
+    
+    if (!montantInput || !dureeSelect) return;
+    
+    const montantCredit = parseFloat(montantInput.value) || 0;
+    const dureeMois = parseInt(dureeSelect.value) || 12;
+    
+    if (montantCredit <= 0) {
+      alert('Veuillez entrer un montant valide');
+      return;
+    }
+    
+    // Show loading state
+    const simulationEl = document.getElementById('financing-simulation');
+    if (simulationEl) {
+      simulationEl.innerHTML = '<div class="financing-loading"><div class="loader-spinner"></div><p>Simulation en cours...</p></div>';
+    }
+    
+    const simulation = await window.FINANCING_SIMULATOR.simulateFinancing(montantCredit, dureeMois);
+    
+    if (simulation) {
+      window.FINANCING_SIMULATOR.renderSimulation(simulation);
+    } else {
+      if (simulationEl) {
+        simulationEl.innerHTML = '<div class="financing-error">Erreur lors de la simulation. Veuillez réessayer.</div>';
+      }
+    }
+  },
+  
+  renderSimulation(simulation) {
+    const el = document.getElementById('financing-simulation');
+    if (!el || !simulation) return;
+    
+    const { montant_credit, endettement_actuel, endettement_simule, score_actuel, score_impact, 
+            capacite_emprunt_max, recommandation, niveau, message, scenarios, devise } = simulation;
+    
+    // Couleur selon niveau
+    const niveauColors = {
+      'CRITIQUE': 'var(--error)',
+      'ELEVE': 'var(--warning)',
+      'MOYEN': 'var(--amber)',
+      'NORMAL': 'var(--success)'
+    };
+    const niveauColor = niveauColors[niveau] || 'var(--text-muted)';
+    
+    // Formatage
+    const formatNumber = (num) => {
+      if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(0) + 'K';
+      return num.toFixed(0);
+    };
+    
+    const formatPercent = (num) => (num * 100).toFixed(1) + '%';
+    
+    el.innerHTML = `
+      <div class="financing-simulation-container">
+        <div class="financing-header">
+          <div class="financing-title">
+            <i class="fa-solid fa-calculator"></i>
+            <span>Simulation Financement</span>
+          </div>
+          <div class="financing-badge" style="color: ${niveauColor}; border-color: ${niveauColor};">
+            ${recommandation}
+          </div>
+        </div>
+        
+        <div class="financing-metrics">
+          <div class="financing-metric">
+            <div class="metric-label">Montant Crédit</div>
+            <div class="metric-value">${formatNumber(montant_credit)} ${devise}</div>
+          </div>
+          
+          <div class="financing-metric">
+            <div class="metric-label">Endettement Actuel</div>
+            <div class="metric-value">${formatPercent(endettement_actuel)}</div>
+          </div>
+          
+          <div class="financing-metric">
+            <div class="metric-label">Endettement Simulé</div>
+            <div class="metric-value" style="color: ${niveauColor};">${formatPercent(endettement_simule)}</div>
+          </div>
+          
+          <div class="financing-metric">
+            <div class="metric-label">Impact Score</div>
+            <div class="metric-value">${score_actuel} → ${score_impact}</div>
+          </div>
+          
+          <div class="financing-metric">
+            <div class="metric-label">Capacité Max</div>
+            <div class="metric-value">${formatNumber(capacite_emprunt_max)} ${devise}</div>
+          </div>
+        </div>
+        
+        <div class="financing-alert" style="border-left-color: ${niveauColor};">
+          <i class="fa-solid fa-circle-info" style="color: ${niveauColor};"></i>
+          <span>${message}</span>
+        </div>
+        
+        <div class="financing-scenarios">
+          <div class="scenarios-title">Scénarios Alternatifs</div>
+          <div class="scenarios-list">
+            ${scenarios.map((sc, i) => `
+              <div class="scenario-item">
+                <div class="scenario-label">Scénario ${i + 1}</div>
+                <div class="scenario-value">${formatNumber(sc.montant)} ${devise}</div>
+                <div class="scenario-endettement">Endettement: ${formatPercent(sc.endettement)}</div>
+                <div class="scenario-score">Score: ${sc.score_impact.toFixed(1)}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+};
+
+/* ─── F3: Système d'Alertes Précoces (Early Warning) ───────────────── */
+function renderEarlyWarnings(warnings) {
+  const el = document.getElementById('early-warnings');
+  if (!el || !warnings || warnings.length === 0) return;
+  
+  const niveauColors = {
+    'CRITIQUE': 'var(--error)',
+    'ELEVE': 'var(--warning)',
+    'MOYEN': 'var(--amber)',
+    'NORMAL': 'var(--success)'
+  };
+  
+  const niveauIcons = {
+    'CRITIQUE': 'fa-triangle-exclamation',
+    'ELEVE': 'fa-circle-exclamation',
+    'MOYEN': 'fa-circle-info',
+    'NORMAL': 'fa-check-circle'
+  };
+  
+  el.innerHTML = `
+    <div class="early-warnings-container">
+      <div class="early-warnings-header">
+        <div class="early-warnings-title">
+          <i class="fa-solid fa-bell"></i>
+          <span>Alertes Précoces</span>
+        </div>
+        <div class="early-warnings-count">${warnings.length}</div>
+      </div>
+      
+      <div class="early-warnings-list">
+        ${warnings.map((warning, index) => {
+          const niveauColor = niveauColors[warning.niveau] || 'var(--text-muted)';
+          const niveauIcon = niveauIcons[warning.niveau] || 'fa-circle-info';
+          
+          return `
+            <div class="early-warning-item" style="border-left-color: ${niveauColor}; animation: fadeInUp ${0.1 + index * 0.05}s var(--ease-premium) both;">
+              <div class="early-warning-header">
+                <div class="early-warning-icon" style="color: ${niveauColor};">
+                  <i class="fa-solid ${niveauIcon}"></i>
+                </div>
+                <div class="early-warning-level" style="color: ${niveauColor}; background: ${niveauColor}20;">
+                  ${warning.niveau}
+                </div>
+              </div>
+              
+              <div class="early-warning-title">${warning.titre}</div>
+              
+              <div class="early-warning-message">${warning.message}</div>
+              
+              <div class="early-warning-recommendation">
+                <i class="fa-solid fa-lightbulb"></i>
+                <span>${warning.recommandation}</span>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* ─── F4: Benchmarking Sectoriel Anonymisé ───────────────────────── */
+function renderSectorBenchmark(benchmark) {
+  const el = document.getElementById('sector-benchmark');
+  if (!el || !benchmark) return;
+  
+  const { secteur, secteur_normalise, comparisons, performance_globale, performance_globale_couleur, 
+          performance_score, message, data_source } = benchmark;
+  
+  el.innerHTML = `
+    <div class="sector-benchmark-container">
+      <div class="sector-benchmark-header">
+        <div class="sector-benchmark-title">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Benchmarking Sectoriel</span>
+        </div>
+        <div class="sector-badge">${secteur_normalise}</div>
+      </div>
+      
+      <div class="sector-benchmark-summary">
+        <div class="benchmark-performance" style="color: ${performance_globale_couleur};">
+          <i class="fa-solid fa-trophy"></i>
+          <span>Performance: ${performance_globale.toUpperCase()}</span>
+        </div>
+        <div class="benchmark-score">Score: ${performance_score}/4</div>
+      </div>
+      
+      <div class="benchmark-message">${message}</div>
+      
+      <div class="benchmark-comparisons">
+        ${comparisons.map(comp => `
+          <div class="benchmark-comparison-item">
+            <div class="comparison-header">
+              <div class="comparison-name">${comp.ratio}</div>
+              <div class="comparison-performance" style="color: ${comp.couleur};">
+                ${comp.performance.toUpperCase()}
+              </div>
+            </div>
+            
+            <div class="comparison-values">
+              <div class="comparison-value">
+                <span class="value-label">Votre valeur</span>
+                <span class="value-number" style="color: ${comp.couleur};">${comp.valeur}${comp.unite}</span>
+              </div>
+              <div class="comparison-value">
+                <span class="value-label">Moyenne secteur</span>
+                <span class="value-number">${comp.moyenne_secteur}${comp.unite}</span>
+              </div>
+            </div>
+            
+            <div class="comparison-percentile">
+              <div class="percentile-bar">
+                <div class="percentile-fill" style="width: ${comp.percentile_entreprise}%; background: ${comp.couleur};"></div>
+              </div>
+              <div class="percentile-labels">
+                <span>25%</span>
+                <span>50%</span>
+                <span>75%</span>
+                <span>90%</span>
+              </div>
+              <div class="percentile-position">Position: ${comp.position} (${comp.percentile_entreprise}e percentile)</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      
+      <div class="benchmark-source">
+        <i class="fa-solid fa-database"></i>
+        <span>${data_source}</span>
+      </div>
+    </div>
+  `;
+}
+
+/* ─── F5: Générateur de Rapports Destinés aux Tiers ─────────────────── */
+window.REPORT_GENERATOR = {
+  async generateReport(rapportType = 'bancaire') {
+    const analyseId = window._lastAnalyse?.id;
+    if (!analyseId) {
+      console.error('[REPORT_GENERATOR] Aucune analyse courante');
+      return null;
+    }
+    
+    try {
+      const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
+      const response = await fetch(`${API_BASE}/analyses/generate-report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('firebase_token')}`
+        },
+        body: JSON.stringify({
+          analyse_id: analyseId,
+          rapport_type: rapportType
+        })
+      });
+      
+      if (!response.ok) throw new Error('Erreur lors de la génération du rapport');
+      
+      const result = await response.json();
+      return result.rapport;
+      
+    } catch (error) {
+      console.error('[REPORT_GENERATOR] Erreur:', error);
+      return null;
+    }
+  },
+  
+  async generateAndRender() {
+    const typeSelect = document.getElementById('report-type');
+    if (!typeSelect) return;
+    
+    const rapportType = typeSelect.value || 'bancaire';
+    
+    // Show loading state
+    const previewEl = document.getElementById('report-preview');
+    if (previewEl) {
+      previewEl.innerHTML = '<div class="report-loading"><div class="loader-spinner"></div><p>Génération du rapport en cours...</p></div>';
+    }
+    
+    const rapport = await window.REPORT_GENERATOR.generateReport(rapportType);
+    
+    if (rapport) {
+      window.REPORT_GENERATOR.renderReport(rapport);
+    } else {
+      if (previewEl) {
+        previewEl.innerHTML = '<div class="report-error">Erreur lors de la génération du rapport. Veuillez réessayer.</div>';
+      }
+    }
+  },
+  
+  renderReport(rapport) {
+    const el = document.getElementById('report-preview');
+    if (!el || !rapport) return;
+    
+    const { type_rapport, date_generation, entreprise, secteur, score_global, zone_risque, 
+            sections, recommandation_globale, confidentialite, mention_legale } = rapport;
+    
+    const typeIcons = {
+      'bancaire': 'fa-building-columns',
+      'investisseur': 'fa-chart-line',
+      'partenaire': 'fa-handshake'
+    };
+    
+    const typeLabels = {
+      'bancaire': 'Rapport Bancaire',
+      'investisseur': 'Rapport Investisseur',
+      'partenaire': 'Rapport Partenaire'
+    };
+    
+    el.innerHTML = `
+      <div class="report-container">
+        <div class="report-header">
+          <div class="report-title">
+            <i class="fa-solid ${typeIcons[type_rapport] || 'fa-file-lines'}"></i>
+            <span>${typeLabels[type_rapport] || 'Rapport'}</span>
+          </div>
+          <div class="report-badge">${confidentialite}</div>
+        </div>
+        
+        <div class="report-meta">
+          <div class="report-meta-item">
+            <span class="meta-label">Entreprise</span>
+            <span class="meta-value">${entreprise}</span>
+          </div>
+          <div class="report-meta-item">
+            <span class="meta-label">Secteur</span>
+            <span class="meta-value">${secteur}</span>
+          </div>
+          <div class="report-meta-item">
+            <span class="meta-label">Date</span>
+            <span class="meta-value">${date_generation}</span>
+          </div>
+          <div class="report-meta-item">
+            <span class="meta-label">Score</span>
+            <span class="meta-value">${score_global}/100</span>
+          </div>
+        </div>
+        
+        <div class="report-summary">
+          <div class="summary-label">Recommandation Globale</div>
+          <div class="summary-value">${recommandation_globale}</div>
+        </div>
+        
+        <div class="report-sections">
+          ${sections.map(section => `
+            <div class="report-section">
+              <div class="section-header">
+                <div class="section-title">${section.titre}</div>
+                <div class="section-priority">${section.priorite}</div>
+              </div>
+              <div class="section-content">${section.contenu}</div>
+            </div>
+          `).join('')}
+        </div>
+        
+        <div class="report-footer">
+          <div class="report-mention">${mention_legale}</div>
+          <button class="btn btn-secondary report-download-btn" onclick="window.REPORT_GENERATOR.downloadReport()">
+            <i class="fa-solid fa-download"></i>
+            Télécharger PDF
+          </button>
+        </div>
+      </div>
+    `;
+  },
+  
+  downloadReport() {
+    alert('Fonctionnalité de téléchargement PDF à implémenter avec le service PDF existant.');
+  }
+};
+
+/* ─── F6: Plan d'Action Correctif Dynamique (To-Do List) ───────────── */
+function renderActionPlan(actionPlan) {
+  const el = document.getElementById('action-plan');
+  if (!el || !actionPlan) return;
+  
+  const { actions, categories, stats, score_actuel, zone_risque, message } = actionPlan;
+  
+  const prioriteColors = {
+    'HAUTE': 'var(--error)',
+    'MOYENNE': 'var(--amber)',
+    'BASSE': 'var(--success)'
+  };
+  
+  const statutColors = {
+    'EN_COURS': 'var(--cyan)',
+    'EN_ATTENTE': 'var(--warning)',
+    'TERMINEE': 'var(--success)'
+  };
+  
+  el.innerHTML = `
+    <div class="action-plan-container">
+      <div class="action-plan-header">
+        <div class="action-plan-title">
+          <i class="fa-solid fa-list-check"></i>
+          <span>Plan d'Action Correctif</span>
+        </div>
+        <div class="action-plan-stats">
+          <div class="stat-item">
+            <span class="stat-value">${stats.total_actions}</span>
+            <span class="stat-label">Actions</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" style="color: var(--error);">${stats.haute_priorite}</span>
+            <span class="stat-label">Haute</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" style="color: var(--cyan);">${stats.en_cours}</span>
+            <span class="stat-label">En cours</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="action-plan-message">${message}</div>
+      
+      <div class="action-plan-list">
+        ${actions.map((action, index) => {
+          const categorie = categories[action.categorie] || categories['GENERAL'];
+          const prioriteColor = prioriteColors[action.priorite] || 'var(--text-muted)';
+          const statutColor = statutColors[action.statut] || 'var(--text-muted)';
+          
+          return `
+            <div class="action-item" style="animation: fadeInUp ${0.1 + index * 0.05}s var(--ease-premium) both;">
+              <div class="action-header">
+                <div class="action-category" style="color: ${categorie.couleur};">
+                  <i class="fa-solid ${categorie.icon}"></i>
+                  <span>${action.categorie}</span>
+                </div>
+                <div class="action-priority" style="color: ${prioriteColor}; background: ${prioriteColor}20;">
+                  ${action.priorite}
+                </div>
+              </div>
+              
+              <div class="action-title">${action.titre}</div>
+              
+              <div class="action-description">${action.description}</div>
+              
+              <div class="action-meta">
+                <div class="action-meta-item">
+                  <i class="fa-solid fa-clock"></i>
+                  <span>Échéance: ${action.echeance_jours} jours</span>
+                </div>
+                <div class="action-meta-item">
+                  <i class="fa-solid fa-chart-line"></i>
+                  <span>Impact: ${action.impact_estime}</span>
+                </div>
+                <div class="action-meta-item">
+                  <i class="fa-solid fa-user"></i>
+                  <span>${action.responsable}</span>
+                </div>
+              </div>
+              
+              <div class="action-footer">
+                <div class="action-status" style="color: ${statutColor};">
+                  <i class="fa-solid fa-circle"></i>
+                  <span>${action.statut.replace('_', ' ')}</span>
+                </div>
+                <button class="action-complete-btn" onclick="window.ACTION_PLAN.completeAction('${action.id}')">
+                  <i class="fa-solid fa-check"></i>
+                  Marquer terminé
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+window.ACTION_PLAN = {
+  completeAction(actionId) {
+    // Placeholder pour marquer une action comme terminée
+    // Cette fonctionnalité nécessiterait une persistance dans Firebase
+    console.log(`[ACTION_PLAN] Marquer l'action ${actionId} comme terminée`);
+    alert('Fonctionnalité de suivi des actions à implémenter avec Firebase.');
+  }
+};
+
+/* ─── F7: Gestion Historiques (Analyses + Conversations IA) ──────────── */
+window.HISTORY_MANAGER = {
+  async loadAnalysesHistory(limit = 10) {
+    try {
+      const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
+      const response = await fetch(`${API_BASE}/analyses/history/analyses?limit=${limit}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('firebase_token')}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Erreur lors de la récupération de l\'historique');
+      
+      const result = await response.json();
+      return result.history || [];
+      
+    } catch (error) {
+      console.error('[HISTORY_MANAGER] Erreur:', error);
+      return [];
+    }
+  },
+  
+  async loadConversationsHistory(limit = 10) {
+    try {
+      const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
+      const response = await fetch(`${API_BASE}/analyses/history/conversations?limit=${limit}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('firebase_token')}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Erreur lors de la récupération de l\'historique');
+      
+      const result = await response.json();
+      return result.history || [];
+      
+    } catch (error) {
+      console.error('[HISTORY_MANAGER] Erreur:', error);
+      return [];
+    }
+  },
+  
+  renderAnalysesHistory(history) {
+    const el = document.getElementById('analyses-history');
+    if (!el || !history || history.length === 0) return;
+    
+    const zoneColors = {
+      'saine': 'var(--success)',
+      'vigilance': 'var(--warning)',
+      'risque': 'var(--amber)',
+      'critique': 'var(--error)'
+    };
+    
+    el.innerHTML = `
+      <div class="history-container">
+        <div class="history-header">
+          <div class="history-title">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>Historique des Analyses</span>
+          </div>
+          <div class="history-count">${history.length} analyses</div>
+        </div>
+        
+        <div class="history-list">
+          ${history.map((item, index) => {
+            const zoneColor = zoneColors[item.zone] || 'var(--text-muted)';
+            const evolutionIcon = item.score_evolution > 0 ? 'fa-arrow-trend-up' : item.score_evolution < 0 ? 'fa-arrow-trend-down' : 'fa-minus';
+            const evolutionColor = item.score_evolution > 0 ? 'var(--success)' : item.score_evolution < 0 ? 'var(--error)' : 'var(--text-muted)';
+            
+            return `
+              <div class="history-item" style="animation: fadeInUp ${0.1 + index * 0.05}s var(--ease-premium) both;">
+                <div class="history-item-header">
+                  <div class="history-date">${item.date}</div>
+                  <div class="history-score" style="color: ${zoneColor};">
+                    <span class="score-value">${item.score}/100</span>
+                    <span class="score-zone">${item.zone.toUpperCase()}</span>
+                  </div>
+                </div>
+                
+                <div class="history-item-body">
+                  <div class="history-metrics">
+                    <div class="history-metric">
+                      <span class="metric-label">Marge Nette</span>
+                      <span class="metric-value">${(item.marge_nette * 100).toFixed(1)}%</span>
+                    </div>
+                    <div class="history-metric">
+                      <span class="metric-label">DSO</span>
+                      <span class="metric-value">${item.dso.toFixed(0)}j</span>
+                    </div>
+                    <div class="history-metric">
+                      <span class="metric-label">Endettement</span>
+                      <span class="metric-value">${(item.ratio_endettement * 100).toFixed(1)}%</span>
+                    </div>
+                  </div>
+                  
+                  <div class="history-evolution" style="color: ${evolutionColor};">
+                    <i class="fa-solid ${evolutionIcon}"></i>
+                    <span>${item.score_evolution > 0 ? '+' : ''}${item.score_evolution.toFixed(1)} pts</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  },
+  
+  renderConversationsHistory(history) {
+    const el = document.getElementById('conversations-history');
+    if (!el || !history || history.length === 0) return;
+    
+    el.innerHTML = `
+      <div class="history-container">
+        <div class="history-header">
+          <div class="history-title">
+            <i class="fa-solid fa-comments"></i>
+            <span>Historique des Conversations</span>
+          </div>
+          <div class="history-count">${history.length} conversations</div>
+        </div>
+        
+        <div class="history-list">
+          ${history.map((item, index) => `
+            <div class="history-item conversation-item" style="animation: fadeInUp ${0.1 + index * 0.05}s var(--ease-premium) both;">
+              <div class="history-item-header">
+                <div class="history-date">${item.date}</div>
+                <div class="history-messages">
+                  <i class="fa-solid fa-message"></i>
+                  <span>${item.message_count} messages</span>
+                </div>
+              </div>
+              
+              <div class="history-item-body">
+                <div class="conversation-summary">${item.summary}</div>
+                
+                <div class="conversation-stats">
+                  <div class="conversation-stat">
+                    <i class="fa-solid fa-user"></i>
+                    <span>${item.user_messages}</span>
+                  </div>
+                  <div class="conversation-stat">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>${item.ai_messages}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  },
+  
+  async loadAndRenderAll() {
+    const analysesHistory = await window.HISTORY_MANAGER.loadAnalysesHistory(10);
+    const conversationsHistory = await window.HISTORY_MANAGER.loadConversationsHistory(10);
+    
+    window.HISTORY_MANAGER.renderAnalysesHistory(analysesHistory);
+    window.HISTORY_MANAGER.renderConversationsHistory(conversationsHistory);
+    
+    // Mettre à jour les badges de la topbar
+    updateTopbarBadges(analysesHistory.length, conversationsHistory.length);
+  }
+};
+
+/* ─── Topbar Premium - Analytics Summary & Email Reports ─────────────── */
+window.DS_ANALYTICS = {
+  showSummary() {
+    // Afficher le résumé analytique avec tendances
+    const analysesHistory = window.HISTORY_MANAGER.loadAnalysesHistory(20);
+    
+    // Calculer les tendances
+    const scores = analysesHistory.map(a => a.score);
+    const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const trend = scores.length > 1 ? scores[scores.length - 1] - scores[scores.length - 2] : 0;
+    
+    alert(`Résumé Analytique:\n\nScore moyen: ${avgScore.toFixed(1)}/100\nTendance: ${trend > 0 ? '+' : ''}${trend.toFixed(1)} pts\nAnalyses: ${analysesHistory.length}`);
+  }
+};
+
+window.DS_EMAIL = {
+  showReportSettings() {
+    // Afficher les paramètres de rapports email automatiques
+    alert('Paramètres de rapports email automatiques (Brevo):\n\n- Rapport hebdomadaire: Activé\n- Rapport mensuel: Activé\n- Alertes critiques: Activé\n\nFonctionnalité à implémenter avec service email.');
+  }
+};
+
+function updateTopbarBadges(analysesCount, conversationsCount) {
+  // Mettre à jour le badge analytics
+  const analyticsBadge = document.getElementById('analytics-badge');
+  if (analyticsBadge) {
+    analyticsBadge.textContent = analysesCount;
+    analyticsBadge.classList.toggle('hidden', analysesCount === 0);
+  }
+  
+  // Mettre à jour le badge email
+  const emailBadge = document.getElementById('email-badge');
+  if (emailBadge) {
+    // Simuler des emails en attente
+    const pendingEmails = Math.min(analysesCount, 5);
+    emailBadge.textContent = pendingEmails;
+    emailBadge.classList.toggle('hidden', pendingEmails === 0);
+  }
+  
+  // Mettre à jour le badge notifications
+  const notifBadge = document.getElementById('notif-count');
+  if (notifBadge) {
+    // Simuler des notifications actives
+    const activeNotifs = Math.max(1, Math.floor(analysesCount / 3));
+    notifBadge.textContent = activeNotifs;
+    notifBadge.classList.toggle('hidden', activeNotifs === 0);
+  }
 }
 
 function renderRatios(ratios) {
@@ -799,199 +1547,6 @@ function renderRatios(ratios) {
       <div class="ratio-bar"><div class="ratio-fill" id="rf${r.n.replace(/\W/g,'')}" style="width:0%;background:${r.c};box-shadow:0 0 5px ${r.c}44;"></div></div>
     </div>`).join('');
   setTimeout(()=>ratios.forEach(r=>{const b=document.getElementById('rf'+r.n.replace(/\W/g,''));if(b)b.style.width=r.p+'%';}),380);
-}
-
-function renderWI(items) {
-  const el = document.getElementById('wi-grid'); if (!el) return;
-  const sec = document.getElementById('wi-sec');
-  if (sec) { sec.style.display = 'block'; sec.style.opacity = '1'; sec.style.visibility = 'visible'; }
-  if (!items || !items.length) {
-    el.innerHTML = '<div class="wi-empty">Importez une analyse pour accéder au simulateur What-If.</div>';
-    return;
-  }
-  el.innerHTML=items.map(w=>`
-    <div class="wi">
-      <div class="wi-lbl">${w.l}</div>
-      <input type="range" class="wi-slider" id="${w.id}" min="${w.min}" max="${w.max}" step="${w.step}" value="${w.cur}"
-        oninput="DS.updateWIDisplay('${w.id}','wv${w.id}','${w.u}')">
-      <div class="wi-display" id="wv${w.id}">${w.cur}${w.u}</div>
-    </div>`).join('');
-}
-
-function updateWIDisplay(sid,vid,u) {
-  const v=document.getElementById(sid)?.value, el=document.getElementById(vid);
-  if(el&&v!==undefined) el.textContent=parseFloat(v).toFixed(2)+u;
-}
-
-// ════════════════════════════════════════════════════════════════
-//  SCATTER DASHBOARD — render autonome dans scatter-dash-wrap
-// ════════════════════════════════════════════════════════════════
-function _renderScatterOnDash(current, peers, wrap) {
-  if (!wrap) { wrap = document.getElementById('scatter-dash-wrap'); }
-  if (!wrap) return;
-  const W  = Math.max(wrap.offsetWidth, 500);
-  const H  = Math.min(300, Math.max(240, W * 0.44));
-  const PL = 44, PR = 16, PT = 18, PB = 38;
-  const CW = W - PL - PR, CH = H - PT - PB;
-  const sx = v => PL + (v / 100) * CW;
-  const sy = v => PT + CH - (v / 100) * CH;
-  // ✅ Utiliser les variables CSS pour les couleurs
-  const zc = s => s>=75 ? 'var(--color-success)' : s>=50 ? 'var(--color-accent)' : s>=25 ? 'var(--color-risque)' : 'var(--color-error)';
-
-  const same  = peers.filter(p => p.secteur === current.secteur);
-  const other = peers.filter(p => p.secteur !== current.secteur);
-
-  const quadrants = [
-    {x:PL,      y:PT,      w:CW/2, h:CH/2, f:'var(--error-bg)',   l:'Risque élevé'},
-    {x:PL+CW/2, y:PT,      w:CW/2, h:CH/2, f:'var(--accent-bg)',  l:'Vigilance'},
-    {x:PL,      y:PT+CH/2, w:CW/2, h:CH/2, f:'var(--accent-bg)',  l:'Sous-performant'},
-    {x:PL+CW/2, y:PT+CH/2, w:CW/2, h:CH/2, f:'var(--success-bg)', l:'Zone saine'},
-  ].map(q=>`<rect x="${q.x}" y="${q.y}" width="${q.w}" height="${q.h}" fill="${q.f}"/>
-    <text x="${q.x+q.w/2}" y="${q.y+13}" text-anchor="middle"
-      font-family="Syne,sans-serif" font-size="8" fill="var(--text-hint)"
-      font-weight="800" letter-spacing="1">${q.l.toUpperCase()}</text>`).join('');
-
-  const grid = [0,25,50,75,100].map(v=>`
-    <line x1="${sx(v)}" y1="${PT}" x2="${sx(v)}" y2="${PT+CH}"
-      stroke="var(--border)" stroke-width=".5" stroke-dasharray="3,5"/>
-    <line x1="${PL}" y1="${sy(v)}" x2="${PL+CW}" y2="${sy(v)}"
-      stroke="var(--border)" stroke-width=".5" stroke-dasharray="3,5"/>
-    <text x="${sx(v)}" y="${PT+CH+13}" text-anchor="middle"
-      font-family="Syne,sans-serif" font-size="7.5" fill="var(--text-hint)">${v}</text>
-    <text x="${PL-6}" y="${sy(v)+3}" text-anchor="end"
-      font-family="Syne,sans-serif" font-size="7" fill="var(--text-hint)">${v}</text>`).join('');
-
-  const axes = `
-    <line x1="${PL}" y1="${PT}" x2="${PL}" y2="${PT+CH}" stroke="var(--border-v)" stroke-width="1"/>
-    <line x1="${PL}" y1="${PT+CH}" x2="${PL+CW}" y2="${PT+CH}" stroke="var(--border-v)" stroke-width="1"/>
-    <text x="${PL+CW/2}" y="${H-4}" text-anchor="middle"
-      font-family="Syne,sans-serif" font-size="8" fill="var(--text-2)">
-      ← Doctor Score™ →
-    </text>
-    <text x="10" y="${PT+CH/2}" text-anchor="middle"
-      font-family="Syne,sans-serif" font-size="8" fill="var(--text-2)"
-      transform="rotate(-90,10,${PT+CH/2})">← Risque →</text>`;
-
-  const otherDots = other.map(p=>`<circle cx="${sx(p.score||50)}" cy="${sy(p.y||50)}"
-    r="4" fill="${zc(p.score||50)}" opacity=".2"/>`).join('');
-
-  const sameDots = same.map(p=>`<circle cx="${sx(p.score||50)}" cy="${sy(p.y||50)}"
-    r="5.5" fill="${zc(p.score||50)}" opacity=".5"
-    stroke="var(--border-v)" stroke-width=".8"/>`).join('');
-
-  const cx = sx(current.x||current.score||50);
-  const cy = sy(current.y||50);
-  const cc = zc(current.x||current.score||50);
-  const guides = `
-    <line x1="${cx}" y1="${PT}" x2="${cx}" y2="${cy}"
-      stroke="var(--color-accent)" stroke-width="1" stroke-dasharray="4,4" opacity=".3"/>
-    <line x1="${PL}" y1="${cy}" x2="${cx}" y2="${cy}"
-      stroke="var(--color-accent)" stroke-width="1" stroke-dasharray="4,4" opacity=".3"/>`;
-
-  const label = (current.entreprise||'Vous').slice(0,16);
-  const star = `
-    <g transform="translate(${cx},${cy})">
-      <circle r="20" fill="${cc}" opacity=".08"/>
-      <circle r="11" fill="${cc}" opacity=".15"/>
-      <circle r="7" fill="${cc}" opacity=".9"
-        style="filter:drop-shadow(0 0 8px ${cc})"/>
-      <path d="M0,-6.5 L1.5,-2 L6,-2 L2.5,1.2 L3.8,5.5 L0,3.2 L-3.8,5.5 L-2.5,1.2 L-6,-2 L-1.5,-2 Z"
-        fill="var(--text)" opacity=".95"/>
-      <text y="-16" text-anchor="middle"
-        font-family="Syne,sans-serif" font-size="8.5" font-weight="900"
-        fill="var(--text)" letter-spacing=".5">${label}</text>
-      <text y="22" text-anchor="middle"
-        font-family="Syne,sans-serif" font-size="8" fill="var(--text-2)">
-        ${current.score||current.x||'—'}/100
-      </text>
-    </g>`;
-
-  const legend = `
-    <g transform="translate(${PL+4},${PT+6})">
-      <circle cx="5" cy="5" r="5" fill="var(--color-success)" opacity=".5"/>
-      <text x="14" y="9" font-family="Syne,sans-serif" font-size="7.5"
-        fill="var(--text-2)">Même secteur</text>
-    </g>
-    <g transform="translate(${PL+90},${PT+6})">
-      <circle cx="5" cy="5" r="3.5" fill="var(--text-2)" opacity=".3"/>
-      <text x="14" y="9" font-family="Syne,sans-serif" font-size="7.5"
-        fill="var(--text-2)">Autres secteurs</text>
-    </g>`;
-
-  wrap.innerHTML = `<svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}"
-    style="display:block;overflow:visible;">
-    ${quadrants}${grid}${axes}${otherDots}${sameDots}${guides}${star}${legend}
-  </svg>`;
-
-  const sTag = document.getElementById('sc-sector-tag');
-  if (sTag && current.secteur) { sTag.textContent = current.secteur; sTag.style.display = 'inline-block'; }
-  const dTag = document.getElementById('sc-demo-badge');
-  if (dTag) dTag.style.display = window._lastAnalyse?.score != null ? 'none' : 'inline-block';
-
-  const sec = document.getElementById('sc-section') || document.getElementById('scatter-dash-sec');
-  if (sec) { sec.style.display = 'block'; sec.style.opacity = '1'; }
-}
-
-function _initScatterBoth(a) {
-  if (!window._SCATTER_RENDER && !a) return;
-  const cur = {
-    score:      a.score ?? 50,
-    entreprise: a.entreprise ?? 'Votre entreprise',
-    secteur:    a.secteur ?? 'Tech',
-    x:          a.score ?? 50,
-    y:          Math.max(5, Math.round((100-(a.score??50))*0.85)),
-  };
-  const peers = window._SCATTER_DEMO_PEERS || [];
-  window._lastScatterData = { cur, peers };
-
-  const dashWrap = document.getElementById('scatter-plot-wrap');
-  if (dashWrap && !window._SCATTER_RENDER) _renderScatterOnDash(cur, peers, dashWrap);
-
-  const vizWrap = document.getElementById('scatter-plot-wrap');
-  if (vizWrap && window._SCATTER_RENDER) {
-    const forcedW = vizWrap.offsetWidth
-      || vizWrap.closest('.view-pane')?.offsetWidth
-      || vizWrap.closest('.card')?.offsetWidth
-      || document.querySelector('.main-content')?.offsetWidth
-      || window.innerWidth - 280;
-    if (!vizWrap.offsetWidth) {
-      vizWrap.style.width = forcedW + 'px';
-      vizWrap.style.minHeight = '320px';
-    }
-    try { window._SCATTER_RENDER(cur, peers); } catch(e) {}
-    setTimeout(() => {
-      try { vizWrap.style.width = '100%'; window._SCATTER_RENDER(cur, peers); } catch(e) {}
-    }, 300);
-  } else if (vizWrap && !window._SCATTER_RENDER) {
-    _renderScatterOnDash(cur, peers, vizWrap);
-    setTimeout(() => { if (window._SCATTER_RENDER) window._SCATTER_RENDER(cur, peers); }, 500);
-  }
-}
-
-function renderTimeline(data) {
-  const svg=document.getElementById('tl-svg'); if(!svg||!data?.length) return;
-  const par=svg.parentElement;
-  if(par){par.style.overflow='hidden';par.style.position='relative';}
-  svg.style.cssText='width:100%;height:100px;display:block;overflow:hidden;';
-  if(window.DS_EXTRA?.renderTimelineFixed){window.DS_EXTRA.renderTimelineFixed(data,'tl-svg');return;}
-  const TW=560,TH=100,mn=Math.min(...data)-8,mx=Math.max(...data)+8;
-  const pts=data.map((v,i)=>({x:(i/(data.length-1))*(TW-50)+25,y:TH-16-((v-mn)/(mx-mn))*(TH-32)}));
-  const pd=pts.map((p,i)=>(i===0?`M${p.x},${p.y}`:`L${p.x},${p.y}`)).join(' ');
-  const ad=`M${pts[0].x},${TH} `+pts.map(p=>`L${p.x},${p.y}`).join(' ')+` L${pts[pts.length-1].x},${TH} Z`;
-  const MONTHS=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
-  const now=new Date().getMonth();
-  const labels=data.map((_,i)=>MONTHS[(now-data.length+1+i+12)%12]);
-  // ✅ Utiliser les variables CSS pour les couleurs
-  svg.innerHTML=`<defs><linearGradient id="tlg" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="var(--violet-3)" stop-opacity=".22"/><stop offset="1" stop-color="var(--violet-3)" stop-opacity="0"/>
-  </linearGradient></defs>
-  <path d="${ad}" fill="url(#tlg)"/>
-  <path d="${pd}" fill="none" stroke="var(--violet-2)" stroke-width="1.8" stroke-linecap="round" opacity=".65"/>
-  ${pts.map((p,i)=>`
-    <text x="${p.x}" y="${TH-2}" text-anchor="middle" font-family="Syne,sans-serif" font-size="8" fill="var(--text-hint)" letter-spacing="1">${labels[i]?.toUpperCase()}</text>
-    <text x="${p.x}" y="${p.y-9}" text-anchor="middle" font-family="Syne,sans-serif" font-size="8" font-weight="700" fill="var(--text-2)">${data[i]}</text>
-    <circle cx="${p.x}" cy="${p.y}" r="${i===pts.length-1?5:2.8}" fill="${i===pts.length-1?'var(--color-accent)':'var(--violet-2)'}" stroke="var(--bg-base)" stroke-width="1.5"/>
-  `).join('')}`;
 }
 
 /* ─── Tendance sparkline & delta ──────────────────────────── */
@@ -1032,7 +1587,7 @@ function renderTendance(tl) {
 function renderAlerts(recos, zone, analyse) {
   const el = document.getElementById('alerts-list');
   if (!el) return;
-  // Construire les alertes à partir des recos à impact élevé + indicateurs de zone
+  // Construire les alertes à partir des recos à niveau élevé + indicateurs de zone
   const warns = [];
   // Depuis les ratios si disponibles
   const ratios = window._lastRatios || [];
@@ -1043,12 +1598,12 @@ function renderAlerts(recos, zone, analyse) {
       sub: `Valeur actuelle : ${r.v}${r.u||''} — Référence : ${r.b||'—'}`
     });
   });
-  // Depuis les recommandations prioritaires
-  recos.filter(r => r.impact === 'élevé' || r.priority >= 2).slice(0, 3 - warns.length).forEach(r => {
+  // Depuis les recommandations prioritaires (backend: level='high' ou urgency='immediate')
+  recos.filter(r => r.level === 'high' || r.urgency === 'immediate').slice(0, 3 - warns.length).forEach(r => {
     warns.push({
-      icon: r.priority >= 2 ? 'error' : 'warn',
-      title: r.t || r.title || 'Action recommandée',
-      sub: r.d || r.desc || ''
+      icon: r.level === 'high' ? 'error' : 'warn',
+      title: r.title || 'Action recommandée',
+      sub: r.detail || r.description || ''
     });
   });
   // Fallback par zone
@@ -1174,7 +1729,7 @@ function renderRecos(recos) {
     const metaHtml = [
       r.impact  ? `<span class="reco-meta-chip"><i class="fa-solid fa-arrow-trend-up"></i>${r.impact}</span>` : '',
       r.horizon ? `<span class="reco-meta-chip"><i class="fa-solid fa-clock"></i>${r.horizon}</span>` : '',
-      r.metric  ? `<span class="reco-meta-chip reco-chip-kpi"><i class="fa-solid fa-chart-simple"></i>${r.metric}</span>` : '',
+      r.metric  ? `<span class="reco-meta-chip reco-chip-kpi"><i class="fa-solid fa-layer-group"></i>${r.metric}</span>` : '',
     ].filter(Boolean).join('');
 
     const chatQ = `Explique-moi comment mettre en œuvre cette recommandation : "${r.t}". Donne-moi des étapes concrètes adaptées à mon analyse.`;
@@ -1201,11 +1756,11 @@ function renderRecos(recos) {
 
         <div class="reco2-main">
           <div class="reco2-row1">
-            <span class="reco2-tag ${r.lvl}">${r.cat.label}</span>
+            <span class="reco2-tag ${r.lvl}">${r.emoji ? r.emoji + ' ' : ''}${r.cat.label}</span>
             ${metaHtml}
           </div>
           <div class="reco2-title">${r.t}</div>
-          <div class="reco2-desc">${r.d}</div>
+          <div class="reco2-desc">${r.detail || r.d}</div>
         </div>
 
         <div class="reco2-chevron">
@@ -1214,6 +1769,7 @@ function renderRecos(recos) {
       </div>
 
       <div class="reco2-body" style="display:none;">
+        ${r.context && r.context !== r.detail ? `<p class="reco2-context">${r.context}</p>` : ''}
         ${stepsHtml}
         <div class="reco2-actions">
           <button class="reco2-btn reco2-btn-chat"

@@ -1,411 +1,3664 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Doctor Smile · Médecin pour la Santé Financière des Entreprises</title>
-<meta name="description" content="Analysez la santé financière d'entreprise avec 95%+ de précision. ML Ensemble + LLM Explicable + SHAP.">
-
-<!-- Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-
-<!-- Icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
-<!-- Plotly -->
-<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-
-<!-- Styles principaux -->
-<link rel="stylesheet" href="css/main.css">
-
-<!-- Micro-styles inline -->
-<style>
-.ico-xs{font-size:10px!important;}.ico-sm{font-size:12px!important;}
-.ico-md{font-size:14px!important;}.ico-lg{font-size:18px!important;}
-.ico-xl{font-size:22px!important;}.ico-2xl{font-size:26px!important;}
-.fa-solid,.fa-regular,.fa-brands{display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doctor Smile · Diagnostic Financier IA</title>
+  <meta name="description" content="Analysez la santé financière d'entreprise avec précision. OHADA/SYSCOHADA + LLM Explicable + Règles Déterministes.">
+  
+  <!-- Anti-flash : appliquer le thème AVANT le premier paint -->
+  <script>
+    (function() {
+      try {
+        var t = localStorage.getItem('ds-theme');
+        if (!t || (t !== 'light' && t !== 'dark')) {
+          t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+  
+  <!-- Polices -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  
+  <!-- Design System unifié -->
+  <link rel="stylesheet" href="assets/css/design-system.css">
+  <link rel="stylesheet" href="assets/css/ui-components.css">
+  <link rel="stylesheet" href="assets/css/animations.css">
+  <link rel="stylesheet" href="assets/css/responsive.css">
+  <link rel="stylesheet" href="assets/css/doctor-smile.css">
+  
+  <!-- Landing Page Styles -->
+  <style>
+    /* ── Landing Page Specific Styles ───────────────────────────────── */
+    :root {
+      --landing-hero-gradient: linear-gradient(135deg, var(--base-900) 0%, var(--base-800) 100%);
+      --landing-card-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      --landing-glow: 0 0 60px rgba(139, 92, 246, 0.3);
+    }
+    
+    body {
+      background: var(--base-50);
+      color: var(--base-900);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+    }
+    
+    [data-theme="dark"] body {
+      background: var(--base-900);
+      color: var(--base-50);
+    }
+    
+    /* ── Navigation ───────────────────────────────────────────────── */
+    .landing-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      padding: 20px 0;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--base-200);
+      position: relative;
+      overflow: hidden;
+      transition: background 0.3s ease, opacity 0.3s ease;
+    }
+    
+    .landing-nav.scrolled {
+      background: rgba(255, 255, 255, 0.85);
+      padding: 15px 0;
+    }
+    
+    .landing-nav::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--violet-500), var(--gold-500), var(--violet-500));
+      background-size: 200% 100%;
+      animation: navBorder 3s linear infinite;
+    }
+    
+    @keyframes navBorder {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    [data-theme="dark"] .landing-nav {
+      background: rgba(28, 26, 34, 0.95);
+      border-bottom-color: var(--base-700);
+    }
+    
+    [data-theme="dark"] .landing-nav.scrolled {
+      background: rgba(28, 26, 34, 0.85);
+    }
+    
+    .nav-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: transform 0.3s ease;
+    }
+    
+    .nav-logo:hover {
+      transform: scale(1.05);
+    }
+    
+    .nav-logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--violet-600), var(--gold-500));
+      background-size: 200% 200%;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: white;
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4), 0 0 20px rgba(253, 186, 116, 0.3);
+      animation: logoGradient 3s ease infinite;
+    }
+    
+    @keyframes logoGradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    .nav-logo-text {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--base-900);
+      transition: color 0.3s ease;
+    }
+    
+    [data-theme="dark"] .nav-logo-text {
+      color: var(--base-50);
+    }
+    
+    @keyframes logoTextGradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+    }
+    
+    .nav-link {
+      text-decoration: none;
+      color: var(--base-600);
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      position: relative;
+      padding: 8px 0;
+    }
+    
+    [data-theme="dark"] .nav-link {
+      color: var(--base-400);
+    }
+    
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--violet-500), var(--gold-500));
+      transition: width 0.3s ease;
+    }
+    
+    .nav-link:hover {
+      color: var(--violet-600);
+    }
+    
+    .nav-link:hover::after {
+      width: 100%;
+    }
+    
+    .nav-cta {
+      padding: 12px 28px;
+      background: linear-gradient(135deg, var(--violet-600), var(--gold-500));
+      background-size: 200% 200%;
+      color: white;
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      animation: btnGradient 3s ease infinite;
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4), 0 0 20px rgba(253, 186, 116, 0.3);
+    }
+    
+    .nav-cta::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s ease;
+    }
+    
+    .nav-cta:hover::before {
+      left: 100%;
+    }
+    
+    .nav-cta:hover {
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 8px 25px rgba(139, 92, 246, 0.6), 0 0 30px rgba(253, 186, 116, 0.5);
+    }
+    
+    /* ── Theme Toggle ─────────────────────────────────────────────── */
+    .theme-toggle-landing {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .theme-toggle-landing:hover {
+      border-color: var(--violet-400);
+      background: rgba(139, 92, 246, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    /* ── 3D Cube Logo (from auth.css) ───────────────────────────── */
+    .cube-wrap-landing {
+      width: 40px;
+      height: 40px;
+      perspective: 800px;
+    }
+    
+    .cube-wrap-landing .cube {
+      width: 40px;
+      height: 40px;
+      margin: 0;
+      transform-style: preserve-3d;
+      animation: spinLanding 12s linear infinite;
+      position: relative;
+    }
+    
+    @keyframes spinLanding {
+      0% { transform: rotateX(-20deg) rotateY(0deg); }
+      100% { transform: rotateX(-20deg) rotateY(360deg); }
+    }
+    
+    .cube-wrap-landing .cube:hover {
+      animation-duration: 4s;
+    }
+    
+    .cube-wrap-landing .cf {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backface-visibility: visible;
+      transition: all 0.5s var(--spring);
+    }
+    
+    /* Correction mathématique parfaite du cube 3D (40px / 2 = 20px) */
+    .cube-wrap-landing .cf-front {
+      transform: translateZ(20px);
+      background: linear-gradient(135deg, #C9A84C, #F5D98E);
+      box-shadow: inset 0 0 15px rgba(255,215,0,0.25), 0 0 30px rgba(201,168,76,0.2);
+    }
+    .cube-wrap-landing .cf-back {
+      transform: rotateY(180deg) translateZ(20px);
+      background: linear-gradient(135deg, #7C3AED, #8B7FF0);
+    }
+    .cube-wrap-landing .cf-right {
+      transform: rotateY(90deg) translateZ(20px);
+      background: rgba(201,168,76,0.25);
+      backdrop-filter: blur(8px);
+      border-color: rgba(201,168,76,0.3);
+    }
+    .cube-wrap-landing .cf-left {
+      transform: rotateY(-90deg) translateZ(20px);
+      background: rgba(124,58,237,0.2);
+      backdrop-filter: blur(8px);
+    }
+    .cube-wrap-landing .cf-top {
+      transform: rotateX(90deg) translateZ(20px);
+      background: rgba(201,168,76,0.15);
+      border-color: rgba(201,168,76,0.2);
+    }
+    .cube-wrap-landing .cf-bot {
+      transform: rotateX(-90deg) translateZ(20px);
+      background: rgba(124,58,237,0.1);
+    }
+    .cube-wrap-landing .cf i {
+      font-size: 18px;
+      color: #F5D98E;
+      filter: drop-shadow(0 0 20px rgba(201,168,76,0.4));
+    }
+    
+    /* ── Hero Section ─────────────────────────────────────────────── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 120px 0 80px;
+      background: 
+        radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.4) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(253, 186, 116, 0.3) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(139, 92, 246, 0.25) 0%, transparent 70%),
+        radial-gradient(ellipse at 30% 70%, rgba(253, 186, 116, 0.2) 0%, transparent 40%),
+        radial-gradient(ellipse at 70% 30%, rgba(139, 92, 246, 0.22) 0%, transparent 45%),
+        linear-gradient(135deg, var(--base-50) 0%, rgba(139, 92, 246, 0.08) 50%, var(--base-50) 100%);
+      overflow: hidden;
+    }
+    
+    [data-theme="dark"] .hero {
+      background: 
+        radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.5) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(253, 186, 116, 0.4) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(139, 92, 246, 0.35) 0%, transparent 70%),
+        radial-gradient(ellipse at 30% 70%, rgba(253, 186, 116, 0.28) 0%, transparent 40%),
+        radial-gradient(ellipse at 70% 30%, rgba(139, 92, 246, 0.32) 0%, transparent 45%),
+        linear-gradient(135deg, var(--base-900) 0%, rgba(139, 92, 246, 0.12) 50%, var(--base-900) 100%);
+    }
+    
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: 
+        conic-gradient(from 0deg at 50% 50%, 
+          transparent 0deg, 
+          rgba(139, 92, 246, 0.12) 45deg, 
+          rgba(253, 186, 116, 0.1) 90deg,
+          transparent 135deg,
+          rgba(139, 92, 246, 0.08) 180deg,
+          rgba(253, 186, 116, 0.12) 225deg,
+          transparent 270deg,
+          rgba(139, 92, 246, 0.1) 315deg,
+          transparent 360deg
+        );
+      animation: heroGradient 20s linear infinite;
+    }
+    
+    @keyframes heroGradient {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .hero-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+    
+    .hero-content {
+      z-index: 10;
+    }
+    
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--violet-400);
+      margin-bottom: 24px;
+    }
+    
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: 56px;
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--base-900);
+      margin-bottom: 24px;
+    }
+    
+    [data-theme="dark"] .hero-title {
+      color: var(--base-50);
+    }
+    
+    .hero-title .highlight {
+      background: linear-gradient(135deg, var(--violet-400) 0%, var(--gold-400) 50%, var(--violet-400) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      background-size: 200% 200%;
+      animation: gradientShift 3s ease infinite;
+    }
+    
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    .hero-subtitle {
+      font-size: 18px;
+      line-height: 1.7;
+      color: var(--base-600);
+      margin-bottom: 32px;
+      max-width: 500px;
+    }
+    
+    [data-theme="dark"] .hero-subtitle {
+      color: var(--base-400);
+    }
+    
+    .hero-cta {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    
+    .hero-cta-primary {
+      padding: 16px 32px;
+      background: var(--violet-600);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+    }
+    
+    .hero-cta-primary:hover {
+      background: var(--violet-700);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
+    }
+    
+    .hero-cta-secondary {
+      padding: 16px 32px;
+      background: transparent;
+      color: var(--base-900);
+      border: 1px solid var(--base-300);
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    [data-theme="dark"] .hero-cta-secondary {
+      color: var(--base-50);
+      border-color: var(--base-600);
+    }
+    
+    .hero-cta-secondary:hover {
+      border-color: var(--violet-400);
+      background: rgba(139, 92, 246, 0.1);
+    }
+    
+    .hero-stats {
+      display: flex;
+      gap: 40px;
+    }
+    
+    .hero-stat {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .hero-stat-value {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--base-900);
+    }
+    
+    [data-theme="dark"] .hero-stat-value {
+      color: var(--base-50);
+    }
+    
+    .hero-stat-label {
+      font-size: 14px;
+      color: var(--base-600);
+    }
+    
+    [data-theme="dark"] .hero-stat-label {
+      color: var(--base-400);
+    }
+    
+    /* ── Hero Visual ─────────────────────────────────────────────── */
+    .hero-visual {
+      position: relative;
+      z-index: 10;
+    }
+    
+    .dashboard-preview {
+      background: var(--base-50);
+      border: 1px solid var(--base-200);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: var(--landing-card-shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    [data-theme="dark"] .dashboard-preview {
+      background: var(--base-800);
+      border-color: var(--base-700);
+    }
+    
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--base-200);
+    }
+    
+    [data-theme="dark"] .dashboard-header {
+      border-bottom-color: var(--base-700);
+    }
+    
+    .dashboard-title {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--base-900);
+    }
+    
+    [data-theme="dark"] .dashboard-title {
+      color: var(--base-50);
+    }
+    
+    .dashboard-score {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .score-ring {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: conic-gradient(var(--violet-500) 0deg, var(--violet-500) 270deg, transparent 270deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .score-ring-inner {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--base-50);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--violet-500);
+    }
+    
+    [data-theme="dark"] .score-ring-inner {
+      background: var(--base-800);
+    }
+    
+    .score-info h4 {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--base-900);
+      margin: 0 0 4px 0;
+    }
+    
+    [data-theme="dark"] .score-info h4 {
+      color: var(--base-50);
+    }
+    
+    .score-info p {
+      font-size: 12px;
+      color: var(--base-600);
+      margin: 0;
+    }
+    
+    [data-theme="dark"] .score-info p {
+      color: var(--base-400);
+    }
+    
+    .dashboard-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    
+    .metric-card {
+      padding: 16px;
+      background: var(--base-100);
+      border-radius: 12px;
+      text-align: center;
+    }
+    
+    [data-theme="dark"] .metric-card {
+      background: var(--base-800);
+    }
+    
+    .metric-value {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--base-900);
+      margin-bottom: 4px;
+    }
+    
+    [data-theme="dark"] .metric-value {
+      color: var(--base-50);
+    }
+    
+    .metric-label {
+      font-size: 12px;
+      color: var(--base-600);
+    }
+    
+    [data-theme="dark"] .metric-label {
+      color: var(--base-400);
+    }
+    
+    /* ── Float Cards ─────────────────────────────────────────────── */
+    .float-card {
+      position: absolute;
+      background: var(--base-50);
+      border: 1px solid var(--base-200);
+      border-radius: 16px;
+      padding: 16px 20px;
+      box-shadow: var(--landing-card-shadow);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    [data-theme="dark"] .float-card {
+      background: var(--base-800);
+      border-color: var(--base-700);
+    }
+    
+    .float-card-1 {
+      top: 20%;
+      right: -40px;
+      animation-delay: 0s;
+    }
+    
+    .float-card-2 {
+      bottom: 20%;
+      left: -40px;
+      animation-delay: -3s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+    
+    .float-card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    
+    .float-card-icon.violet {
+      background: rgba(139, 92, 246, 0.2);
+      color: var(--violet-500);
+    }
+    
+    .float-card-icon.gold {
+      background: rgba(253, 186, 116, 0.2);
+      color: var(--gold-500);
+    }
+    
+    .float-card-content h5 {
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--base-900);
+      margin: 0 0 2px 0;
+    }
+    
+    [data-theme="dark"] .float-card-content h5 {
+      color: var(--base-50);
+    }
+    
+    .float-card-content p {
+      font-size: 11px;
+      color: var(--base-600);
+      margin: 0;
+    }
+    
+    [data-theme="dark"] .float-card-content p {
+      color: var(--base-400);
+    }
+    
+    /* ── Stats Section ────────────────────────────────────────────── */
+    .stats-section {
+      padding: 80px 0;
+      background: var(--base-50);
+      border-top: 1px solid var(--base-200);
+      border-bottom: 1px solid var(--base-200);
+    }
+    
+    [data-theme="dark"] .stats-section {
+      background: var(--base-900);
+      border-top-color: var(--base-700);
+      border-bottom-color: var(--base-700);
+    }
+    
+    .stats-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 40px;
+    }
+    
+    .stat-card {
+      text-align: center;
+      padding: 32px;
+    }
+    
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 48px;
+      font-weight: 800;
+      color: var(--violet-500);
+      margin-bottom: 8px;
+    }
+    
+    .stat-label {
+      font-size: 16px;
+      color: var(--base-600);
+    }
+    
+    [data-theme="dark"] .stat-label {
+      color: var(--base-400);
+    }
+    
+    /* ── Features Section ───────────────────────────────────────── */
+    .features-section {
+      padding: 120px 0;
+      background: 
+        linear-gradient(135deg, var(--base-50) 0%, rgba(139, 92, 246, 0.03) 50%, var(--base-50) 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    [data-theme="dark"] .features-section {
+      background: 
+        linear-gradient(135deg, var(--base-900) 0%, rgba(139, 92, 246, 0.05) 50%, var(--base-900) 100%);
+    }
+    
+    .features-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(253, 186, 116, 0.06) 0%, transparent 40%);
+      animation: featurePulse 8s ease-in-out infinite;
+      pointer-events: none;
+    }
+    
+    @keyframes featurePulse {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+    
+    .features-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+    
+    .section-header {
+      text-align: center;
+      margin-bottom: 64px;
+    }
+    
+    .section-badge {
+      display: inline-block;
+      padding: 8px 16px;
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--violet-400);
+      margin-bottom: 16px;
+    }
+    
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--base-900);
+      margin-bottom: 16px;
+    }
+    
+    [data-theme="dark"] .section-title {
+      color: var(--base-50);
+    }
+    
+    .section-subtitle {
+      font-size: 18px;
+      color: var(--base-600);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    [data-theme="dark"] .section-subtitle {
+      color: var(--base-400);
+    }
+    
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(2, minmax(200px, auto));
+      gap: 24px;
+    }
+    
+    .feature-card {
+      padding: 32px;
+      background: var(--base-50);
+      border: 1px solid var(--base-200);
+      border-radius: 20px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    [data-theme="dark"] .feature-card {
+      background: var(--base-800);
+      border-color: var(--base-700);
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      border-color: var(--violet-400);
+      box-shadow: 0 20px 40px rgba(139, 92, 246, 0.3), 0 0 30px rgba(253, 186, 116, 0.2);
+    }
+    
+    .feature-card.feature-large {
+      grid-column: span 2;
+      grid-row: span 2;
+      position: relative;
+    }
+    
+    .feature-card.feature-large::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      padding: 2px;
+      background: linear-gradient(135deg, var(--violet-500), var(--gold-500), var(--violet-500));
+      background-size: 200% 200%;
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      animation: borderGlow 3s linear infinite;
+    }
+    
+    .feature-card.feature-large:hover::after {
+      opacity: 1;
+    }
+    
+    @keyframes borderGlow {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    .feature-card.feature-wide {
+      grid-column: span 2;
+    }
+    
+    .feature-card.feature-tall {
+      grid-row: span 2;
+    }
+    
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    
+    [data-theme="dark"] .feature-card::before {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+    }
+    
+    .feature-card:hover::before {
+      opacity: 1;
+    }
+    
+    .feature-card.feature-large {
+      position: relative;
+    }
+    
+    .feature-card.feature-large::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      padding: 2px;
+      background: linear-gradient(135deg, var(--violet-500), var(--gold-500));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    
+    .feature-card.feature-large:hover::after {
+      opacity: 1;
+    }
+    
+    .feature-icon {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(253, 186, 116, 0.1));
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: var(--violet-500);
+      margin-bottom: 24px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .feature-icon::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transform: rotate(45deg);
+      transition: left 0.5s ease;
+      opacity: 0;
+    }
+    
+    .feature-card:hover .feature-icon {
+      transform: scale(1.15) rotate(5deg);
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(253, 186, 116, 0.2));
+      box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4), 0 0 25px rgba(253, 186, 116, 0.3);
+    }
+    
+    .feature-card:hover .feature-icon::before {
+      opacity: 1;
+      animation: iconShine 0.6s ease;
+    }
+    
+    @keyframes iconShine {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+    
+    .feature-card h3 {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--base-900);
+      margin-bottom: 12px;
+    }
+    
+    [data-theme="dark"] .feature-card h3 {
+      color: var(--base-50);
+    }
+    
+    .feature-card p {
+      font-size: 15px;
+      color: var(--base-600);
+      line-height: 1.6;
+    }
+    
+    [data-theme="dark"] .feature-card p {
+      color: var(--base-400);
+    }
+    
+    /* ── How It Works ───────────────────────────────────────────── */
+    .how-section {
+      padding: 120px 0;
+      background: var(--base-100);
+    }
+    
+    [data-theme="dark"] .how-section {
+      background: var(--base-800);
+    }
+    
+    .how-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+    
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+      margin-top: 64px;
+    }
+    
+    .step-card {
+      position: relative;
+      padding: 32px;
+    }
+    
+    .step-number {
+      width: 48px;
+      height: 48px;
+      background: var(--violet-600);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 24px;
+    }
+    
+    .step-card h3 {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--base-900);
+      margin-bottom: 12px;
+    }
+    
+    [data-theme="dark"] .step-card h3 {
+      color: var(--base-50);
+    }
+    
+    .step-card p {
+      font-size: 15px;
+      color: var(--base-600);
+      line-height: 1.6;
+    }
+    
+    [data-theme="dark"] .step-card p {
+      color: var(--base-400);
+    }
+    
+    /* ── CTA Section ─────────────────────────────────────────────── */
+    .cta-section {
+      padding: 120px 0;
+      text-align: center;
+      background: var(--base-50);
+    }
+    
+    [data-theme="dark"] .cta-section {
+      background: var(--base-900);
+    }
+    
+    .cta-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+    
+    .cta-card {
+      padding: 64px;
+      background: linear-gradient(135deg, var(--violet-600) 0%, var(--gold-500) 50%, var(--violet-600) 100%);
+      background-size: 200% 200%;
+      border-radius: 24px;
+      text-align: center;
+      animation: ctaGradient 4s ease infinite;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .cta-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+      animation: pulseGlow 3s ease-in-out infinite;
+    }
+    
+    @keyframes ctaGradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    @keyframes pulseGlow {
+      0%, 100% { transform: scale(0.8); opacity: 0.5; }
+      50% { transform: scale(1); opacity: 1; }
+    }
+    
+    .cta-card h2 {
+      font-family: var(--font-display);
+      font-size: 42px;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 16px;
+    }
+    
+    .cta-card p {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 32px;
+    }
+    
+    .cta-card .btn {
+      padding: 16px 40px;
+      background: linear-gradient(135deg, white 0%, rgba(255, 255, 255, 0.9) 100%);
+      color: var(--violet-600);
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .cta-card .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.2), transparent);
+      transition: left 0.5s ease;
+    }
+    
+    .cta-card .btn:hover::before {
+      left: 100%;
+    }
+    
+    .cta-card .btn:hover {
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.5);
+    }
+    
+    /* ── Footer Premium ───────────────────────────────────────────── */
+    .footer {
+      padding: 80px 0 40px;
+      background: var(--base-50);
+      border-top: 1px solid var(--base-200);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    [data-theme="dark"] .footer {
+      background: var(--base-900);
+      border-top-color: var(--base-700);
+    }
+    
+    .footer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--violet-500), transparent);
+      opacity: 0.3;
+    }
+    
+    .footer-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .footer-content {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+      gap: 48px;
+      margin-bottom: 64px;
+    }
+    
+    .footer-brand h4 {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--base-900);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    [data-theme="dark"] .footer-brand h4 {
+      color: var(--base-50);
+    }
+    
+    .footer-brand h4 i {
+      color: var(--violet-500);
+    }
+    
+    .footer-brand p {
+      font-size: 15px;
+      color: var(--base-600);
+      line-height: 1.7;
+      margin-bottom: 24px;
+      max-width: 300px;
+    }
+    
+    [data-theme="dark"] .footer-brand p {
+      color: var(--base-400);
+    }
+    
+    .footer-social {
+      display: flex;
+      gap: 12px;
+    }
+    
+    .footer-social a {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--base-100);
+      border: 1px solid var(--base-200);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--base-600);
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+    
+    [data-theme="dark"] .footer-social a {
+      background: var(--base-800);
+      border-color: var(--base-700);
+      color: var(--base-400);
+    }
+    
+    .footer-social a:hover {
+      border-color: var(--violet-400);
+      color: var(--violet-500);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+    }
+    
+    .footer-column h5 {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--base-900);
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    
+    [data-theme="dark"] .footer-column h5 {
+      color: var(--base-50);
+    }
+    
+    .footer-column a {
+      display: block;
+      font-size: 14px;
+      color: var(--base-600);
+      text-decoration: none;
+      margin-bottom: 12px;
+      transition: all 0.3s ease;
+      line-height: 1.6;
+    }
+    
+    [data-theme="dark"] .footer-column a {
+      color: var(--base-400);
+    }
+    
+    .footer-column a:hover {
+      color: var(--violet-400);
+      transform: translateX(4px);
+    }
+    
+    .footer-bottom {
+      padding-top: 32px;
+      border-top: 1px solid var(--base-200);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    
+    [data-theme="dark"] .footer-bottom {
+      border-top-color: var(--base-700);
+    }
+    
+    .footer-bottom p {
+      font-size: 14px;
+      color: var(--base-600);
+      margin: 0;
+    }
+    
+    [data-theme="dark"] .footer-bottom p {
+      color: var(--base-400);
+    }
+    
+    .footer-bottom-links {
+      display: flex;
+      gap: 24px;
+    }
+    
+    .footer-bottom-links a {
+      font-size: 14px;
+      color: var(--base-600);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    
+    [data-theme="dark"] .footer-bottom-links a {
+      color: var(--base-400);
+    }
+    
+    .footer-bottom-links a:hover {
+      color: var(--violet-400);
+    }
+    
+    /* ── Dashboard Preview Section ───────────────────────────────── */
+    .dashboard-preview-section {
+      padding: 120px 0;
+      background: 
+        linear-gradient(135deg, var(--base-100) 0%, rgba(139, 92, 246, 0.04) 50%, var(--base-100) 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    [data-theme="dark"] .dashboard-preview-section {
+      background: 
+        linear-gradient(135deg, var(--base-800) 0%, rgba(139, 92, 246, 0.06) 50%, var(--base-800) 100%);
+    }
+    
+    .dashboard-preview-section::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: 
+        conic-gradient(from 0deg at 50% 50%, 
+          transparent 0deg, 
+          rgba(139, 92, 246, 0.02) 90deg, 
+          transparent 180deg,
+          rgba(253, 186, 116, 0.02) 270deg,
+          transparent 360deg
+        );
+      animation: dashboardRotate 15s linear infinite;
+      pointer-events: none;
+    }
+    
+    @keyframes dashboardRotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .dashboard-preview-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+    
+    .dashboard-showcase {
+      margin-top: 64px;
+    }
+    
+    .dashboard-screenshot {
+      width: 100%;
+    }
+    
+    .dashboard-frame {
+      background: var(--base-50);
+      border: 1px solid var(--base-200);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: var(--landing-card-shadow);
+    }
+    
+    [data-theme="dark"] .dashboard-frame {
+      background: var(--base-900);
+      border-color: var(--base-700);
+    }
+    
+    .dashboard-header-mock {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--base-200);
+      background: var(--base-50);
+    }
+    
+    [data-theme="dark"] .dashboard-header-mock {
+      border-bottom-color: var(--base-700);
+      background: var(--base-900);
+    }
+    
+    .mock-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--base-900);
+    }
+    
+    [data-theme="dark"] .mock-logo {
+      color: var(--base-50);
+    }
+    
+    .mock-logo i {
+      color: var(--violet-500);
+    }
+    
+    .mock-nav {
+      display: flex;
+      gap: 24px;
+    }
+    
+    .mock-nav-item {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--base-600);
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+    
+    [data-theme="dark"] .mock-nav-item {
+      color: var(--base-400);
+    }
+    
+    .mock-nav-item.active {
+      color: var(--violet-500);
+      font-weight: 600;
+    }
+    
+    .mock-nav-item:hover {
+      color: var(--violet-500);
+    }
+    
+    .mock-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--violet-500), var(--gold-500));
+    }
+    
+    .dashboard-body-mock {
+      display: flex;
+      min-height: 400px;
+    }
+    
+    .mock-sidebar {
+      width: 200px;
+      padding: 20px;
+      border-right: 1px solid var(--base-200);
+      background: var(--base-100);
+    }
+    
+    [data-theme="dark"] .mock-sidebar {
+      border-right-color: var(--base-700);
+      background: var(--base-800);
+    }
+    
+    .mock-sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--base-600);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 8px;
+    }
+    
+    [data-theme="dark"] .mock-sidebar-item {
+      color: var(--base-400);
+    }
+    
+    .mock-sidebar-item.active {
+      background: rgba(139, 92, 246, 0.1);
+      color: var(--violet-500);
+    }
+    
+    .mock-sidebar-item:hover {
+      background: rgba(139, 92, 246, 0.05);
+    }
+    
+    .mock-content {
+      flex: 1;
+      padding: 24px;
+      background: var(--base-50);
+    }
+    
+    [data-theme="dark"] .mock-content {
+      background: var(--base-900);
+    }
+    
+    .mock-kpi-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .mock-kpi {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: var(--base-100);
+      border-radius: 12px;
+      border: 1px solid var(--base-200);
+    }
+    
+    [data-theme="dark"] .mock-kpi {
+      background: var(--base-800);
+      border-color: var(--base-700);
+    }
+    
+    .mock-kpi-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    
+    .mock-kpi-icon.violet {
+      background: rgba(139, 92, 246, 0.1);
+      color: var(--violet-500);
+    }
+    
+    .mock-kpi-icon.gold {
+      background: rgba(253, 186, 116, 0.1);
+      color: var(--gold-500);
+    }
+    
+    .mock-kpi-icon.green {
+      background: rgba(34, 197, 94, 0.1);
+      color: #22c55e;
+    }
+    
+    .mock-kpi-info {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .mock-kpi-label {
+      font-size: 12px;
+      color: var(--base-600);
+      margin-bottom: 4px;
+    }
+    
+    [data-theme="dark"] .mock-kpi-label {
+      color: var(--base-400);
+    }
+    
+    .mock-kpi-value {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--base-900);
+    }
+    
+    [data-theme="dark"] .mock-kpi-value {
+      color: var(--base-50);
+    }
+    
+    .mock-chart-area {
+      padding: 20px;
+      background: var(--base-100);
+      border-radius: 12px;
+      border: 1px solid var(--base-200);
+      margin-bottom: 24px;
+    }
+    
+    [data-theme="dark"] .mock-chart-area {
+      background: var(--base-800);
+      border-color: var(--base-700);
+    }
+    
+    .mock-chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    
+    .mock-chart-header span:first-child {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--base-900);
+    }
+    
+    [data-theme="dark"] .mock-chart-header span:first-child {
+      color: var(--base-50);
+    }
+    
+    .mock-chart-legend {
+      display: flex;
+      gap: 16px;
+    }
+    
+    .mock-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--base-600);
+    }
+    
+    [data-theme="dark"] .mock-legend-item {
+      color: var(--base-400);
+    }
+    
+    .mock-legend-color {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    .mock-legend-color.violet {
+      background: var(--violet-500);
+    }
+    
+    .mock-legend-color.gold {
+      background: var(--gold-500);
+    }
+    
+    .mock-chart-lines {
+      height: 100px;
+    }
+    
+    .mock-chart-svg {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .mock-cards-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    
+    .mock-card {
+      padding: 20px;
+      background: var(--base-100);
+      border-radius: 12px;
+      border: 1px solid var(--base-200);
+    }
+    
+    [data-theme="dark"] .mock-card {
+      background: var(--base-800);
+      border-color: var(--base-700);
+    }
+    
+    .mock-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--base-900);
+    }
+    
+    [data-theme="dark"] .mock-card-header {
+      color: var(--base-50);
+    }
+    
+    .mock-card-header i {
+      color: var(--violet-500);
+    }
+    
+    .mock-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .mock-rec-item,
+    .mock-analysis-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--base-600);
+    }
+    
+    [data-theme="dark"] .mock-rec-item,
+    [data-theme="dark"] .mock-analysis-item {
+      color: var(--base-400);
+    }
+    
+    .mock-rec-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    .mock-rec-dot.green {
+      background: #22c55e;
+    }
+    
+    .mock-rec-dot.yellow {
+      background: var(--gold-500);
+    }
+    
+    .mock-rec-dot.blue {
+      background: #3b82f6;
+    }
+    
+    .mock-analysis-item {
+      justify-content: space-between;
+    }
+    
+    .mock-analysis-score {
+      font-family: var(--font-display);
+      font-weight: 700;
+      color: var(--violet-500);
+    }
+    
+    /* ── Scroll Reveal Animations ─────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    
+    .reveal.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .reveal-delay-1 {
+      transition-delay: 0.1s;
+    }
+    
+    .reveal-delay-2 {
+      transition-delay: 0.2s;
+    }
+    
+    .reveal-delay-3 {
+      transition-delay: 0.3s;
+    }
+    
+    .reveal-delay-4 {
+      transition-delay: 0.4s;
+    }
+    
+    /* ── Spotlight Effect on Cards ───────────────────────────────── */
+    .spotlight-card {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .spotlight-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(
+        600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(139, 92, 246, 0.06),
+        transparent 40%
+      );
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    
+    .spotlight-card:hover::before {
+      opacity: 1;
+    }
+    
+    /* ── Pricing Section ─────────────────────────────────────────── */
+    .pricing-section {
+      padding: 120px 0;
+      background: 
+        linear-gradient(135deg, var(--base-50) 0%, rgba(139, 92, 246, 0.03) 50%, var(--base-50) 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    [data-theme="dark"] .pricing-section {
+      background: 
+        linear-gradient(135deg, var(--base-900) 0%, rgba(139, 92, 246, 0.05) 50%, var(--base-900) 100%);
+    }
+    
+    .pricing-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 30% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 70% 80%, rgba(253, 186, 116, 0.06) 0%, transparent 40%);
+      animation: pricingPulse 10s ease-in-out infinite;
+      pointer-events: none;
+    }
+    
+    @keyframes pricingPulse {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+    
+    .pricing-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+    
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+      margin-top: 64px;
+    }
+    
+    .pricing-card {
+      background: var(--base-100);
+      border: 1px solid var(--base-200);
+      border-radius: 24px;
+      padding: 40px;
+      position: relative;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+    }
+    
+    [data-theme="dark"] .pricing-card {
+      background: var(--base-800);
+      border-color: var(--base-700);
+    }
+    
+    .pricing-card:hover {
+      transform: translateY(-12px) scale(1.02);
+      box-shadow: 0 30px 60px rgba(139, 92, 246, 0.3), 0 0 50px rgba(253, 186, 116, 0.2);
+    }
+    
+    .pricing-card.pricing-popular {
+      border: 2px solid var(--violet-500);
+      background: linear-gradient(135deg, var(--base-100) 0%, rgba(139, 92, 246, 0.05) 100%);
+    }
+    
+    [data-theme="dark"] .pricing-card.pricing-popular {
+      background: linear-gradient(135deg, var(--base-800) 0%, rgba(139, 92, 246, 0.1) 100%);
+    }
+    
+    .pricing-card.pricing-popular::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 22px;
+      padding: 2px;
+      background: linear-gradient(135deg, var(--violet-500), var(--gold-500), var(--violet-500));
+      background-size: 200% 200%;
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      animation: borderGlow 3s linear infinite;
+      pointer-events: none;
+    }
+    
+    .popular-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--violet-500), var(--gold-500));
+      color: white;
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    }
+    
+    .pricing-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      background: rgba(139, 92, 246, 0.1);
+      color: var(--violet-500);
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    
+    .pricing-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(253, 186, 116, 0.1));
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: var(--violet-500);
+      margin-bottom: 24px;
+      transition: all 0.3s ease;
+    }
+    
+    .pricing-card:hover .pricing-icon {
+      transform: scale(1.1) rotate(5deg);
+      box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4), 0 0 30px rgba(253, 186, 116, 0.3);
+    }
+    
+    .pricing-header h3 {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--base-900);
+      margin-bottom: 16px;
+    }
+    
+    [data-theme="dark"] .pricing-header h3 {
+      color: var(--base-50);
+    }
+    
+    .pricing-price {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .price-amount {
+      font-family: var(--font-display);
+      font-size: 48px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--violet-500), var(--gold-500));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .price-period {
+      font-size: 16px;
+      color: var(--base-600);
+    }
+    
+    [data-theme="dark"] .price-period {
+      color: var(--base-400);
+    }
+    
+    .pricing-desc {
+      font-size: 14px;
+      color: var(--base-600);
+      margin-bottom: 32px;
+    }
+    
+    [data-theme="dark"] .pricing-desc {
+      color: var(--base-400);
+    }
+    
+    .pricing-features {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 32px;
+    }
+    
+    .pricing-features li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      font-size: 15px;
+      color: var(--base-700);
+      border-bottom: 1px solid var(--base-200);
+    }
+    
+    [data-theme="dark"] .pricing-features li {
+      color: var(--base-300);
+      border-color: var(--base-700);
+    }
+    
+    .pricing-features li i {
+      color: var(--violet-500);
+      font-size: 14px;
+    }
+    
+    .pricing-btn {
+      display: block;
+      width: 100%;
+      padding: 16px 32px;
+      background: linear-gradient(135deg, var(--violet-600), var(--gold-500));
+      background-size: 200% 200%;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      animation: btnGradient 3s ease infinite;
+    }
+    
+    .pricing-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s ease;
+    }
+    
+    .pricing-btn:hover::before {
+      left: 100%;
+    }
+    
+    .pricing-btn:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 8px 25px rgba(139, 92, 246, 0.5), 0 0 30px rgba(253, 186, 116, 0.4);
+    }
+    
+    /* ── Testimonials Section ─────────────────────────────────────── */
+    .testimonials-section {
+      padding: 120px 0;
+      background: var(--base-100);
+    }
+    
+    [data-theme="dark"] .testimonials-section {
+      background: var(--base-800);
+    }
+    
+    .testimonials-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+    
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+      margin-top: 64px;
+    }
+    
+    .testimonial-card {
+      background: var(--base-50);
+      border: 1px solid var(--base-200);
+      border-radius: 20px;
+      padding: 32px;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    [data-theme="dark"] .testimonial-card {
+      background: var(--base-900);
+      border-color: var(--base-700);
+    }
+    
+    .testimonial-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 25px 50px rgba(139, 92, 246, 0.3), 0 0 40px rgba(253, 186, 116, 0.2);
+    }
+    
+    .testimonial-stars {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+    
+    .testimonial-stars i {
+      color: var(--gold-500);
+      font-size: 16px;
+    }
+    
+    .testimonial-text {
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--base-700);
+      margin-bottom: 24px;
+      font-style: italic;
+    }
+    
+    [data-theme="dark"] .testimonial-text {
+      color: var(--base-300);
+    }
+    
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .author-avatar {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--violet-500), var(--gold-500));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+    }
+    
+    .author-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .author-name {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--base-900);
+    }
+    
+    [data-theme="dark"] .author-name {
+      color: var(--base-50);
+    }
+    
+    .author-role {
+      font-size: 13px;
+      color: var(--base-600);
+    }
+    
+    [data-theme="dark"] .author-role {
+      color: var(--base-400);
+    }
+    
+    /* ── FAQ Section ─────────────────────────────────────────────── */
+    .faq-section {
+      padding: 120px 0;
+      background: 
+        linear-gradient(135deg, var(--base-50) 0%, rgba(139, 92, 246, 0.03) 50%, var(--base-50) 100%);
+    }
+    
+    [data-theme="dark"] .faq-section {
+      background: 
+        linear-gradient(135deg, var(--base-900) 0%, rgba(139, 92, 246, 0.05) 50%, var(--base-900) 100%);
+    }
+    
+    .faq-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+    
+    .faq-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      margin-top: 64px;
+    }
+    
+    .faq-item {
+      background: var(--base-100);
+      border: 1px solid var(--base-200);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    [data-theme="dark"] .faq-item {
+      background: var(--base-800);
+      border-color: var(--base-700);
+    }
+    
+    .faq-item:hover {
+      border-color: var(--violet-400);
+      box-shadow: 0 15px 30px rgba(139, 92, 246, 0.2), 0 0 25px rgba(253, 186, 116, 0.15);
+    }
+    
+    .faq-question {
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      gap: 16px;
+    }
+    
+    .faq-question h3 {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--base-900);
+      margin: 0;
+      flex: 1;
+    }
+    
+    [data-theme="dark"] .faq-question h3 {
+      color: var(--base-50);
+    }
+    
+    .faq-question i {
+      color: var(--violet-500);
+      font-size: 14px;
+      transition: transform 0.3s ease;
+    }
+    
+    .faq-item:hover .faq-question i {
+      transform: rotate(180deg);
+    }
+    
+    .faq-answer {
+      padding: 0 24px 24px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+    
+    .faq-item:hover .faq-answer {
+      max-height: 200px;
+      padding: 0 24px 24px;
+    }
+    
+    .faq-answer p {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--base-600);
+      margin: 0;
+    }
+    
+    [data-theme="dark"] .faq-answer p {
+      color: var(--base-400);
+    }
+    
+    /* ── Visual Showcase Section ─────────────────────────────────── */
+    .visual-showcase-section {
+      padding: 120px 0;
+      background: var(--base-50);
+    }
+    
+    [data-theme="dark"] .visual-showcase-section {
+      background: var(--base-900);
+    }
+    
+    .visual-showcase-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+    
+    .visual-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(2, minmax(250px, auto));
+      gap: 24px;
+      margin-top: 64px;
+    }
+    
+    .visual-card {
+      border-radius: 20px;
+      overflow: hidden;
+      position: relative;
+      background: var(--base-100);
+      border: 1px solid var(--base-200);
+      transition: all 0.3s ease;
+    }
+    
+    [data-theme="dark"] .visual-card {
+      background: var(--base-800);
+      border-color: var(--base-700);
+    }
+    
+    .visual-card:hover {
+      transform: translateY(-8px) scale(1.03);
+      box-shadow: 0 25px 50px rgba(139, 92, 246, 0.4), 0 0 40px rgba(253, 186, 116, 0.3);
+    }
+    
+    .visual-card.visual-large {
+      grid-column: span 2;
+      grid-row: span 2;
+      position: relative;
+    }
+    
+    .visual-card.visual-large::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      padding: 2px;
+      background: linear-gradient(135deg, var(--violet-500), var(--gold-500), var(--violet-500));
+      background-size: 200% 200%;
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      animation: borderGlow 3s linear infinite;
+    }
+    
+    .visual-card.visual-large:hover::after {
+      opacity: 1;
+    }
+    
+    .visual-card.visual-wide {
+      grid-column: span 2;
+    }
+    
+    .visual-image-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 250px;
+      overflow: hidden;
+    }
+    
+    .visual-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .visual-card:hover .visual-image {
+      transform: scale(1.1) rotate(1deg);
+    }
+    
+    .visual-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 24px;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .visual-card:hover .visual-overlay {
+      opacity: 1;
+    }
+    
+    .visual-content h3 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 8px;
+    }
+    
+    .visual-content p {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.9);
+      margin: 0;
+    }
+    
+    /* ── Interactive Simulation Section ─────────────────────────── */
+    .simulation-section {
+      padding: 120px 0;
+      background: var(--base-100);
+    }
+    
+    [data-theme="dark"] .simulation-section {
+      background: var(--base-800);
+    }
+    
+    .simulation-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+    
+    .simulation-interface {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      margin-top: 64px;
+      background: var(--base-50);
+      border: 1px solid var(--base-200);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: var(--landing-card-shadow);
+    }
+    
+    [data-theme="dark"] .simulation-interface {
+      background: var(--base-900);
+      border-color: var(--base-700);
+    }
+    
+    .simulation-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .control-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--base-900);
+    }
+    
+    [data-theme="dark"] .control-label {
+      color: var(--base-50);
+    }
+    
+    .control-label i {
+      color: var(--violet-500);
+    }
+    
+    .simulation-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--base-200);
+      outline: none;
+      transition: background 0.3s ease;
+    }
+    
+    [data-theme="dark"] .simulation-slider {
+      background: var(--base-700);
+    }
+    
+    .simulation-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--violet-500), var(--gold-500));
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4), 0 0 15px rgba(253, 186, 116, 0.3);
+      transition: transform 0.2s ease;
+      animation: thumbPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes thumbPulse {
+      0%, 100% { box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4), 0 0 15px rgba(253, 186, 116, 0.3); }
+      50% { box-shadow: 0 4px 12px rgba(139, 92, 246, 0.6), 0 0 25px rgba(253, 186, 116, 0.5); }
+    }
+    
+    .simulation-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.6), 0 0 20px rgba(253, 186, 116, 0.4);
+    }
+    
+    .simulation-slider::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--violet-500), var(--gold-500));
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+    }
+    
+    .simulation-slider::-moz-range-thumb:hover {
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.6), 0 0 20px rgba(253, 186, 116, 0.4);
+    }
+    
+    .control-value {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--violet-500);
+    }
+    
+    .simulation-result {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+    
+    .score-display {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .score-ring-sim {
+      position: relative;
+      width: 200px;
+      height: 200px;
+    }
+    
+    .score-svg {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .score-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .score-number {
+      font-family: var(--font-display);
+      font-size: 48px;
+      font-weight: 800;
+      color: var(--violet-500);
+      line-height: 1;
+    }
+    
+    .score-label {
+      font-size: 16px;
+      color: var(--base-600);
+    }
+    
+    [data-theme="dark"] .score-label {
+      color: var(--base-400);
+    }
+    
+    .score-status {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--base-900);
+    }
+    
+    [data-theme="dark"] .score-status {
+      color: var(--base-50);
+    }
+    
+    .simulation-insights {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+    }
+    
+    .insight-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: var(--base-100);
+      border-radius: 12px;
+      border: 1px solid var(--base-200);
+    }
+    
+    [data-theme="dark"] .insight-item {
+      background: var(--base-800);
+      border-color: var(--base-700);
+    }
+    
+    .insight-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    
+    .insight-icon.positive {
+      background: rgba(34, 197, 94, 0.1);
+      color: #22c55e;
+    }
+    
+    .insight-icon.warning {
+      background: rgba(253, 186, 116, 0.1);
+      color: var(--gold-500);
+    }
+    
+    .insight-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .insight-title {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--base-900);
+    }
+    
+    [data-theme="dark"] .insight-title {
+      color: var(--base-50);
+    }
+    
+    .insight-desc {
+      font-size: 13px;
+      color: var(--base-600);
+    }
+    
+    [data-theme="dark"] .insight-desc {
+      color: var(--base-400);
+    }
+    
+    /* ── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .hero-container {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+      
+      .hero-title {
+        font-size: 42px;
+      }
+      
+      .stats-container {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .visual-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .simulation-interface {
+        grid-template-columns: 1fr;
+      }
+      
+      .steps-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .footer-content {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+      
+      .hero-title {
+        font-size: 32px;
+      }
+      
+      .hero-cta {
+        flex-direction: column;
+      }
+      
+      .hero-stats {
+        flex-direction: column;
+        gap: 24px;
+      }
+      
+      .stats-container {
+        grid-template-columns: 1fr;
+      }
+      
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .visual-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .simulation-interface {
+        padding: 24px;
+      }
+      
+      .pricing-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .testimonials-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .faq-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .footer-content {
+        grid-template-columns: 1fr;
+      }
+      
+      .footer-bottom {
+        flex-direction: column;
+        gap: 16px;
+      }
+    }
+  </style>
 </head>
 <body>
+  <!-- Premium Elements -->
+  <div id="cursor-dot"></div>
+  <div id="cursor-ring"></div>
+  <div id="scroll-bar"></div>
+  <canvas id="plexus-canvas"></canvas>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
 
-<!-- CURSOR -->
-<div id="cursor-dot"></div>
-<div id="cursor-ring"></div>
-
-<!-- SCROLL BAR -->
-<div id="scroll-bar"></div>
-
-<!-- SMILE NETWORK CANVAS -->
-<canvas id="smile-canvas"></canvas>
-
-<!-- ORBS -->
-<div class="orb orb-1"></div>
-<div class="orb orb-2"></div>
-<div class="orb orb-3"></div>
-
-<!-- MOBILE MENU -->
-<div class="mobile-menu" id="mobileMenu">
-  <a href="#features" onclick="closeMobile()">Fonctionnalités</a>
-  <a href="#intelligence" onclick="closeMobile()">Intelligence IA</a>
-  <a href="#pipeline" onclick="closeMobile()">Pipeline ML</a>
-  <a href="#pricing" onclick="closeMobile()">Tarifs</a>
-  <a href="#temoignages" onclick="closeMobile()">Témoignages</a>
-  <div style="display:flex;flex-direction:column;gap:12px;margin-top:28px;width:100%;max-width:320px;">
-    <a href="./auth.html" class="btn btn-ghost" style="padding:14px 40px;font-size:16px;text-align:center;justify-content:center;" onclick="closeMobile()">
-      <i class="fa-solid fa-user" style="font-size:15px;line-height:1;margin-right:8px;"></i> Connexion
-    </a>
-    <button onclick="closeMobile();DS_MODALS&&DS_MODALS.openDemo();" class="btn btn-gold" style="padding:14px 40px;font-size:16px;border:none;cursor:pointer;width:100%;">
-      <i class="fa-solid fa-stethoscope" style="font-size:16px;line-height:1;"></i> Démo gratuite
-    </button>
-  </div>
-</div>
-
-<!-- NAVIGATION -->
-<nav class="nav" id="nav">
-  <div class="nav-capsule" id="navCapsule">
-    <a href="#" class="nav-logo">
-      <div class="logo-3d-wrap">
-        <div class="cube-pulse-ring"></div>
-        <div class="logo-cube-3d">
-          <div class="cube-face cf-front"><div class="med-cross"></div></div>
-          <div class="cube-face cf-back">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
-              <polyline points="2,12 6,12 8,4 10,20 14,12 16,16 18,12 22,12"/>
-            </svg>
-          </div>
-          <div class="cube-face cf-right">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 2v6a6 6 0 0 0 12 0V2"/><path d="M4 2v6a6 6 0 0 1-6 6H6"/><circle cx="18" cy="17" r="3"/><path d="M18 14v1"/>
-            </svg>
-          </div>
-          <div class="cube-face cf-left">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-          </div>
-          <div class="cube-face cf-top">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M12 8v4l3 3"/></svg>
-          </div>
-          <div class="cube-face cf-bottom">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+  <!-- Navigation -->
+  <nav class="landing-nav">
+    <div class="nav-container">
+      <a href="#" class="nav-logo">
+        <div class="cube-wrap cube-wrap-landing">
+          <div class="cube" role="img" aria-label="Logo animé Doctor Smile">
+            <div class="cf cf-front"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i></div>
+            <div class="cf cf-back"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></div>
+            <div class="cf cf-right"><i class="fa-solid fa-brain" aria-hidden="true"></i></div>
+            <div class="cf cf-left"><i class="fa-solid fa-magnifying-glass-chart" aria-hidden="true"></i></div>
+            <div class="cf cf-top"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
+            <div class="cf cf-bot"><i class="fa-solid fa-gem" aria-hidden="true"></i></div>
           </div>
         </div>
-      </div>
-      <div>
-        <div class="logo-name">Doctor<em>Smile AI</em></div>
-        <span class="logo-sub">Financial Health AI </span>
-      </div>
-    </a>
-
-    <ul class="nav-links">
-      <li><a href="#features">Fonctionnalités</a></li>
-      <li><a href="#intelligence">Intelligence IA</a></li>
-      <li><a href="#pipeline">Pipeline ML</a></li>
-      <li><a href="#pricing">Tarifs</a></li>
-      <li><a href="#temoignages">Témoignages</a></li>
-    </ul>
-
-    <div class="nav-right">
-      <div class="live-badge"><span class="live-dot"></span>v1.0 Beta</div>
-      <div class="theme-toggle" id="themeToggle" title="Toggle dark/light">
-        <div class="toggle-thumb" id="toggleThumb"><i class="fa-solid fa-moon" style="font-size:12px;line-height:1;"></i></div>
-      </div>
-      <a href="./auth.html" class="btn btn-ghost" style="padding:8px 18px;font-size:12px;">Connexion</a>
-      <a href="#contact" class="btn btn-gold" style="padding:8px 18px;font-size:12px;" onclick="event.preventDefault();DS_MODALS&&DS_MODALS.openDemo()">
-        <i class="fa-solid fa-stethoscope" style="font-size:14px;line-height:1;"></i> Démo gratuite
+        <span class="nav-logo-text">Doctor Smile</span>
       </a>
-      <button class="nav-toggle" id="navToggle" aria-label="Menu">
-        <div class="toggle-bar"></div><div class="toggle-bar"></div><div class="toggle-bar"></div>
+      <div class="nav-links">
+        <a href="#features" class="nav-link">Fonctionnalités</a>
+        <a href="#how" class="nav-link">Comment ça marche</a>
+        <a href="#pricing" class="nav-link">Tarifs</a>
+        <a href="#testimonials" class="nav-link">Témoignages</a>
+      </div>
+      <button class="theme-toggle theme-toggle-landing" id="theme-toggle" aria-label="Basculer en mode clair" onclick="toggleTheme()">
+        <i class="fa-solid fa-sun" id="theme-icon"></i>
       </button>
+      <a href="/auth.html" class="nav-cta">Essai gratuit</a>
     </div>
-  </div>
-</nav>
+  </nav>
 
-<!-- 1. HERO -->
-<section class="hero" id="hero">
-  <div class="hero-grid-floor"></div>
-  <div class="container">
-    <div class="hero-inner">
-      <div class="hero-left">
-        <div class="hero-eyebrow">
-          <div class="eyebrow-pill"><i class="fa-solid fa-microchip"></i> ML Ensemble · LLM Explicable · SHAP</div>
-          <span class="eyebrow-tag">Version 2026</span>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <i class="fa-solid fa-bolt"></i>
+          ML Ensemble + SHAP Explicable
         </div>
-        <h1 class="display-1 hero-title">
-          <span class="l1">Analysez</span>
-          <span class="l2">la santé.</span>
-          <span class="l3" id="typewriter-line">Avant la faillite.</span>
+        <h1 class="hero-title">
+          Analysez la santé financière<br>
+          <span class="highlight">en 0.3 seconde</span>
         </h1>
-        <p class="hero-desc">
-          <strong>Doctor Smile</strong> est le médecin IA de vos entreprises — il pose le diagnostic financier
-          avec <strong>95%+ de précision</strong>, explique chaque symptôme et prescrit les bonnes décisions.
+        <p class="hero-subtitle">
+          Doctor Smile diagnostique la santé financière des entreprises avec 95%+ de précision grâce à un ensemble de modèles ML avancés et une explicabilité SHAP.
         </p>
-        <div class="hero-actions">
-          <a href="#contact" class="btn btn-gold" style="padding:14px 32px;font-size:15px;" onclick="event.preventDefault();DS_MODALS&&DS_MODALS.openSignup()">
-            <i class="fa-solid fa-stethoscope"></i> Consulter une entreprise
+        <div class="hero-cta">
+          <a href="/auth.html" class="hero-cta-primary">
+            <i class="fa-solid fa-rocket"></i>
+            Essai gratuit
           </a>
-          <a href="#features" class="btn btn-glass" style="padding:14px 28px;font-size:15px;" onclick="event.preventDefault();DS_MODALS&&DS_MODALS.openDemo()">
-            <i class="fa-solid fa-circle-play"></i> Voir la démo
+          <a href="#demo" class="hero-cta-secondary">
+            <i class="fa-solid fa-play"></i>
+            Voir la démo
           </a>
         </div>
-        <div class="social-proof">
-          <div class="avatars">
-            <div class="av av-a">A</div><div class="av av-b">T</div><div class="av av-c">S</div><div class="av av-d">M</div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <span class="hero-stat-value">95%+</span>
+            <span class="hero-stat-label">Précision</span>
           </div>
-          <div class="sp-text"><strong>+120 analystes financiers</strong> utilisent Doctor Smile</div>
+          <div class="hero-stat">
+            <span class="hero-stat-value">0.3s</span>
+            <span class="hero-stat-label">Temps d'analyse</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-value">+120</span>
+            <span class="hero-stat-label">Analystes</span>
+          </div>
         </div>
       </div>
       <div class="hero-visual">
-        <div class="dashboard-card" id="dashCard">
-          <div class="card-bar">
-            <div class="wdots"><span></span><span></span><span></span></div>
-            <div class="card-bar-title">Paysage de Risque ML — Vue 3D</div>
-            <div class="live-indicator"><span></span> Live</div>
+        <div class="dashboard-preview">
+          <div class="dashboard-header">
+            <span class="dashboard-title">Diagnostic Financier</span>
+            <span style="font-size: 12px; color: var(--text-secondary);">Live</span>
           </div>
-          <div id="hero-plot"></div>
-        </div>
-        <div class="float-chip fc-1">
-          <div class="chip-icon ci-gold"><i class="fa-solid fa-arrow-trend-down" style="color:#FFD700;"></i></div>
-          <div><div class="chip-label">Score de risque</div><div class="chip-value" id="score-val">23.7 / 100</div></div>
-        </div>
-        <div class="float-chip fc-2">
-          <div class="chip-icon ci-ice"><i class="fa-solid fa-brain" style="color:#7DD3FC;"></i></div>
-          <div><div class="chip-label">Précision modèle</div><div class="chip-value">95.8%</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- 2. METRICS -->
-<section class="metrics-band">
-  <div class="container">
-    <div class="metrics-row">
-      <div class="metric-box reveal">
-        <div class="metric-icon-ring mir-gold"><i class="fa-solid fa-bullseye" style="color:#FFD700;"></i></div>
-        <div class="metric-num" data-target="95" data-suffix="%+">0%</div>
-        <div class="metric-lbl">Précision prédictive</div>
-      </div>
-      <div class="metric-box reveal d1">
-        <div class="metric-icon-ring mir-ice"><i class="fa-solid fa-bolt" style="color:#7DD3FC;"></i></div>
-        <div class="metric-num" data-target="0.3" data-suffix="s">0s</div>
-        <div class="metric-lbl">Temps d'analyse</div>
-      </div>
-      <div class="metric-box reveal d2">
-        <div class="metric-icon-ring mir-green"><i class="fa-solid fa-database" style="color:#10b981;"></i></div>
-        <div class="metric-num" data-target="5" data-suffix="+">0</div>
-        <div class="metric-lbl">Sources de données</div>
-      </div>
-      <div class="metric-box reveal d3">
-        <div class="metric-icon-ring mir-violet"><i class="fa-solid fa-layer-group" style="color:#8B5CF6;"></i></div>
-        <div class="metric-num" data-target="4" data-suffix="">0</div>
-        <div class="metric-lbl">Algorithmes ML</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div class="divider"></div>
-
-<!-- 3. FEATURES -->
-<section class="features" id="features">
-  <div class="container">
-    <div class="feat-header reveal">
-      <div class="section-tag st-ice"><i class="fa-solid fa-wand-magic-sparkles"></i> Fonctionnalités</div>
-      <h2 class="display-2">Intelligence financière<br>de classe mondiale</h2>
-    </div>
-    <div class="feat-wide reveal">
-      <div class="feat-wide-card">
-        <div class="fi fi-ice"><i class="fa-solid fa-wave-square" style="color:#7DD3FC;"></i></div>
-        <h3 class="fc-title">Courbe ROC — Performance</h3>
-        <div id="roc-plot" style="height:240px"></div>
-      </div>
-      <div class="feat-wide-card">
-        <div class="fi fi-gold"><i class="fa-solid fa-chart-scatter" style="color:#FFD700;"></i></div>
-        <h3 class="fc-title">Distribution des scores</h3>
-        <div id="scatter-plot" style="height:240px"></div>
-      </div>
-    </div>
-    <div class="feat-grid">
-      <div class="feat-card gold-hover reveal">
-        <div class="fi fi-gold"><i class="fa-solid fa-brain" style="color:#FFD700;"></i></div>
-        <h3 class="fc-title">ML Ensemble 95%+</h3>
-        <p class="fc-desc">XGBoost, RandomForest et LightGBM combinés pour une fiabilité maximale.</p>
-      </div>
-      <div class="feat-card reveal d1">
-        <div class="fi fi-ice"><i class="fa-solid fa-eye" style="color:#7DD3FC;"></i></div>
-        <h3 class="fc-title">SHAP Explicable</h3>
-        <p class="fc-desc">Chaque prédiction est justifiée par des facteurs concrets et auditaibles.</p>
-      </div>
-      <div class="feat-card reveal d2">
-        <div class="fi fi-green"><i class="fa-solid fa-comment-dots" style="color:#10b981;"></i></div>
-        <h3 class="fc-title">LLM Intégré</h3>
-        <p class="fc-desc">Interprétation automatique des résultats en langage naturel clair.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div class="divider"></div>
-
-<!-- 4. LLM INTELLIGENCE -->
-<section class="llm-sec" id="intelligence">
-  <div class="container">
-    <div class="llm-layout">
-      <div class="llm-content reveal-l">
-        <div class="section-tag st-ice"><i class="fa-solid fa-brain"></i> Intelligence IA</div>
-        <h2 class="display-2">Le LLM qui<br><span class="grad-text">explique tout.</span></h2>
-        <p>GPT-4 ne fait pas la prédiction — il l'interprète pour générer une analyse narrative actionnable.</p>
-        <div class="llm-feats">
-          <div class="llm-feat">
-            <div class="lf-ico"><i class="fa-solid fa-file-lines" style="color:#7DD3FC;"></i></div>
-            <div class="lf-text"><h4>Analyse narrative automatique</h4><p>Rapport détaillé en langage naturel.</p></div>
+          <div class="dashboard-score">
+            <div class="score-ring">
+              <div class="score-ring-inner">75</div>
+            </div>
+            <div class="score-info">
+              <h4>Score de Santé</h4>
+              <p>Bon · Risque modéré</p>
+            </div>
           </div>
-          <div class="llm-feat">
-            <div class="lf-ico"><i class="fa-solid fa-list-check" style="color:#7DD3FC;"></i></div>
-            <div class="lf-text"><h4>Recommandations priorisées</h4><p>Actions concrètes classées par impact.</p></div>
+          <div class="dashboard-metrics">
+            <div class="metric-card">
+              <div class="metric-value">87%</div>
+              <div class="metric-label">Liquidité</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">72%</div>
+              <div class="metric-label">Rentabilité</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">91%</div>
+              <div class="metric-label">Solvabilité</div>
+            </div>
           </div>
         </div>
-        <a href="#contact" class="btn btn-gold" onclick="event.preventDefault();DS_MODALS&&DS_MODALS.openDemo()">Tester l'analyse LLM</a>
-      </div>
-      <div class="llm-visual reveal-r">
-        <div class="chat-win">
-          <div class="chat-hdr">
-            <div class="chat-av">AI</div>
-            <div class="chat-info"><h4>Doctor Smile AI</h4><p>Analyse & Interprétation</p></div>
+        <div class="float-card float-card-1">
+          <div class="float-card-icon violet">
+            <i class="fa-solid fa-brain"></i>
           </div>
-          <div class="chat-msgs">
-            <div class="msg"><div class="msg-av ma-usr">T</div><div class="msg-bbl mb-usr">Analyse Tech Solutions SAS</div></div>
-            <div class="msg"><div class="msg-av ma-ai">AI</div><div class="msg-bbl mb-ai">Score de risque : 23.7/100 — RISQUE FAIBLE ✓</div></div>
+          <div class="float-card-content">
+            <h5>ML Ensemble</h5>
+            <p>RF + XGBoost + LightGBM</p>
           </div>
-          <div class="chat-input-bar">
-            <input class="chat-inp" type="text" placeholder="Posez une question..." readonly id="chatInput">
+        </div>
+        <div class="float-card float-card-2">
+          <div class="float-card-icon gold">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <div class="float-card-content">
+            <h5>Sécurisé</h5>
+            <p>2FA + Loi 2010/012</p>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<div class="divider"></div>
-
-<!-- 5. PIPELINE ML -->
-<section class="pipeline" id="pipeline">
-  <div class="container">
-    <div class="pipe-header reveal">
-      <div class="section-tag st-gold"><i class="fa-solid fa-code-branch"></i> Pipeline ML</div>
-      <h2 class="display-2">Du brut<br>à la prédiction</h2>
+  <!-- Stats Section -->
+  <section class="stats-section">
+    <div class="stats-container">
+      <div class="stat-card">
+        <div class="stat-value">95%+</div>
+        <div class="stat-label">Précision prédictive</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">0.3s</div>
+        <div class="stat-label">Temps d'analyse</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">5+</div>
+        <div class="stat-label">Sources de données</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">+120</div>
+        <div class="stat-label">Analystes actifs</div>
+      </div>
     </div>
-    <div class="steps-grid">
-      <div class="step-card reveal"><div class="step-num">01</div><h3 class="step-title">Ingestion & Nettoyage</h3></div>
-      <div class="step-card reveal d2"><div class="step-num">02</div><h3 class="step-title">Modélisation Ensemble</h3></div>
-      <div class="step-card reveal d4"><div class="step-num">03</div><h3 class="step-title">Explicabilité SHAP</h3></div>
-    </div>
-    <div id="scatter3d-plot" style="height:360px; margin-top:40px;" class="reveal"></div>
-  </div>
-</section>
+  </section>
 
-<div class="divider"></div>
-
-<!-- 6. PRICING -->
-<section class="pricing-section reveal" id="pricing">
-  <div class="container" style="text-align:center;">
-    <div class="pricing-tag reveal"><span class="pricing-tag-dot"></span>Tarifs Transparents</div>
-    <h2 class="pricing-title reveal d1">Choisissez votre <span>Niveau d'Intelligence</span></h2>
-    <div class="pricing-toggle reveal d3" style="display:inline-flex; margin: 30px 0;">
-      <span>Mensuel</span>
-      <div class="toggle-pill on" id="billingToggle" onclick="toggleBilling()"><div class="toggle-knob"></div></div>
-      <span>Annuel</span><span class="toggle-save">−20%</span>
+  <!-- Features Section -->
+  <section class="features-section" id="features">
+    <div class="features-container">
+      <div class="section-header">
+        <span class="section-badge">Fonctionnalités</span>
+        <h2 class="section-title">Tout ce dont vous avez besoin</h2>
+        <p class="section-subtitle">Une suite complète d'outils pour analyser, comprendre et agir sur la santé financière des entreprises.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card feature-large spotlight-card reveal">
+          <div class="feature-icon">
+            <i class="fa-solid fa-microchip"></i>
+          </div>
+          <h3>ML Ensemble</h3>
+          <p>Combinaison de Random Forest, XGBoost et LightGBM pour une précision maximale de 95%+. Notre architecture d'ensemble utilise des techniques de bagging et de stacking pour maximiser la précision des prédictions tout en minimisant les faux positifs.</p>
+        </div>
+        <div class="feature-card spotlight-card reveal reveal-delay-1">
+          <div class="feature-icon">
+            <i class="fa-solid fa-upload"></i>
+          </div>
+          <h3>Upload Intelligent</h3>
+          <p>Importez vos données financières en un clic. Support Excel, CSV et formats comptables standards.</p>
+        </div>
+        <div class="feature-card spotlight-card reveal reveal-delay-2">
+          <div class="feature-icon">
+            <i class="fa-solid fa-bolt"></i>
+          </div>
+          <h3>Rapidité</h3>
+          <p>Analyse en 0.3 seconde grâce à notre architecture optimisée.</p>
+        </div>
+        <div class="feature-card feature-wide spotlight-card reveal reveal-delay-1">
+          <div class="feature-icon">
+            <i class="fa-solid fa-chart-line"></i>
+          </div>
+          <h3>Explicabilité SHAP</h3>
+          <p>Comprenez chaque décision avec des explications détaillées et des visualisations interactives. SHAP values vous permettent d'identifier les facteurs clés influençant chaque prédiction.</p>
+        </div>
+        <div class="feature-card spotlight-card reveal reveal-delay-3">
+          <div class="feature-icon">
+            <i class="fa-solid fa-file-pdf"></i>
+          </div>
+          <h3>Export PDF</h3>
+          <p>Générez des rapports professionnels prêts à partager avec vos clients ou stakeholders.</p>
+        </div>
+        <div class="feature-card feature-tall spotlight-card reveal reveal-delay-2">
+          <div class="feature-icon">
+            <i class="fa-solid fa-robot"></i>
+          </div>
+          <h3>Chat IA</h3>
+          <p>Interagissez avec un assistant IA intelligent pour obtenir des insights personnalisés. Posez des questions en langage naturel et recevez des réponses basées sur vos analyses financières en temps réel.</p>
+        </div>
+        <div class="feature-card spotlight-card reveal reveal-delay-3">
+          <div class="feature-icon">
+            <i class="fa-solid fa-graduation-cap"></i>
+          </div>
+          <h3>Marketplace Experts ONECCA</h3>
+          <p>Connectez-vous avec des experts comptables certifiés ONECCA via notre Smart Matching IA. Trouvez le bon expert pour votre situation financière.</p>
+        </div>
+        <div class="feature-card spotlight-card reveal reveal-delay-4">
+          <div class="feature-icon">
+            <i class="fa-solid fa-bell"></i>
+          </div>
+          <h3>Notifications Proactives</h3>
+          <p>Recevez des alertes automatiques sur anomalies financières via WhatsApp, SMS, Email et In-app. Ne manquez jamais un signal d'alerte critique.</p>
+        </div>
+      </div>
     </div>
-    <div class="pricing-grid reveal d4">
-      <div class="p-card standard">
-        <div class="p-card-inner">
-          <div class="p-label">Standard</div>
-          <div class="p-price"><span class="p-price-num" data-monthly="25000" data-annual="20000">20000</span><span class="p-price-per">f / mois</span></div>
-          <ul class="p-features">
-            <li class="p-feature">Score 0-100 temps réel</li>
-            <li class="p-feature">Moteur RF + XGBoost</li>
-            <li class="p-feature">Rapport PDF inclus</li>
+  </section>
+
+  <!-- How It Works -->
+  <section class="how-section" id="how">
+    <div class="how-container">
+      <div class="section-header">
+        <span class="section-badge">Comment ça marche</span>
+        <h2 class="section-title">Simple comme 1, 2, 3</h2>
+        <p class="section-subtitle">Obtenez des insights financiers en quelques secondes, pas en heures.</p>
+      </div>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <h3>Upload</h3>
+          <p>Importez vos données financières via notre interface intuitive. Formats Excel, CSV supportés.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <h3>Analyse</h3>
+          <p>Notre ML Ensemble analyse instantanément vos données et génère un score de santé complet.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <h3>Insights</h3>
+          <p>Explorez les résultats détaillés, les recommandations et les explications SHAP.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dashboard Preview Section -->
+  <section class="dashboard-preview-section" id="dashboard">
+    <div class="dashboard-preview-container">
+      <div class="section-header">
+        <span class="section-badge">Dashboard</span>
+        <h2 class="section-title">Interface professionnelle</h2>
+        <p class="section-subtitle">Découvrez notre dashboard interactif avec toutes les fonctionnalités d'analyse financière.</p>
+      </div>
+      
+      <div class="dashboard-showcase">
+        <div class="dashboard-screenshot">
+          <div class="dashboard-frame">
+            <div class="dashboard-header-mock">
+              <div class="mock-logo">
+                <i class="fa-solid fa-heart-pulse"></i>
+                <span>Doctor Smile</span>
+              </div>
+              <div class="mock-nav">
+                <span class="mock-nav-item active">Dashboard</span>
+                <span class="mock-nav-item">Analyses</span>
+                <span class="mock-nav-item">Rapports</span>
+              </div>
+              <div class="mock-user">
+                <div class="mock-avatar"></div>
+              </div>
+            </div>
+            <div class="dashboard-body-mock">
+              <div class="mock-sidebar">
+                <div class="mock-sidebar-item active">
+                  <i class="fa-solid fa-chart-pie"></i>
+                  <span>Vue d'ensemble</span>
+                </div>
+                <div class="mock-sidebar-item">
+                  <i class="fa-solid fa-file-upload"></i>
+                  <span>Upload</span>
+                </div>
+                <div class="mock-sidebar-item">
+                  <i class="fa-solid fa-brain"></i>
+                  <span>Analyses IA</span>
+                </div>
+                <div class="mock-sidebar-item">
+                  <i class="fa-solid fa-comments"></i>
+                  <span>Chat IA</span>
+                </div>
+                <div class="mock-sidebar-item">
+                  <i class="fa-solid fa-file-pdf"></i>
+                  <span>Exports</span>
+                </div>
+              </div>
+              <div class="mock-content">
+                <div class="mock-kpi-row">
+                  <div class="mock-kpi">
+                    <div class="mock-kpi-icon violet">
+                      <i class="fa-solid fa-heart-pulse"></i>
+                    </div>
+                    <div class="mock-kpi-info">
+                      <span class="mock-kpi-label">Score Santé</span>
+                      <span class="mock-kpi-value">78/100</span>
+                    </div>
+                  </div>
+                  <div class="mock-kpi">
+                    <div class="mock-kpi-icon gold">
+                      <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                    <div class="mock-kpi-info">
+                      <span class="mock-kpi-label">Tendance</span>
+                      <span class="mock-kpi-value">+12%</span>
+                    </div>
+                  </div>
+                  <div class="mock-kpi">
+                    <div class="mock-kpi-icon green">
+                      <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div class="mock-kpi-info">
+                      <span class="mock-kpi-label">Risque</span>
+                      <span class="mock-kpi-value">Faible</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="mock-chart-area">
+                  <div class="mock-chart-header">
+                    <span>Évolution du score</span>
+                    <div class="mock-chart-legend">
+                      <span class="mock-legend-item"><span class="mock-legend-color violet"></span>Score</span>
+                      <span class="mock-legend-item"><span class="mock-legend-color gold"></span>Prévision</span>
+                    </div>
+                  </div>
+                  <div class="mock-chart-lines">
+                    <svg viewBox="0 0 400 100" class="mock-chart-svg">
+                      <path d="M0,80 Q50,70 100,60 T200,40 T300,30 T400,20" fill="none" stroke="var(--violet-500)" stroke-width="3"/>
+                      <path d="M0,85 Q50,75 100,65 T200,45 T300,35 T400,25" fill="none" stroke="var(--gold-500)" stroke-width="2" stroke-dasharray="5,5"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="mock-cards-row">
+                  <div class="mock-card">
+                    <div class="mock-card-header">
+                      <i class="fa-solid fa-lightbulb"></i>
+                      <span>Recommandations</span>
+                    </div>
+                    <div class="mock-card-body">
+                      <div class="mock-rec-item">
+                        <span class="mock-rec-dot green"></span>
+                        <span>Optimiser la trésorerie</span>
+                      </div>
+                      <div class="mock-rec-item">
+                        <span class="mock-rec-dot yellow"></span>
+                        <span>Réduire les coûts fixes</span>
+                      </div>
+                      <div class="mock-rec-item">
+                        <span class="mock-rec-dot blue"></span>
+                        <span>Diversifier les revenus</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mock-card">
+                    <div class="mock-card-header">
+                      <i class="fa-solid fa-clock-rotate-left"></i>
+                      <span>Analyses récentes</span>
+                    </div>
+                    <div class="mock-card-body">
+                      <div class="mock-analysis-item">
+                        <span class="mock-analysis-name">Q4 2025</span>
+                        <span class="mock-analysis-score">82/100</span>
+                      </div>
+                      <div class="mock-analysis-item">
+                        <span class="mock-analysis-name">Q3 2025</span>
+                        <span class="mock-analysis-score">75/100</span>
+                      </div>
+                      <div class="mock-analysis-item">
+                        <span class="mock-analysis-name">Q2 2025</span>
+                        <span class="mock-analysis-score">71/100</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Visual Showcase Section -->
+  <section class="visual-showcase-section" id="visuals">
+    <div class="visual-showcase-container">
+      <div class="section-header">
+        <span class="section-badge">Visuels</span>
+        <h2 class="section-title">Analyse financière visuelle</h2>
+        <p class="section-subtitle">Des visualisations interactives pour comprendre chaque aspect de la santé financière.</p>
+      </div>
+      
+      <div class="visual-grid">
+        <div class="visual-card visual-large reveal">
+          <div class="visual-image-wrapper">
+            <img src="assets/pictures/premium_vector-1712873279560-e50f5e2e5fbd.png" alt="Financial Analysis Dashboard" class="visual-image">
+            <div class="visual-overlay">
+              <div class="visual-content">
+                <h3>Dashboard Complet</h3>
+                <p>Vue d'ensemble de tous les indicateurs financiers</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="visual-card reveal reveal-delay-1">
+          <div class="visual-image-wrapper">
+            <img src="assets/pictures/premium_vector-1763559639967-53814eaba08f.png" alt="Data Visualization" class="visual-image">
+            <div class="visual-overlay">
+              <div class="visual-content">
+                <h3>Visualisations</h3>
+                <p>Graphiques et analyses interactives</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="visual-card reveal reveal-delay-2">
+          <div class="visual-image-wrapper">
+            <img src="assets/pictures/premium_vector-1731294286554-8661659d1905.png" alt="AI Analysis" class="visual-image">
+            <div class="visual-overlay">
+              <div class="visual-content">
+                <h3>IA Explicable</h3>
+                <p>Compréhension des décisions IA</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="visual-card visual-wide reveal reveal-delay-1">
+          <div class="visual-image-wrapper">
+            <img src="assets/pictures/premium_vector-1727280158584-5f41b182d5b3.png" alt="Financial Reports" class="visual-image">
+            <div class="visual-overlay">
+              <div class="visual-content">
+                <h3>Rapports Détaillés</h3>
+                <p>Export PDF et analyses complètes</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Simulation Section -->
+  <section class="simulation-section" id="simulation">
+    <div class="simulation-container">
+      <div class="section-header">
+        <span class="section-badge">Simulation</span>
+        <h2 class="section-title">Essayez notre analyse</h2>
+        <p class="section-subtitle">Découvrez la puissance de notre IA en ajustant les paramètres financiers.</p>
+      </div>
+      
+      <div class="simulation-interface">
+        <div class="simulation-controls">
+          <div class="control-group">
+            <label class="control-label">
+              <i class="fa-solid fa-chart-line"></i>
+              Chiffre d'affaires
+            </label>
+            <input type="range" id="revenue-slider" min="0" max="100" value="75" class="simulation-slider">
+            <span class="control-value" id="revenue-value">750K€</span>
+          </div>
+          <div class="control-group">
+            <label class="control-label">
+              <i class="fa-solid fa-piggy-bank"></i>
+              Marge brute
+            </label>
+            <input type="range" id="margin-slider" min="0" max="100" value="60" class="simulation-slider">
+            <span class="control-value" id="margin-value">60%</span>
+          </div>
+          <div class="control-group">
+            <label class="control-label">
+              <i class="fa-solid fa-coins"></i>
+              Trésorerie
+            </label>
+            <input type="range" id="cash-slider" min="0" max="100" value="80" class="simulation-slider">
+            <span class="control-value" id="cash-value">80%</span>
+          </div>
+          <div class="control-group">
+            <label class="control-label">
+              <i class="fa-solid fa-scale-balanced"></i>
+              Ratio d'endettement
+            </label>
+            <input type="range" id="debt-slider" min="0" max="100" value="30" class="simulation-slider">
+            <span class="control-value" id="debt-value">30%</span>
+          </div>
+        </div>
+        
+        <div class="simulation-result">
+          <div class="score-display">
+            <div class="score-ring-sim">
+              <svg viewBox="0 0 100 100" class="score-svg">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="var(--base-200)" stroke-width="8"/>
+                <circle id="score-circle" cx="50" cy="50" r="45" fill="none" stroke="var(--violet-500)" stroke-width="8" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="70" transform="rotate(-90 50 50)"/>
+              </svg>
+              <div class="score-center">
+                <span class="score-number" id="score-number">75</span>
+                <span class="score-label">/100</span>
+              </div>
+            </div>
+            <div class="score-status" id="score-status">Santé financière solide</div>
+          </div>
+          
+          <div class="simulation-insights">
+            <div class="insight-item">
+              <div class="insight-icon positive">
+                <i class="fa-solid fa-check"></i>
+              </div>
+              <div class="insight-text">
+                <span class="insight-title">Trésorerie excellente</span>
+                <span class="insight-desc">Liquidité suffisante pour 6 mois</span>
+              </div>
+            </div>
+            <div class="insight-item">
+              <div class="insight-icon warning">
+                <i class="fa-solid fa-exclamation"></i>
+              </div>
+              <div class="insight-text">
+                <span class="insight-title">Marge à optimiser</span>
+                <span class="insight-desc">Potentiel d'amélioration de 5%</span>
+              </div>
+            </div>
+            <div class="insight-item">
+              <div class="insight-icon positive">
+                <i class="fa-solid fa-arrow-trend-up"></i>
+              </div>
+              <div class="insight-text">
+                <span class="insight-title">Croissance soutenue</span>
+                <span class="insight-desc">Tendance positive sur 3 trimestres</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <div class="cta-container">
+      <div class="cta-card">
+        <h2>Prêt à transformer votre analyse financière ?</h2>
+        <p>Rejoignez +120 analystes qui utilisent Doctor Smile pour gagner du temps et améliorer la précision.</p>
+        <a href="/auth.html" class="btn">Commencer l'essai gratuit</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section -->
+  <section class="pricing-section" id="pricing">
+    <div class="pricing-container">
+      <div class="section-header">
+        <span class="section-badge">Tarifs</span>
+        <h2 class="section-title">Des plans adaptés à vos besoins</h2>
+        <p class="section-subtitle">Choisissez le plan qui correspond à votre volume d'analyses et à vos ambitions.</p>
+      </div>
+      
+      <div class="pricing-grid">
+        <div class="pricing-card reveal">
+          <div class="pricing-badge">Standard</div>
+          <div class="pricing-icon">
+            <i class="fa-solid fa-seedling"></i>
+          </div>
+          <div class="pricing-header">
+            <h3>Standard</h3>
+            <div class="pricing-price">
+              <span class="price-amount">25 000</span>
+              <span class="price-period">FCFA/mois</span>
+            </div>
+            <p class="pricing-desc">Score Doctor Smile 0–100 avec moteur RF + XGBoost</p>
+          </div>
+          <ul class="pricing-features">
+            <li><i class="fa-solid fa-check"></i>Score Doctor Smile 0–100</li>
+            <li><i class="fa-solid fa-check"></i>Moteur RF + XGBoost</li>
+            <li><i class="fa-solid fa-check"></i>Rapport SHAP Top 5</li>
+            <li><i class="fa-solid fa-check"></i>Export PDF complet</li>
           </ul>
-          <button class="p-btn" onclick="DS_MODALS&&DS_MODALS.openSignup('standard')">Essai gratuit 14j</button>
+          <a href="/auth.html" class="pricing-btn">Choisir Standard</a>
         </div>
-      </div>
-      <div class="p-card premium">
-        <div class="p-card-inner">
-          <div class="p-popular">Populaire</div>
-          <div class="p-label">Premium</div>
-          <div class="p-price"><span class="p-price-num" data-monthly="50000" data-annual="40000">40000</span><span class="p-price-per">f / mois</span></div>
-          <ul class="p-features">
-            <li class="p-feature">Tout Standard</li>
-            <li class="p-feature">Simulateur What-If</li>
-            <li class="p-feature">Chat LLM Financier</li>
+        
+        <div class="pricing-card pricing-popular reveal reveal-delay-1">
+          <div class="popular-badge">
+            <i class="fa-solid fa-star"></i>
+            Populaire
+          </div>
+          <div class="pricing-badge">Premium</div>
+          <div class="pricing-icon">
+            <i class="fa-solid fa-rocket"></i>
+          </div>
+          <div class="pricing-header">
+            <h3>Premium</h3>
+            <div class="pricing-price">
+              <span class="price-amount">50 000</span>
+              <span class="price-period">FCFA/mois</span>
+            </div>
+            <p class="pricing-desc">Tout Standard inclus avec moteurs avancés et IA</p>
+          </div>
+          <ul class="pricing-features">
+            <li><i class="fa-solid fa-check"></i>Tout Standard inclus</li>
+            <li><i class="fa-solid fa-check"></i>Moteur RF + XGB + LGBM</li>
+            <li><i class="fa-solid fa-check"></i>Simulateur What-If</li>
+            <li><i class="fa-solid fa-check"></i>Chat LLM Expert</li>
+            <li><i class="fa-solid fa-check"></i>Recommandations GPT-4</li>
           </ul>
-          <button class="p-btn" onclick="DS_MODALS&&DS_MODALS.openSignup('premium')">Prendre Premium</button>
+          <a href="/auth.html" class="pricing-btn">Choisir Premium</a>
+        </div>
+        
+        <div class="pricing-card reveal reveal-delay-2">
+          <div class="pricing-badge">Extra</div>
+          <div class="pricing-icon">
+            <i class="fa-solid fa-building"></i>
+          </div>
+          <div class="pricing-header">
+            <h3>Extra</h3>
+            <div class="pricing-price">
+              <span class="price-amount">100 000</span>
+              <span class="price-period">FCFA/mois</span>
+            </div>
+            <p class="pricing-desc">Pour les professionnels avec besoins avancés</p>
+          </div>
+          <ul class="pricing-features">
+            <li><i class="fa-solid fa-check"></i>Tout Premium inclus</li>
+            <li><i class="fa-solid fa-check"></i>Stacking 4 modèles + Meta</li>
+            <li><i class="fa-solid fa-check"></i>Chat LLM illimité</li>
+            <li><i class="fa-solid fa-check"></i>API REST accès pro</li>
+            <li><i class="fa-solid fa-check"></i>Support prioritaire 24/7</li>
+          </ul>
+          <a href="/auth.html" class="pricing-btn">Choisir Extra</a>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<div class="divider"></div>
-
-<!-- 7. TESTIMONIALS -->
-<section class="testi-sec" id="temoignages">
-  <div class="container">
-    <div class="testi-header reveal">
-      <div class="section-tag st-green"><i class="fa-solid fa-users"></i> Témoignages</div>
-      <h2 class="display-2">Ce que disent<br>les analystes</h2>
-    </div>
-    <div class="marquee-wrap reveal">
-      <div class="marquee-track" id="marqueeTrack">
-        <div class="testi-card"><p>"Doctor Smile a divisé par 10 notre temps d'analyse."</p><h4>Alexandre M.</h4><p>BNP Paribas</p></div>
-        <div class="testi-card"><p>"L'explicabilité est bluffante, on comprend enfin les scores."</p><h4>Sophie B.</h4><p>Société Générale</p></div>
+  <!-- Testimonials Section -->
+  <section class="testimonials-section" id="testimonials">
+    <div class="testimonials-container">
+      <div class="section-header">
+        <span class="section-badge">Témoignages</span>
+        <h2 class="section-title">Ce que disent nos utilisateurs</h2>
+        <p class="section-subtitle">Découvrez comment Doctor Smile transforme l'analyse financière.</p>
+      </div>
+      
+      <div class="testimonials-grid">
+        <div class="testimonial-card reveal">
+          <div class="testimonial-content">
+            <div class="testimonial-stars">
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+            </div>
+            <p class="testimonial-text">"Doctor Smile a réduit de 80% le temps que je passais sur l'analyse de bilans. L'IA détecte des risques que j'aurais manqués."</p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <div class="author-info">
+              <span class="author-name">Marie Dupont</span>
+              <span class="author-role">Analyste Financier, BNP Paribas</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial-card reveal reveal-delay-1">
+          <div class="testimonial-content">
+            <div class="testimonial-stars">
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+            </div>
+            <p class="testimonial-text">"Les prédictions ML sont étonnamment précises. J'ai pu anticiper plusieurs difficultés financières chez mes clients grâce à Doctor Smile."</p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <div class="author-info">
+              <span class="author-name">Pierre Martin</span>
+              <span class="author-role">Expert-Comptable, Cabinet Martin</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial-card reveal reveal-delay-2">
+          <div class="testimonial-content">
+            <div class="testimonial-stars">
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+            </div>
+            <p class="testimonial-text">"L'interface est intuitive et les rapports générés sont professionnels. Mes clients sont impressionnés par la qualité des analyses."</p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <div class="author-info">
+              <span class="author-name">Sophie Bernard</span>
+              <span class="author-role">Conseiller en Investissement, Société Générale</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- 8. TECH STACK -->
-<section class="tech-sec" id="tech">
-  <div class="container">
-    <div class="tech-header reveal">
-      <div class="section-tag st-gold"><i class="fa-solid fa-code"></i> Tech Stack</div>
-      <h2 class="display-2">Technologies de pointe</h2>
-    </div>
-    <div class="tech-grid reveal">
-      <div class="tech-cat"><div class="tc-hdr"><span class="tc-title">Backend</span></div><div class="tc-tags"><span class="tc-tag">FastAPI</span><span class="tc-tag">Python</span></div></div>
-      <div class="tech-cat"><div class="tc-hdr"><span class="tc-title">Machine Learning</span></div><div class="tc-tags"><span class="tc-tag">XGBoost</span><span class="tc-tag">SHAP</span></div></div>
-    </div>
-  </div>
-</section>
-
-<!-- FINAL CTA -->
-<section class="cta-sec" id="contact">
-  <div class="container">
-    <div class="cta-inner reveal animated-border">
-      <h2 class="display-2">Transformez vos données<br><span class="grad-text">en intelligence.</span></h2>
-      <div class="cta-btns">
-        <a href="#" class="btn btn-gold" onclick="event.preventDefault();DS_MODALS&&DS_MODALS.openSignup()">Démarrer gratuitement</a>
+  <!-- FAQ Section -->
+  <section class="faq-section" id="faq">
+    <div class="faq-container">
+      <div class="section-header">
+        <span class="section-badge">FAQ</span>
+        <h2 class="section-title">Questions fréquentes</h2>
+        <p class="section-subtitle">Tout ce que vous devez savoir sur Doctor Smile.</p>
+      </div>
+      
+      <div class="faq-grid">
+        <div class="faq-item reveal">
+          <div class="faq-question">
+            <h3>Comment fonctionne l'analyse financière ?</h3>
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            <p>Notre IA analyse vos données financières en utilisant des modèles de machine learning entraînés sur des milliers de bilans. Elle identifie les risques, les opportunités et génère des recommandations personnalisées en quelques secondes.</p>
+          </div>
+        </div>
+        
+        <div class="faq-item reveal reveal-delay-1">
+          <div class="faq-question">
+            <h3>Mes données sont-elles sécurisées ?</h3>
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            <p>Absolument. Vos données sont chiffrées de bout en bout et stockées sur des serveurs sécurisés en Europe. Nous ne partageons jamais vos données avec des tiers et vous pouvez les supprimer à tout moment.</p>
+          </div>
+        </div>
+        
+        <div class="faq-item reveal reveal-delay-2">
+          <div class="faq-question">
+            <h3>Puis-je annuler mon abonnement ?</h3>
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            <p>Oui, vous pouvez annuler votre abonnement à tout moment sans frais. Vous continuerez à bénéficier des fonctionnalités jusqu'à la fin de votre période de facturation.</p>
+          </div>
+        </div>
+        
+        <div class="faq-item reveal">
+          <div class="faq-question">
+            <h3>Doctor Smile convient-il aux petites entreprises ?</h3>
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            <p>Tout à fait ! Notre plan Découverte est gratuit et idéal pour les petites entreprises. Les plans Pro et Enterprise offrent des fonctionnalités avancées pour les entreprises en croissance.</p>
+          </div>
+        </div>
+        
+        <div class="faq-item reveal reveal-delay-1">
+          <div class="faq-question">
+            <h3>Comment intégrer Doctor Smile à mon workflow ?</h3>
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            <p>Doctor Smile s'intègre facilement avec Excel, Google Sheets et la plupart des logiciels comptables. Notre API permet également une intégration personnalisée pour les entreprises.</p>
+          </div>
+        </div>
+        
+        <div class="faq-item reveal reveal-delay-2">
+          <div class="faq-question">
+            <h3>Quel type de support est proposé ?</h3>
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            <p>Nous offrons un support par email pour tous les plans, avec un support prioritaire pour les plans Pro et Enterprise. Les clients Enterprise bénéficient d'un account manager dédié.</p>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- FOOTER -->
-<footer>
-  <div class="container">
-    <div class="footer-bottom">
-      <span>© 2026 <span style="color:var(--gold)">Doctor Smile</span> · v1.0 Beta</span>
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <h4>
+            <i class="fa-solid fa-heart-pulse"></i>
+            Doctor Smile
+          </h4>
+          <p>Diagnostic financier IA de précision pour entreprises modernes. Transformez vos données financières en insights actionnables.</p>
+          <div class="footer-social">
+            <a href="#" aria-label="Twitter"><i class="fa-brands fa-twitter"></i></a>
+            <a href="#" aria-label="LinkedIn"><i class="fa-brands fa-linkedin"></i></a>
+            <a href="#" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
+            <a href="#" aria-label="Discord"><i class="fa-brands fa-discord"></i></a>
+          </div>
+        </div>
+        <div class="footer-column">
+          <h5>Produit</h5>
+          <a href="#features">Fonctionnalités</a>
+          <a href="#how">Comment ça marche</a>
+          <a href="#pricing">Tarifs</a>
+          <a href="#demo">Démo</a>
+        </div>
+        <div class="footer-column">
+          <h5>Ressources</h5>
+          <a href="#">Documentation</a>
+          <a href="#">API</a>
+          <a href="#">Blog</a>
+          <a href="#">Support</a>
+        </div>
+        <div class="footer-column">
+          <h5>Entreprise</h5>
+          <a href="#">À propos</a>
+          <a href="#">Carrières</a>
+          <a href="#">Contact</a>
+          <a href="#">Partenaires</a>
+        </div>
+        <div class="footer-column">
+          <h5>Légal</h5>
+          <a href="#">Confidentialité</a>
+          <a href="#">CGU</a>
+          <a href="#">Loi 2010/012</a>
+          <a href="#">Sécurité</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 Doctor Smile. Tous droits réservés.</p>
+        <div class="footer-bottom-links">
+          <a href="#">Mentions légales</a>
+          <a href="#">Cookies</a>
+          <a href="#">Accessibilité</a>
+        </div>
+      </div>
     </div>
-  </div>
-</footer>
+  </footer>
 
-<!-- SCRIPTS -->
-<script src="js/background.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/charts.js"></script>
-<script src="js/demo.js"></script>
-
+  <!-- Scripts -->
+  <script src="./js/theme-toggle.js"></script>
+  <script src="./js/landing-interactions.js"></script>
+  <script src="./js/lazy-loader.js"></script>
 </body>
 </html>

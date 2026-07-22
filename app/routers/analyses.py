@@ -1,27 +1,28 @@
 """
-ROUTER — analyses.py  v3 — LLM Moderator intégré
+ROUTER — analyses.py  v4.0 — Pipeline Balance OHADA
 DOCTOR SMILE
 ════════════════════════════════════════════════════════════════
 
-POST /analyses              → pipeline ML (+ mode IA avancé optionnel)
-POST /analyses/upload       → extraction PDF tableaux
-POST /analyses/upload/ocr   → extraction PDF OCR/IA
-POST /analyses/whatif       → simulation What-If
+POST /analyses              → pipeline balance OHADA + SYSCOHADA Engine
+POST /analyses/upload       → extraction PDF/Excel balance
+POST /analyses/upload/ocr   → extraction OCR/LLM balance
+POST /analyses/upload/ledger → extraction Grand Livre (optionnel)
+GET  /analyses/{id}         → récupérer analyse
 GET  /analyses/export/{token} → export JSON sécurisé
-POST /analyses/export/generate → génération token
 
-NOUVEAU v3 :
-  - Paramètre `use_llm_moderator: bool = False` dans AnalyseRequest
-  - Si True : passe par llm_moderator_service avant le pipeline ML
-  - Retourne data_quality, synthese_llm, corrections dans le résultat
-  - Seuil de confiance configurable (min 30% pour lancer le ML)
+NOUVEAU v4.0 :
+  - Pipeline simplifié : Balance OHADA → LLM Extraction → SYSCOHADA Engine
+  - Support Grand Livre optionnel pour actions avancées
+  - Suppression ML models (XGBoost, LightGBM, Random Forest)
+  - Moteur déterministe SYSCOHADA uniquement
+  - Template recommandations "Chiffre→Conséquence→Action"
 ════════════════════════════════════════════════════════════════
 """
 from __future__ import annotations
 import asyncio
 import base64, json, logging, math, uuid, os, time, hmac, hashlib
 from typing import Any
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from firebase_admin import firestore as fs
@@ -29,10 +30,12 @@ from app.middleware.firebase_verify import verify_token
 from app.services.analyse_service   import get_analyse_service
 from app.services.firebase_service  import firebase_service
 from app.services.email_service     import email_service
+from app.routers.email import _get_user_email
+from app.services.chat_service import _get_client, chat_service as elite_chat_service
 
-# ── LLM Moderator — import silencieux ────────────────────────
+# ── LLM Extraction Service — import silencieux ──────────────────
 try:
-    from app.services.llm_moderator_service import llm_moderator_service as _llm_mod
+    from app.services.llm_moderator_service import llm_extraction_service as _llm_mod
     _LLM_MOD_AVAILABLE = True
 except ImportError:
     _LLM_MOD_AVAILABLE = False
@@ -46,11 +49,28 @@ except ImportError:
     _OCR_AVAILABLE = False
     _ocr_svc = None
 
+# ── SYSCOHADA Engine — import des fonctions nécessaires ─────────────────
+from app.services.syscohada_engine import (
+    parse_balance,
+    compute_ratios,
+    score_risk,
+    compute_cash_burn_runway,
+    generate_early_warnings,
+    compute_sector_benchmark,
+    generate_third_party_report,
+    generate_action_plan,
+    format_analysis_history,
+    format_conversation_history,
+    simulate_financing_impact
+)
+
 _EXPORT_SECRET = os.getenv("EXPORT_TOKEN_SECRET", "doctorsmile-export-secret-changeme")
-_MIN_CONFIDENCE_FOR_ML = int(os.getenv("LLM_MIN_CONFIDENCE", "30"))  # 30% minimum
 
 log    = logging.getLogger("doctorsmile.router.analyses")
 router = APIRouter(prefix="/analyses", tags=["Analyses"])
+
+# Seuil minimal de confiance (%) pour accepter la normalisation LLM
+_MIN_CONFIDENCE_FOR_ML = int(os.getenv("MIN_CONFIDENCE_FOR_ML", "50"))
 
 
 # ── Schemas ──────────────────────────────────────────────────
@@ -68,29 +88,33 @@ class AnalyseRequest(BaseModel):
     userId:              str = Field(..., min_length=5)
     plan:                str = Field("standard", pattern="^(standard|premium|extra)$")
     entreprise:          EntrepriseInfo = EntrepriseInfo()
+    extraction_method:   str = Field("auto", pattern="^(auto|llm|ocr)$")
+    include_ledger:      bool = False  # Optionnel : inclure Grand Livre
     use_llm_moderator:   bool = False
-    llm_context:         dict[str, Any] = {}
-
-class WhatIfRequest(BaseModel):
-    analyseId:      str = Field(..., min_length=10)
-    ratioOverrides: dict[str, float]
+    llm_context:         dict[str, Any] | None = None
 
 class AnalyseResponse(BaseModel):
     analyseId:          str
     status:             str
     score:              int
-    score_confiance:    int = 100
-    llm_used:           str = ""
-    synthese_llm:       str = ""
-    corrections_count:  int = 0
-    anomalies_count:    int = 0
+    score_confidence:    int = 100
+    extraction_method:   str = ""
+    recommendations:     list[dict] = []
+    risk_level:         str = ""
     processingMs:       int = 0
+    llm_used:          str = ""
+    synthese_llm:      str = ""
+    corrections_count: int = 0
+    anomalies_count:   int = 0
+
+class WhatIfRequest(BaseModel):
+    analyseId: str = Field(..., min_length=1)
+    ratioOverrides: dict[str, float] = Field(default_factory=dict)
 
 class WhatIfResponse(BaseModel):
-    simulatedScore:    int
-    zone:              str
-    probabiliteDefaut: float
-    delta:             float
+    simulatedScore: int
+    zone: str
+    deltaScore: float
 
 
 # ── Mapping noms FR → clés internes ──────────────────────────
@@ -129,11 +153,11 @@ def _build_doc(
     body: AnalyseRequest,
     entreprise_nom: str,
     result: dict[str, Any],
-    llm_meta: dict[str, Any] | None = None,
+    extraction_meta: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Document Firestore analyses/{id}.
-    Enrichi avec les métadonnées LLM si mode IA avancé activé.
+    Pipeline v4.0 : Balance OHADA → LLM Extraction → SYSCOHADA Engine
     """
     doc = {
         "id":                analyse_id,
@@ -144,38 +168,30 @@ def _build_doc(
         "status":            "completed",
         "createdAt":         fs.SERVER_TIMESTAMP,
         "score":             result["score"],
-        "zone":              result["zone"],
-        "probabiliteDefaut": result["probabiliteDefaut"],
+        "risk_level":        result["risk_level"],
         "confidence":        result["confidence"],
-        "confiance":         result["confiance"],
-        "auc":               result["auc"],
         "processingMs":      result["processingMs"],
-        "model":             result["model"],
-        "shapValues":        result["shapValues"],
+        "extraction_method": result["extraction_method"],
         "ratios":            result["ratios"],
-        "radarDimensions":   result["radarDimensions"],
         "recommendations":   result["recommendations"],
-        "scoreHistory":      result["scoreHistory"],
         "secteur":           (body.entreprise.secteur or ""),
         "taille":            (body.entreprise.taille or ""),
         "pays":              (body.entreprise.pays or "Cameroun"),
-        "whatifParams":      [],
-        "modelProbs":        result.get("modelProbs", {}),
-        "llm_moderator":     False,
+        "include_ledger":    body.include_ledger,
     }
 
-    # Enrichir avec les métadonnées LLM si disponibles
-    if llm_meta:
+    # Enrichir avec les métadonnées d'extraction si disponibles
+    if extraction_meta:
         doc.update({
-            "llm_moderator":    True,
-            "llm_used":         llm_meta.get("llm_used", ""),
-            "score_confiance":  llm_meta.get("score_confiance", 100),
-            "synthese_llm":     llm_meta.get("synthese", ""),
-            "data_quality":     llm_meta.get("qualite", {}),
-            "data_corrections": llm_meta.get("corrections", []),
-            "data_anomalies":   llm_meta.get("anomalies", []),
-            "devise":           llm_meta.get("devise", "FCFA"),
-            "secteur":          llm_meta.get("secteur", doc["secteur"]),
+            "extraction_confidence": extraction_meta.get("confidence", 0.5),
+            "extraction_method": extraction_meta.get("extraction_method", "unknown"),
+            "score_confiance":  extraction_meta.get("score_confiance", 100),
+            "synthese_llm":     extraction_meta.get("synthese", ""),
+            "data_quality":     extraction_meta.get("qualite", {}),
+            "data_corrections": extraction_meta.get("corrections", []),
+            "data_anomalies":   extraction_meta.get("anomalies", []),
+            "devise":           extraction_meta.get("devise", "FCFA"),
+            "secteur":          extraction_meta.get("secteur", doc["secteur"]),
         })
 
     return doc
@@ -224,7 +240,7 @@ async def create_analyse(
     llm_meta: dict[str, Any] | None = None
     rows_to_predict = body.data
 
-    if body.use_llm_moderator and _LLM_MOD_AVAILABLE and _llm_mod:
+    if body.use_llm_moderator and _LLM_MOD_AVAILABLE and _llm_mod and hasattr(_llm_mod, "moderate"):
         try:
             import pandas as pd
 
@@ -240,12 +256,29 @@ async def create_analyse(
             log.info("[LLM Moderator] Lancement pour %s — secteur=%s pays=%s",
                      entreprise_nom, secteur, pays)
 
+            # Préparer un adaptateur LLM si Groq est disponible
+            llm_client = None
+            client_data = _get_client("groq")
+            if client_data:
+                async def _generate_via_elite(prompt: str) -> str:
+                    text, model = await elite_chat_service._chat_with_elite_llm(
+                        prompt, [], {}, "auto", "groq", None
+                    )
+                    return text
+
+                class _Adapter:
+                    async def generate(self, prompt: str) -> str:
+                        return await _generate_via_elite(prompt)
+
+                llm_client = _Adapter()
+
             llm_result = await _llm_mod.moderate(
                 raw_df     = raw_df,
                 entreprise = entreprise_nom,
                 secteur    = secteur,
                 pays       = pays,
                 devise     = devise,
+                llm_client = llm_client,
             )
 
             score_confiance = llm_result.get("score_confiance", 0)
@@ -301,17 +334,17 @@ async def create_analyse(
             rows_to_predict = body.data
 
     # ══════════════════════════════════════════════════════════
-    # PIPELINE ML (standard ou post-LLM)
+    # PIPELINE DÉTERMINISTE SYSCOHADA
     # ══════════════════════════════════════════════════════════
     try:
-        result = service.predict(
+        result = service.analyse(
             rows               = rows_to_predict,
             entreprise         = entreprise_nom,
             score_history_prev = prev_scores,
         )
     except Exception as exc:
-        log.error("[POST /analyses] Pipeline ML: %s", exc, exc_info=True)
-        raise HTTPException(500, f"Erreur pipeline ML : {type(exc).__name__}: {exc}")
+        log.error("[POST /analyses] Pipeline SYSCOHADA: %s", exc, exc_info=True)
+        raise HTTPException(500, f"Erreur pipeline SYSCOHADA : {type(exc).__name__}: {exc}")
 
     # Sauvegarder
     analyse_id = str(uuid.uuid4())
@@ -369,7 +402,10 @@ async def create_analyse(
         analyseId       = analyse_id,
         status          = "completed",
         score           = result["score"],
-        score_confiance = llm_meta.get("score_confiance", 100) if llm_meta else 100,
+        score_confidence = llm_meta.get("score_confiance", 100) if llm_meta else 100,
+        extraction_method = result.get("extraction_method", "auto") or "auto",
+        recommendations = result.get("recommendations", []),
+        risk_level      = result.get("risk_level", ""),
         llm_used        = llm_meta.get("llm_used", "") if llm_meta else "",
         synthese_llm    = llm_meta.get("synthese", "") if llm_meta else "",
         corrections_count = len(llm_meta.get("corrections", [])) if llm_meta else 0,
@@ -381,7 +417,7 @@ async def create_analyse(
 # ════════ POST /analyses/upload ═══════════════════════════════
 
 @router.post("/upload", response_model=AnalyseResponse, status_code=200,
-    summary="Analyser un PDF (extraction tableaux + pipeline ML)")
+    summary="Analyser un PDF avec détection automatique du meilleur mode d'extraction (tableaux ou OCR)")
 async def upload_pdf(
     file:               UploadFile = File(...),
     userId:             str        = Form(...),
@@ -390,43 +426,83 @@ async def upload_pdf(
     use_llm_moderator:  str        = Form("false"),
     token:              dict       = Depends(verify_token),
 ) -> AnalyseResponse:
-    """Extrait les tableaux d'un PDF, puis pipeline ML (+ mode IA optionnel)."""
-    if not (file.filename or "").lower().endswith(".pdf"):
-        raise HTTPException(422, "Seuls les fichiers PDF sont acceptés ici.")
-    try:
-        import pdfplumber, io as _io
-    except ImportError:
-        raise HTTPException(501, "pdfplumber non installé — pip install pdfplumber")
+    """Extrait automatiquement les données d'un PDF puis exécute le pipeline.
+
+    Ce routeur tente d'abord l'extraction native par tableau, puis bascule
+    vers l'OCR / IA si le PDF semble scanné ou si les données tabulaires sont
+    insuffisantes.
+    """
+    filename = file.filename or "document.pdf"
+    extension = filename.lower().rsplit('.', 1)[-1]
+    supported_image_ext = {"png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif"}
+    if extension not in {"pdf"} | supported_image_ext:
+        raise HTTPException(422, "Seuls les fichiers PDF et les images sont acceptés ici.")
 
     content = await file.read()
     if not content:
-        raise HTTPException(422, "Fichier PDF vide.")
+        raise HTTPException(422, f"Fichier {extension.upper()} vide.")
 
     rows: list[dict] = []
-    try:
-        with pdfplumber.open(_io.BytesIO(content)) as pdf:
-            for page in pdf.pages:
-                for table in (page.extract_tables() or []):
-                    if not table or len(table) < 2:
-                        continue
-                    headers = [str(h or "").strip() for h in table[0]]
-                    if not any(headers):
-                        continue
-                    for raw_row in table[1:]:
-                        row_dict = {
-                            headers[i]: (str(raw_row[i]).strip()
-                                         if i < len(raw_row) and raw_row[i] else None)
-                            for i in range(len(headers))
-                        }
-                        if any(_is_numeric(v) for v in row_dict.values()):
-                            rows.append(row_dict)
-    except Exception as exc:
-        raise HTTPException(422, f"Extraction PDF échouée : {exc}")
+    extraction_method = "pdfplumber"
+    ocr_warnings: list[str] = []
+
+    if extension == "pdf":
+        try:
+            import pdfplumber, io as _io
+        except ImportError:
+            pdfplumber = None  # type: ignore
+
+        if pdfplumber is not None:
+            try:
+                with pdfplumber.open(_io.BytesIO(content)) as pdf:
+                    for page in pdf.pages:
+                        for table in (page.extract_tables() or []):
+                            if not table or len(table) < 2:
+                                continue
+                            headers = [str(h or "").strip() for h in table[0]]
+                            if len(headers) < 2:
+                                continue
+                            for raw_row in table[1:]:
+                                row_dict = {
+                                    headers[i]: (str(raw_row[i]).strip()
+                                                 if i < len(raw_row) and raw_row[i] else None)
+                                    for i in range(len(headers))
+                                }
+                                if any(_is_numeric(v) for v in row_dict.values()):
+                                    rows.append(row_dict)
+            except Exception as exc:
+                log.warning("[PDF] Extraction par pdfplumber échouée : %s", exc)
+
+        if not rows:
+            if _OCR_AVAILABLE and _ocr_svc is not None:
+                log.info("[PDF] Aucun tableau natif détecté ou données insuffisantes, fallback OCR/IA activé")
+                ocr_result = _ocr_svc.extract(content, filename)
+                rows = ocr_result.get("rows", [])
+                extraction_method = ocr_result.get("method", "ocr")
+                ocr_warnings = ocr_result.get("warnings", [])
+            else:
+                raise HTTPException(422,
+                    "Aucune donnée numérique détectée dans le PDF. "
+                    "Le document doit contenir des tableaux financiers ou être analysable par OCR.")
+
+    else:
+        if not _OCR_AVAILABLE or _ocr_svc is None:
+            raise HTTPException(501,
+                "Service OCR non disponible. "
+                "pip install pytesseract pdf2image pdfplumber pillow pymupdf")
+        try:
+            log.info("[IMAGE] Extraction OCR automatique pour %s", filename)
+            ocr_result = _ocr_svc.extract_image(content, filename)
+            rows = ocr_result.get("rows", [])
+            extraction_method = ocr_result.get("method", "tesseract_image")
+            ocr_warnings = ocr_result.get("warnings", [])
+        except Exception as exc:
+            raise HTTPException(422, f"Extraction image échouée : {exc}")
 
     if not rows:
         raise HTTPException(422,
-            "Aucune donnée numérique dans ce PDF. "
-            "Le document doit contenir des tableaux financiers structurés.")
+            "Aucune donnée numérique extraite de ce document. "
+            "Essayez un autre document ou vérifiez que le format est correctement lisible.")
 
     try:
         ent_dict = json.loads(entreprise)
@@ -434,11 +510,17 @@ async def upload_pdf(
         ent_dict = {}
 
     use_llm = use_llm_moderator.lower() in ("true", "1", "yes")
+    if ocr_warnings:
+        log.info("[PDF] OCR warnings: %s", " | ".join(ocr_warnings))
 
     return await create_analyse(
         AnalyseRequest(
-            filename=file.filename, data=rows,
-            userId=userId, plan=plan, entreprise=ent_dict,
+            filename=file.filename,
+            data=rows,
+            userId=userId,
+            plan=plan,
+            entreprise=ent_dict,
+            extraction_method="ocr" if extraction_method != "pdfplumber" else "auto",
             use_llm_moderator=use_llm,
         ),
         token,
@@ -471,11 +553,16 @@ async def upload_ocr(
         raise HTTPException(422, "Fichier vide.")
 
     fname = file.filename or "document.pdf"
-    if not fname.lower().endswith(".pdf"):
-        raise HTTPException(422, "Format PDF uniquement pour l'extraction OCR.")
+    extension = fname.lower().rsplit('.', 1)[-1]
+    supported_image_ext = {"png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif"}
+    if extension not in {"pdf"} | supported_image_ext:
+        raise HTTPException(422, "Format PDF ou image uniquement pour l'extraction OCR.")
 
     try:
-        ocr_result = _ocr_svc.extract(content, fname)
+        if extension == "pdf":
+            ocr_result = _ocr_svc.extract(content, fname)
+        else:
+            ocr_result = _ocr_svc.extract_image(content, fname)
     except Exception as exc:
         raise HTTPException(500, f"Erreur OCR : {exc}")
 
@@ -563,7 +650,7 @@ async def whatif(
 
     service = get_analyse_service(analyse.get("plan", "standard"))
     try:
-        result = service.predict(rows=[base], entreprise=analyse.get("entreprise", ""),
+        result = service.analyse(rows=[base], entreprise=analyse.get("entreprise", ""),
                                  score_history_prev=None)
     except Exception as exc:
         raise HTTPException(500, f"Erreur simulation : {exc}")
@@ -571,7 +658,7 @@ async def whatif(
     delta = round(float(result["score"] - analyse.get("score", 0)), 1)
     return WhatIfResponse(
         simulatedScore=result["score"], zone=result["zone"],
-        probabiliteDefaut=result["probabiliteDefaut"], delta=delta,
+        deltaScore=delta,
     )
 
 
@@ -612,16 +699,12 @@ async def export_analyse(
             "date": str(analyse.get("createdAt")),
             "score": analyse.get("score"),
             "zone": analyse.get("zone"),
-            "confidence": analyse.get("confidence"),
-            "probabiliteDefaut": analyse.get("probabiliteDefaut")
+            "confidence": analyse.get("confidence")
         },
         "ratios": analyse.get("ratios", []),
         "recommandations": analyse.get("recommendations", []),
-        "shapValues": analyse.get("shapValues", []),
         "radarDimensions": analyse.get("radarDimensions", []),
-        "scoreHistory": analyse.get("scoreHistory", []),
-        "model": analyse.get("model"),
-        "auc": analyse.get("auc")
+        "scoreHistory": analyse.get("scoreHistory", [])
     }
 
     if actual_format == "json":
@@ -653,19 +736,174 @@ async def export_analyse(
     
     raise HTTPException(400, "Format d'export non supporté")
 
+
+# ── F2: Simulateur de Financement & Capacité d'Emprunt ─────────────
+class FinancingSimulationRequest(BaseModel):
+    analyse_id: str = Field(..., min_length=1)
+    montant_credit: float = Field(..., gt=0, description="Montant du crédit souhaité en XAF")
+    duree_mois: int = Field(12, ge=1, le=120, description="Durée du crédit en mois")
+
+
+@router.post("/simulate-financing", status_code=200)
+async def simulate_financing(
+    body: FinancingSimulationRequest,
+    token: dict = Depends(verify_token),
+) -> dict:
+    """
+    Simule l'impact d'un financement sur la capacité d'emprunt et le score (F2).
+    """
+    uid = token.get("uid", "")
+    
+    # Récupérer l'analyse existante
+    analyse = firebase_service.get_analysis(body.analyse_id)
+    if not analyse:
+        raise HTTPException(404, f"Analyse {body.analyse_id!r} introuvable.")
+    
+    if uid and uid != "dev-uid-000" and analyse.get("userId") != uid:
+        raise HTTPException(403, "Accès non autorisé à cette analyse.")
+    
+    try:
+        # Extraire les comptes et ratios de l'analyse
+        comptes_extraits = analyse.get("comptes_extraits", {})
+        ratios_bruts = analyse.get("ratios_bruts", {})
+        
+        # Simuler l'impact
+        simulation = simulate_financing_impact(
+            comptes=comptes_extraits,
+            ratios=ratios_bruts,
+            montant_credit=body.montant_credit,
+            duree_mois=body.duree_mois
+        )
+        
+        log.info(f"[POST /analyses/simulate-financing] Simulation pour analyse {body.analyse_id}: {body.montant_credit} XAF")
+        
+        return {
+            "status": "success",
+            "simulation": simulation
+        }
+        
+    except Exception as exc:
+        log.error(f"[POST /analyses/simulate-financing] Erreur simulation: {exc}", exc_info=True)
+        raise HTTPException(500, f"Erreur lors de la simulation: {exc}")
+
+
+# ── F5: Générateur de Rapports Destinés aux Tiers ───────────────────
+class ReportGenerationRequest(BaseModel):
+    analyse_id: str = Field(..., min_length=1)
+    rapport_type: str = Field("bancaire", pattern="^(bancaire|investisseur|partenaire)$", description="Type de rapport")
+
+
+@router.post("/generate-report", status_code=200)
+async def generate_report(
+    body: ReportGenerationRequest,
+    token: dict = Depends(verify_token),
+) -> dict:
+    """
+    Génère un rapport structuré pour les tiers (F5).
+    """
+    uid = token.get("uid", "")
+    
+    # Récupérer l'analyse existante
+    analyse = firebase_service.get_analysis(body.analyse_id)
+    if not analyse:
+        raise HTTPException(404, f"Analyse {body.analyse_id!r} introuvable.")
+    
+    if uid and uid != "dev-uid-000" and analyse.get("userId") != uid:
+        raise HTTPException(403, "Accès non autorisé à cette analyse.")
+    
+    try:
+        # Générer le rapport
+        rapport = generate_third_party_report(analyse, body.rapport_type)
+        
+        log.info(f"[POST /analyses/generate-report] Rapport {body.rapport_type} généré pour analyse {body.analyse_id}")
+        
+        return {
+            "status": "success",
+            "rapport": rapport
+        }
+        
+    except Exception as exc:
+        log.error(f"[POST /analyses/generate-report] Erreur génération rapport: {exc}", exc_info=True)
+        raise HTTPException(500, f"Erreur lors de la génération du rapport: {exc}")
+
+
+# ── F7: Gestion Historiques (Analyses + Conversations IA) ─────────────
+@router.get("/history/analyses", status_code=200)
+async def get_analyses_history(
+    limit: int = Query(10, ge=1, le=50),
+    token: dict = Depends(verify_token),
+) -> dict:
+    """
+    Récupère l'historique des analyses de l'utilisateur (F7).
+    """
+    uid = token.get("uid", "")
+    
+    try:
+        # Récupérer les analyses de l'utilisateur de manière non-bloquante
+        analyses = await asyncio.to_thread(firebase_service.get_user_analyses, uid)
+        
+        # Formater l'historique
+        formatted_history = format_analysis_history(analyses[:limit])
+        
+        log.info(f"[GET /analyses/history/analyses] {len(formatted_history)} analyses récupérées pour utilisateur {uid}")
+        
+        return {
+            "status": "success",
+            "history": formatted_history,
+            "total": len(analyses)
+        }
+        
+    except Exception as exc:
+        log.error(f"[GET /analyses/history/analyses] Erreur récupération historique: {exc}", exc_info=True)
+        raise HTTPException(500, f"Erreur lors de la récupération de l'historique: {exc}")
+
+
+@router.get("/history/conversations", status_code=200)
+async def get_conversations_history(
+    limit: int = Query(10, ge=1, le=50),
+    token: dict = Depends(verify_token),
+) -> dict:
+    """
+    Récupère l'historique des conversations IA de l'utilisateur (F7).
+    """
+    uid = token.get("uid", "")
+    
+    try:
+        # Récupérer les conversations de l'utilisateur de manière non-bloquante
+        conversations = await asyncio.to_thread(firebase_service.get_user_conversations, uid)
+        
+        # Formater l'historique
+        formatted_history = format_conversation_history(conversations[:limit])
+        
+        log.info(f"[GET /analyses/history/conversations] {len(formatted_history)} conversations récupérées pour utilisateur {uid}")
+        
+        return {
+            "status": "success",
+            "history": formatted_history,
+            "total": len(conversations)
+        }
+        
+    except Exception as exc:
+        log.error(f"[GET /analyses/history/conversations] Erreur récupération historique: {exc}", exc_info=True)
+        raise HTTPException(500, f"Erreur lors de la récupération de l'historique: {exc}")
+
+
 @router.delete("/{analyse_id}", status_code=200)
 async def delete_analyse(
     analyse_id: str,
     token: dict = Depends(verify_token),
 ) -> dict:
     uid     = token.get("uid", "")
-    analyse = firebase_service.get_analysis(analyse_id)
+    analyse = await asyncio.to_thread(firebase_service.get_analysis, analyse_id)
     if not analyse:
         raise HTTPException(404, f"Analyse {analyse_id!r} introuvable.")
     if uid and uid != "dev-uid-000" and analyse.get("userId") != uid:
         raise HTTPException(403, "Accès refusé — vous n'êtes pas le propriétaire.")
 
-    if firebase_service.delete_analysis(analyse_id):
-        firebase_service.log_event(uid, "analyse_deleted", {"analyseId": analyse_id})
+    success = await asyncio.to_thread(firebase_service.delete_analysis, analyse_id)
+    if success:
+        await asyncio.to_thread(firebase_service.log_event, uid, "analyse_deleted", {"analyseId": analyse_id})
         return {"status": "deleted", "analyseId": analyse_id}
     raise HTTPException(500, "Suppression Firestore échouée.")
+
+

@@ -42,6 +42,20 @@ from pydantic import BaseModel
 from app.middleware.firebase_verify import verify_token
 from app.services.firebase_service import firebase_service
 from app.services.email_service import email_service
+from app.services.payment_service import (
+    payment_service,
+    plan_service,
+    facture_service,
+    abonnement_service,
+    compta_service,
+    Plan,
+    FactureStatus,
+    AbonnementStatus,
+)
+
+# We'll store temporary facture and abonnement IDs in payment_references too!
+# (or use Firestore subcollections, but for compatibility we'll extend payment_references)
+
 
 log = logging.getLogger("doctorsmile.payment")
 router = APIRouter(prefix="/payment", tags=["Paiement"])
@@ -67,30 +81,40 @@ _NOTCHPAY_GET_URL   = "/payments/{ref}" # GET   — vérifier un paiement
 
 # ── Plans ──────────────────────────────────────────────────────
 PLANS: dict[str, dict[str, Any]] = {
+    "standard": {
+        "name": "Standard",
+        "price_xaf": 25000,
+        "interval": "month",
+        "description": "Score financier et ratios SYSCOHADA",
+        "features": [
+            "Score financier",
+            "Ratios SYSCOHADA",
+            "Rapport PDF complet",
+            "3 analyses par mois",
+        ],
+    },
     "premium": {
-        "name": "Doctor Smile Premium",
+        "name": "Premium",
         "price_xaf": 50000,
         "interval": "month",
-        "description": "RF + XGBoost + LightGBM · Simulateur What-If · Rapports PDF",
+        "description": "Toutes fonctionnalités Standard + Chatbot + Simulateur",
         "features": [
-            "3 modèles ML ensemble",
+            "Toutes les fonctionnalités Standard",
+            "Chatbot Doctor Smile",
             "Simulateur What-If",
-            "Historique illimité",
-            "Rapports PDF",
-            "Support prioritaire",
+            "10 analyses par mois",
         ],
     },
     "extra": {
-        "name": "Doctor Smile Extra",
+        "name": "Extra",
         "price_xaf": 100000,
         "interval": "month",
-        "description": "Stacking 4 modèles · API accès direct · Analyses illimitées",
+        "description": "Toutes fonctionnalités Premium + API + Support 24/7",
         "features": [
-            "4 modèles en stacking",
-            "Accès API direct",
+            "Toutes les fonctionnalités Premium",
+            "API REST",
+            "Support 24/7",
             "Analyses illimitées",
-            "Support dédié 24/7",
-            "Onboarding personnalisé",
         ],
     },
 }
@@ -239,7 +263,14 @@ def _verify_webhook_signature(request: Request, payload: bytes) -> bool:
     return True
 
 
-def _cache_payment_reference(uid: str, reference: str, plan: str, operator: str) -> None:
+def _cache_payment_reference(
+    uid: str,
+    reference: str,
+    plan: str,
+    operator: str,
+    facture_id: str = None,
+    abonnement_id: str = None,
+) -> None:
     """Enregistre la référence de paiement dans Firestore pour vérification ultérieure."""
     try:
         if not firebase_service.db:
@@ -249,6 +280,8 @@ def _cache_payment_reference(uid: str, reference: str, plan: str, operator: str)
             "uid": uid,
             "plan": plan,
             "operator": operator,
+            "facture_id": facture_id,
+            "abonnement_id": abonnement_id,
             "created_at": time.time(),
             "verified": False,
         }, merge=False)
@@ -307,23 +340,8 @@ async def get_plans() -> dict:
     """Liste tous les plans disponibles."""
     return {
         "plans": {
-            "standard": {
-                "name": "Standard",
-                "price": 0,
-                "currency": "XAF",
-                "interval": "month",
-                "description": "RF + XGBoost · Analyses de base",
-                "features": [
-                    "2 modèles ML",
-                    "5 analyses/mois",
-                    "Dashboard complet",
-                    "Support email",
-                ],
-            },
-            **{
-                k: {**v, "price": v["price_xaf"], "currency": "XAF"}
-                for k, v in PLANS.items()
-            },
+            k: {**v, "price": v["price_xaf"], "currency": "XAF"}
+            for k, v in PLANS.items()
         }
     }
 
@@ -348,6 +366,15 @@ async def create_checkout(
     plan  = _get_plan(body.plan)
     uid   = token.get("uid", "")
     email = token.get("email", "") or f"{uid}@doctorsmile.io"
+
+    # ── Nouvelle logique refactorée : use our new payment_service to create facture and abonnement!
+    abonnement_data = payment_service.process_new_abonnement(
+        user_id=uid,
+        plan_id=body.plan,
+    )
+    facture_id = abonnement_data["facture"]["id"] if abonnement_data else None
+    abonnement_id = abonnement_data["abonnement"]["id"] if abonnement_data else None
+    log.info("✅ Facture created: %s, Abonnement created: %s", facture_id, abonnement_id)
 
     reference = _build_reference(uid, body.plan)
     amount    = int(plan["price_xaf"])
@@ -493,7 +520,7 @@ async def create_checkout(
 
         log.info("[Fapshi] ✅ Checkout créé — ref=%s url=%s", session_id, checkout_url)
         local_session = session_id
-        _cache_payment_reference(uid, local_session, body.plan, "fapshi")
+        _cache_payment_reference(uid, local_session, body.plan, "fapshi", facture_id, abonnement_id)
         return CheckoutResponse(checkout_url=checkout_url, session_id=local_session)
 
     if operator != "notchpay":
@@ -685,7 +712,7 @@ async def create_checkout(
         )
 
     log.info("[NotchPay] ✅ Checkout créé — ref=%s url=%s", session_id, checkout_url)
-    _cache_payment_reference(uid, session_id, body.plan, "notchpay")
+    _cache_payment_reference(uid, session_id, body.plan, "notchpay", facture_id, abonnement_id)
     return CheckoutResponse(checkout_url=checkout_url, session_id=session_id)
 
 
@@ -742,7 +769,7 @@ async def verify_payment(
         plan        = meta.get("plan", body.plan or "standard")
 
         if status in ("complete", "completed", "success", "accepted"):
-            _update_user_plan(uid, plan)
+            _update_user_plan(uid, plan, reference)
             log.info("[Fapshi verify] ✅ Paiement confirmé uid=%s plan=%s", uid, plan)
 
         return VerifyPaymentResponse(plan=plan, status=status, reference=reference)
@@ -785,7 +812,7 @@ async def verify_payment(
     plan      = meta.get("plan", "standard")
 
     if status in ("complete", "completed", "success"):
-        _update_user_plan(uid, plan)
+        _update_user_plan(uid, plan, reference)
         log.info("[NotchPay verify] ✅ Paiement confirmé uid=%s plan=%s", uid, plan)
 
     return VerifyPaymentResponse(plan=plan, status=status, reference=reference)
@@ -840,7 +867,7 @@ async def payment_webhook(request: Request) -> dict:
         "checkout.completed",
     ):
         if uid:
-            _update_user_plan(uid, plan)
+            _update_user_plan(uid, plan, reference)
             # Marquer la transaction comme vérifiée dans le cache
             if reference:
                 try:
@@ -869,31 +896,48 @@ async def payment_webhook(request: Request) -> dict:
 # Helpers Firestore
 # ════════════════════════════════════════════════════════════════
 
-def _update_user_plan(uid: str, plan: str) -> None:
-    """Met à jour le plan utilisateur dans Firestore."""
+def _update_user_plan(uid: str, plan: str, reference: str = None) -> None:
+    """Met à jour le plan utilisateur dans Firestore en utilisant payment_service."""
     if not firebase_service.available:
         log.warning("[Firestore] Skipped — mode mock (Firebase non disponible)")
         return
     
     try:
-        # Mise à jour simple et sûre : utiliser serverTimestamp() de Firestore
-        import google.cloud.firestore as firestore_module
+        # Récupérer les IDs facture et abonnement depuis le cache
+        cached_data = _get_cached_payment(reference) if reference else {}
+        facture_id = cached_data.get("facture_id")
+        abonnement_id = cached_data.get("abonnement_id")
         
-        # Mettre à jour la collection abonnements
-        firebase_service.db.collection("abonnements").document(uid).set(
-            {
-                "plan": plan,
-                "status": "active",
-                "updatedAt": firestore_module.SERVER_TIMESTAMP,
-            },
-            merge=True,
-        )
-        
-        # Mettre à jour la collection users
-        firebase_service.db.collection("users").document(uid).set(
-            {"plan": plan},
-            merge=True,
-        )
+        if facture_id and abonnement_id:
+            # Utiliser le nouveau payment_service pour confirmer et activer
+            payment_service.confirm_paiement_and_activate(
+                facture_id=facture_id,
+                abonnement_id=abonnement_id,
+                user_id=uid,
+                plan_id=plan,
+                payment_method=reference,
+                payment_provider=cached_data.get("operator", "notchpay"),
+                payment_reference=reference,
+            )
+        else:
+            # Fallback: si pas de cache, utiliser la logique existante
+            import google.cloud.firestore as firestore_module
+            
+            # Mettre à jour la collection abonnements
+            firebase_service.db.collection("abonnements").document(uid).set(
+                {
+                    "plan": plan,
+                    "status": "active",
+                    "updatedAt": firestore_module.SERVER_TIMESTAMP,
+                },
+                merge=True,
+            )
+            
+            # Mettre à jour la collection users
+            firebase_service.db.collection("users").document(uid).set(
+                {"plan": plan},
+                merge=True,
+            )
         
         log.info("[Firestore] ✅ Plan mis à jour uid=%s → %s", uid, plan)
         

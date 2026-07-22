@@ -857,32 +857,51 @@ window.DS_CHAT = {
     const old = document.getElementById(`${containerId}-sug`);
     if (old) old.remove();
 
-    const score = analyse.score ?? 0;
-    const zone  = analyse.zone ?? zoneFromScore(score);
-    const top   = window.DS_RENDER?.normalizeShap?.(analyse.shapValues || [])[0];
-    const firstRatioName = window.DS_RENDER?.normalizeRatios?.(analyse.ratios || [])[0]?.n;
+    const score       = analyse.score ?? 0;
+    const zone        = analyse.zone ?? zoneFromScore(score);
+    const recos       = analyse.recommendations ?? [];
+    const riskFactors = analyse.risk_factors ?? [];
+    const ratios      = window.DS_RENDER?.normalizeRatios?.(analyse.ratios || []) ?? [];
 
+    // Extraire DSO depuis les ratios ou risk_factors
+    const dsoRatio    = ratios.find(r => r.n && r.n.toLowerCase().includes('dso'));
+    const dsoVal      = dsoRatio?.v ?? null;
+    const hasDSO      = dsoVal !== null && dsoVal > 60;
+
+    // Extraire la première recommandation urgente
+    const urgentReco  = recos.find(r => r.urgency === 'immediate' || r.level === 'high');
+    const critFactor  = riskFactors.find(f => f.severity === 'critical');
+
+    // Pool de suggestions contextuelles SYSCOHADA
     const all = [
-      { icon: 'fa-circle-question', text: `Pourquoi mon score est-il ${score}/100 ?` },
-      { icon: 'fa-chart-line',      text: `Quels ratios améliorer en priorité ?` },
-      { icon: 'fa-shield-halved',   text: `Évaluer le risque de faillite` },
-      { icon: 'fa-lightbulb',       text: `Top 3 recommandations urgentes` },
-      { icon: 'fa-magnifying-glass-chart', text: top ? `Expliquer l'impact de ${top.n}` : `Analyser les facteurs SHAP` },
-      { icon: 'fa-scale-balanced',  text: firstRatioName ? `Comparer ${firstRatioName} au benchmark` : `Comparer mes ratios au secteur` },
-      { icon: 'fa-arrow-trend-up',  text: `Plan d'amélioration sur 6 mois` },
-      { icon: 'fa-building',        text: `Synthèse pour mon banquier` },
+      // Questions universelles
+      { icon: 'fa-circle-question',       text: `Pourquoi mon score est-il ${score}/100 ?` },
+      { icon: 'fa-shield-halved',         text: `Quel est mon risque de faillite selon SYSCOHADA ?` },
+      { icon: 'fa-lightbulb',             text: `Quelles sont mes 3 actions prioritaires ?` },
+      { icon: 'fa-building',              text: `Synthèse pour mon banquier (BICEC, Afriland, Ecobank)` },
+      { icon: 'fa-arrow-trend-up',        text: `Plan d'amélioration sur 90 jours` },
+      { icon: 'fa-chart-bar',             text: `Comparer mes ratios aux normes CEMAC` },
+      // SYSCOHADA-specific
+      { icon: 'fa-hourglass-half',        text: hasDSO ? `Mon DSO est de ${dsoVal}j — comment l'améliorer ?` : `Comment optimiser mon délai client (DSO) ?` },
+      { icon: 'fa-money-bill-transfer',   text: `Optimiser ma TVA sur encaissements (compte 441)` },
+      { icon: 'fa-wallet',                text: `Analyser ma trésorerie (compte 512/571)` },
+      { icon: 'fa-handshake',             text: urgentReco ? `Comment mettre en œuvre : "${urgentReco.title}" ?` : `Stratégie de recouvrement clients` },
+      { icon: 'fa-triangle-exclamation',  text: critFactor ? `Expliquer le risque : "${critFactor.name}"` : `Quels sont mes risques cachés ?` },
+      { icon: 'fa-calculator',            text: `Simuler : et si je réduis mon DSO à 60 jours ?` },
     ];
 
-    // Choisir 3–4 suggestions contextuelles
+    // Choisir 4 suggestions contextuelles selon la zone
     let picks;
     if (isFollowUp) {
-      picks = all.slice(2, 5); // après une réponse
-    } else if (score < 50) {
-      picks = [all[0], all[3], all[2], all[6]];
-    } else if (score < 75) {
-      picks = [all[0], all[1], all[4], all[5]];
+      picks = [all[2], all[6], all[11], all[4]];
+    } else if (zone === 'critique' || score < 25) {
+      picks = [all[0], all[10], all[6], all[8]];
+    } else if (zone === 'risque' || score < 50) {
+      picks = [all[0], all[9], all[6], all[3]];
+    } else if (zone === 'vigilance' || score < 75) {
+      picks = [all[0], all[2], all[6], all[5]];
     } else {
-      picks = [all[6], all[7], all[1], all[5]];
+      picks = [all[4], all[3], all[5], all[11]];
     }
 
     const wrap = document.createElement('div');

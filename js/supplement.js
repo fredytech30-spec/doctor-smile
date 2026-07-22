@@ -23,9 +23,8 @@
 
 import { db } from './firebase-config.js';
 import {
-  collection, onSnapshot, query, orderBy, limit,
-  doc, updateDoc, addDoc, getDocs, serverTimestamp,
-  where
+  collection, onSnapshot, query, orderBy, limit, doc,
+  updateDoc, addDoc, getDocs, serverTimestamp, where
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 // ── Palette (miroir exact du dashboard) ─────────────────────────

@@ -19,11 +19,12 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 from app.middleware.firebase_verify import verify_token
 from app.services.preprocessing_service import COL_ALIASES
+from app.services.ocr_service import ocr_service
 
 log    = logging.getLogger("doctorsmile.router.upload")
 router = APIRouter(prefix="/upload", tags=["Upload"])
 
-ALLOWED_EXTENSIONS = {"csv", "xlsx", "xls"}
+ALLOWED_EXTENSIONS = {"csv", "xlsx", "xls", "pdf", "png", "jpg", "jpeg", "webp", "bmp", "tiff"}
 MAX_ROWS = 5000
 
 class UploadResponse(BaseModel):
@@ -195,3 +196,127 @@ async def detect_columns(
                else "Ajouter au moins 5 colonnes financieres.")
         ),
     }
+
+
+# ── LLM-Powered Upload Endpoints ─────────────────────────────────
+
+class LLMUploadResponse(BaseModel):
+    success: bool
+    filename: str
+    document_type: str
+    enhanced_text: str | None
+    structured_data: dict[str, Any] | None
+    is_valid: bool
+    validation_warnings: list[str]
+    message: str
+    original_extraction: dict[str, Any] | None
+
+
+@router.post("/llm-enhance", response_model=LLMUploadResponse, status_code=200,
+    summary="Uploader un document (PDF/image) et obtenir extraction améliorée par LLM")
+async def upload_llm_enhance(
+    file: UploadFile = File(...),
+    userId: str = Form(None),
+    token: dict = Depends(verify_token),
+) -> LLMUploadResponse:
+    """
+    Upload a PDF or image, extract text, then enhance with LLM (Kimi):
+    1. Extract text/table using OCR
+    2. Classify document type
+    3. Enhance OCR text
+    4. Extract structured financial data
+    5. Validate consistency
+    """
+    ext = (file.filename or "").rsplit(".", 1)[-1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(422,
+            f"Format non supporté ({ext}). Utilisez CSV, XLSX, XLS, PDF, PNG, JPG.")
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(422, "Fichier vide.")
+
+    log.info(f"[POST /upload/llm-enhance] user={userId} file={file.filename}")
+
+    try:
+        # Use Kimi-enhanced pipeline for PDFs and images
+        if ext in ["pdf"]:
+            enhanced_result = await ocr_service.kimi_enhanced_ocr_pipeline(content, file.filename)
+            
+            return LLMUploadResponse(
+                success=True,
+                filename=file.filename,
+                document_type=enhanced_result.get("document_type", "autre"),
+                enhanced_text=enhanced_result.get("enhanced_text"),
+                structured_data=enhanced_result.get("structured_data"),
+                is_valid=enhanced_result.get("validation", {}).get("is_valid", True),
+                validation_warnings=enhanced_result.get("validation", {}).get("warnings", []),
+                message=f"Extraction Kimi-enhanced terminée (type: {enhanced_result.get('document_type', 'autre')})",
+                original_extraction={k: v for k, v in enhanced_result.items() if k not in ["kimi_enhanced", "document_type", "enhanced_text", "structured_data", "validation"]},
+            )
+        elif ext in ["png", "jpg", "jpeg", "webp", "bmp", "tiff"]:
+            # For images: extract first, then run Kimi pipeline on text
+            initial_extraction = ocr_service.extract_image(content, file.filename)
+            raw_text = "\n".join([str(row) for row in initial_extraction.get("rows", [])])
+            
+            # Run Kimi enhancements manually for images
+            doc_type = await ocr_service.classify_document(raw_text)
+            enhanced_text = await ocr_service.enhance_ocr_text(raw_text)
+            structured_data = await ocr_service.extract_structured_from_text(enhanced_text or raw_text)
+            merged_data = {**dict(row for row in initial_extraction.get("rows", []) if row), **structured_data}
+            is_valid, validation_warnings = await ocr_service.validate_extracted_data(merged_data)
+            
+            return LLMUploadResponse(
+                success=True,
+                filename=file.filename,
+                document_type=doc_type,
+                enhanced_text=enhanced_text,
+                structured_data=structured_data,
+                is_valid=is_valid,
+                validation_warnings=validation_warnings,
+                message=f"Extraction améliorée par LLM terminée (type: {doc_type})",
+                original_extraction=initial_extraction,
+            )
+        else:  # CSV/Excel
+            # Use existing parsing for structured files
+            if ext == "csv":
+                for enc in ("utf-8", "utf-8-sig", "latin-1", "cp1252"):
+                    try:
+                        df = pd.read_csv(io.BytesIO(content), encoding=enc, sep=None, engine="python", dtype=str)
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                else:
+                    raise HTTPException(422, "Encodage CSV non supporté.")
+            else:
+                df = pd.read_excel(io.BytesIO(content), dtype=str)
+            
+            initial_extraction = {"rows": df.to_dict(orient="records"), "meta": {}}
+            raw_text = "\n".join([str(row) for row in initial_extraction["rows"]])
+
+            # 2. LLM enhancements
+            doc_type = await ocr_service.classify_document(raw_text)
+            enhanced_text = await ocr_service.enhance_ocr_text(raw_text)
+            structured_data = await ocr_service.extract_structured_from_text(enhanced_text or raw_text)
+            
+            # Merge structured data with initial rows
+            merged_data = {**dict(row for row in initial_extraction.get("rows", []) if row), **structured_data}
+            is_valid, validation_warnings = await ocr_service.validate_extracted_data(merged_data)
+
+            log.info(f"[POST /upload/llm-enhance] complete for {file.filename}, type={doc_type}")
+
+            return LLMUploadResponse(
+                success=True,
+                filename=file.filename,
+                document_type=doc_type,
+                enhanced_text=enhanced_text,
+                structured_data=structured_data,
+                is_valid=is_valid,
+                validation_warnings=validation_warnings,
+                message=f"Extraction améliorée par LLM terminée (type: {doc_type})",
+                original_extraction=initial_extraction,
+            )
+
+    except Exception as exc:
+        log.error(f"[POST /upload/llm-enhance] failed: {exc}", exc_info=True)
+        raise HTTPException(500, f"Erreur lors de l'extraction LLM: {exc}")

@@ -701,21 +701,21 @@ const P2_ALERTS = (() => {
       });
     }
 
-    const az = last?.altman_z ?? null;
-    if (az !== null && az < 1.23) {
+    const ivf = last?.ivf ?? last?.altman_z ?? null;
+    if (ivf !== null && ivf >= 80) {
       alerts.push({
         sev: 3,
-        title: 'Zone de détresse financière — Altman Z',
-        desc: `Score Altman Z = ${az?.toFixed(2)} (< 1.23 = zone critique). Risque de défaillance élevé selon modèle Altman révisé Europe.`,
+        title: 'Zone de détresse financière — IVF',
+        desc: `Indice de Vulnérabilité Financière = ${ivf?.toFixed(0)}/100. Situation critique : action immédiate sur la trésorerie, les créances et la dette.`,
         icon: 'fa-skull-crossbones',
         color: 'var(--color-error)',
         bg:    'var(--error-bg)',
       });
-    } else if (az !== null && az < 2.0) {
+    } else if (ivf !== null && ivf >= 65) {
       alerts.push({
         sev: 2,
-        title: 'Zone grise — Altman Z',
-        desc: `Score Altman Z = ${az?.toFixed(2)} (zone grise 1.23–2.0). Surveillance recommandée.`,
+        title: 'Zone grise — IVF',
+        desc: `Indice de Vulnérabilité Financière = ${ivf?.toFixed(0)}/100. La surveillance reste nécessaire en mode CEMAC.`,
         icon: 'fa-circle-half-stroke',
         color: 'var(--color-accent)',
         bg:    'var(--accent-bg)',

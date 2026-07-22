@@ -1,0 +1,497 @@
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATIONS.CSS — Doctor Smile
+   Système d'animations premium (micro-interactions)
+   Inspiré de Stripe/Linear — subtilité, fluidité, élégance
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── ENTRANCE ANIMATIONS ─────────────────────────────────────────── */
+.fade-in {
+  animation: fadeIn var(--dur-normal) var(--ease-premium) forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp var(--dur-normal) var(--ease-premium) forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-down {
+  animation: fadeInDown var(--dur-normal) var(--ease-premium) forwards;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-left {
+  animation: fadeInLeft var(--dur-normal) var(--ease-premium) forwards;
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.fade-in-right {
+  animation: fadeInRight var(--dur-normal) var(--ease-premium) forwards;
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.scale-in {
+  animation: scaleIn var(--dur-normal) var(--ease-spring) forwards;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.scale-in-up {
+  animation: scaleInUp var(--dur-normal) var(--ease-spring) forwards;
+}
+
+@keyframes scaleInUp {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ─── EXIT ANIMATIONS ────────────────────────────────────────────── */
+.fade-out {
+  animation: fadeOut var(--dur-fast) var(--ease-premium) forwards;
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.fade-out-up {
+  animation: fadeOutUp var(--dur-fast) var(--ease-premium) forwards;
+}
+
+@keyframes fadeOutUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+.fade-out-down {
+  animation: fadeOutDown var(--dur-fast) var(--ease-premium) forwards;
+}
+
+@keyframes fadeOutDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+.scale-out {
+  animation: scaleOut var(--dur-fast) var(--ease-premium) forwards;
+}
+
+@keyframes scaleOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+/* ─── MICRO-INTERACTIONS ─────────────────────────────────────────── */
+.hover-lift {
+  transition: transform var(--dur-fast) var(--ease-premium), box-shadow var(--dur-fast) var(--ease-premium);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.hover-scale {
+  transition: transform var(--dur-fast) var(--ease-premium);
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.hover-glow {
+  transition: box-shadow var(--dur-fast) var(--ease-premium);
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 0 4px var(--violet-bg), 0 8px 24px rgba(124, 58, 237, 0.2);
+}
+
+.hover-brightness {
+  transition: filter var(--dur-fast) var(--ease-premium);
+}
+
+.hover-brightness:hover {
+  filter: brightness(1.05);
+}
+
+/* ─── BUTTON ANIMATIONS ──────────────────────────────────────────── */
+.btn-press {
+  transition: transform var(--dur-instant) var(--ease-smooth);
+}
+
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+  transform: scale(0);
+  opacity: 0;
+  transition: transform var(--dur-normal) var(--ease-premium), opacity var(--dur-fast) var(--ease-premium);
+}
+
+.btn-ripple:active::after {
+  transform: scale(2);
+  opacity: 1;
+  transition: transform 0s, opacity var(--dur-fast) var(--ease-premium);
+}
+
+/* ─── CARD ANIMATIONS ────────────────────────────────────────────── */
+.card-enter {
+  animation: cardEnter var(--dur-normal) var(--ease-spring) forwards;
+}
+
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.card-exit {
+  animation: cardExit var(--dur-fast) var(--ease-premium) forwards;
+}
+
+@keyframes cardExit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* ─── INPUT ANIMATIONS ───────────────────────────────────────────── */
+.input-focus {
+  transition: border-color var(--dur-fast) var(--ease-premium), box-shadow var(--dur-fast) var(--ease-premium), background var(--dur-fast) var(--ease-premium);
+}
+
+.input-shake {
+  animation: inputShake 0.4s var(--ease-premium);
+}
+
+@keyframes inputShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+/* ─── LOADING ANIMATIONS ─────────────────────────────────────────── */
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--violet-600);
+  border-radius: 50%;
+  animation: spin var(--dur-normal) linear infinite;
+}
+
+.spinner-sm {
+  width: 16px;
+  height: 16px;
+  border-width: 1.5px;
+}
+
+.spinner-lg {
+  width: 32px;
+  height: 32px;
+  border-width: 3px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pulse {
+  animation: pulse 2s var(--ease-premium) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.pulse-glow {
+  animation: pulseGlow 2s var(--ease-premium) infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--violet-bg);
+  }
+  50% {
+    box-shadow: 0 0 0 8px var(--violet-bg);
+  }
+}
+
+/* ─── STAGGER ANIMATIONS ──────────────────────────────────────────── */
+.stagger-in > * {
+  opacity: 0;
+  animation: fadeInUp var(--dur-normal) var(--ease-premium) forwards;
+}
+
+.stagger-in > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-in > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-in > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-in > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-in > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-in > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-in > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-in > *:nth-child(8) { animation-delay: 350ms; }
+.stagger-in > *:nth-child(9) { animation-delay: 400ms; }
+.stagger-in > *:nth-child(10) { animation-delay: 450ms; }
+
+/* ─── TOGGLE ANIMATIONS ─────────────────────────────────────────── */
+.toggle-slide {
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+
+.toggle-expand {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--dur-normal) var(--ease-premium);
+}
+
+.toggle-expand.expanded {
+  max-height: 500px;
+}
+
+/* ─── ICON ANIMATIONS ────────────────────────────────────────────── */
+.icon-spin {
+  animation: spin var(--dur-normal) linear infinite;
+}
+
+.icon-bounce {
+  animation: iconBounce var(--dur-normal) var(--ease-spring);
+}
+
+@keyframes iconBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.icon-pulse {
+  animation: iconPulse var(--dur-normal) var(--ease-premium) infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.icon-shake {
+  animation: iconShake 0.5s var(--ease-premium);
+}
+
+@keyframes iconShake {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-10deg);
+  }
+  75% {
+    transform: rotate(10deg);
+  }
+}
+
+/* ─── NOTIFICATION ANIMATIONS ─────────────────────────────────────── */
+.toast-enter {
+  animation: toastEnter var(--dur-normal) var(--ease-spring) forwards;
+}
+
+@keyframes toastEnter {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.toast-exit {
+  animation: toastExit var(--dur-fast) var(--ease-premium) forwards;
+}
+
+@keyframes toastExit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* ─── MODAL ANIMATIONS ───────────────────────────────────────────── */
+.modal-backdrop {
+  animation: modalBackdrop var(--dur-normal) var(--ease-premium) forwards;
+}
+
+@keyframes modalBackdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  animation: modalContent var(--dur-normal) var(--ease-spring) forwards;
+}
+
+@keyframes modalContent {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ─── REDUCED MOTION ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── UTILITY CLASSES ───────────────────────────────────────────── */
+.animate-none {
+  animation: none !important;
+}
+
+.animate-fast {
+  animation-duration: var(--dur-fast) !important;
+}
+
+.animate-slow {
+  animation-duration: var(--dur-slow) !important;
+}

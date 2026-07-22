@@ -1,10 +1,9 @@
 """
 session_2fa.py — Middleware d'enforcement 2FA pour Doctor Smile
 
-Protège l'accès au dashboard.html en exigeant une session 2FA valide.
-Les sessions sont stockées en mémoire (dict) avec un TTL d'1 heure.
-
-En production : remplacer par Redis pour la persistance entre redémarrages.
+Sessions 2FA stockées dans Firestore (collection `sessions_2fa`) avec TTL.
+Fallback mémoire si Firebase non disponible.
+En production multi-workers, Firestore garantit la cohérence inter-processus.
 """
 
 import time
@@ -16,31 +15,72 @@ from starlette.middleware.base import BaseHTTPMiddleware
 log = logging.getLogger("doctorsmile.session_2fa")
 
 # ════════════════════════════════════════════════════════════════
-#  STOCKAGE DES SESSIONS 2FA
-#  Format: {uid: {"token": str, "expires_at": float}}
+#  STOCKAGE DES SESSIONS 2FA — HYBRIDE FIRESTORE + MÉMOIRE
+#  Firestore : collection sessions_2fa/{uid}
+#  Champs   : { token: str, expires_at: float }
+#  Mémoire  : fallback si Firebase non disponible
 # ════════════════════════════════════════════════════════════════
 
-_SESSION_TTL = 3600  # 1 heure en secondes
-_sessions_2fa: dict[str, dict] = {}
+_SESSION_TTL: int = 3600  # 1 heure
+
+# Fallback mémoire (uniquement si Firestore indisponible)
+_mem_sessions: dict[str, dict] = {}
+
+
+def _get_db():
+    """Retourne le client Firestore si disponible, None sinon."""
+    try:
+        from app.services.firebase_service import firebase_service
+        if firebase_service.available:
+            return firebase_service.db
+    except Exception:
+        pass
+    return None
 
 
 def _set_session(uid: str, token: str) -> None:
-    """Enregistre une session 2FA valide."""
-    _sessions_2fa[uid] = {
-        "token": token,
-        "expires_at": time.time() + _SESSION_TTL
-    }
-    log.debug(f"[2FA] Session créée pour uid={uid}")
+    """Enregistre une session 2FA valide — Firestore en priorité."""
+    expires_at = time.time() + _SESSION_TTL
+    db = _get_db()
+    if db:
+        try:
+            db.collection("sessions_2fa").document(uid).set({
+                "token": token,
+                "expires_at": expires_at,
+            })
+            log.debug("[2FA] Session Firestore créée pour uid=%s", uid)
+            return
+        except Exception as exc:
+            log.warning("[2FA] Erreur écriture Firestore session, fallback mémoire : %s", exc)
+
+    # Fallback mémoire
+    _mem_sessions[uid] = {"token": token, "expires_at": expires_at}
+    log.debug("[2FA] Session mémoire créée pour uid=%s", uid)
 
 
 def _get_session_token(uid: str) -> str | None:
     """Retourne le token de session si valide, None sinon."""
-    session = _sessions_2fa.get(uid)
+    now = time.time()
+    db = _get_db()
+    if db:
+        try:
+            doc = db.collection("sessions_2fa").document(uid).get()
+            if doc.exists:
+                data = doc.to_dict() or {}
+                if data.get("expires_at", 0) > now:
+                    return data.get("token")
+                # Expirée — supprimer
+                db.collection("sessions_2fa").document(uid).delete()
+            return None
+        except Exception as exc:
+            log.warning("[2FA] Erreur lecture Firestore session, fallback mémoire : %s", exc)
+
+    # Fallback mémoire
+    session = _mem_sessions.get(uid)
     if not session:
         return None
-    if time.time() > session.get("expires_at", 0):
-        del _sessions_2fa[uid]
-        log.debug(f"[2FA] Session expirée pour uid={uid}")
+    if now > session.get("expires_at", 0):
+        del _mem_sessions[uid]
         return None
     return session.get("token")
 
@@ -48,30 +88,35 @@ def _get_session_token(uid: str) -> str | None:
 def _is_token_valid_any(token: str) -> bool:
     """Vérifie si un token correspond à une session 2FA valide (sans uid connu)."""
     now = time.time()
-    for uid, session in list(_sessions_2fa.items()):
-        if time.time() > session.get("expires_at", 0):
-            del _sessions_2fa[uid]
+    db = _get_db()
+    if db:
+        try:
+            # Requête Firestore sur le champ token (nécessite un index simple sur `token`)
+            docs = db.collection("sessions_2fa").where("token", "==", token).limit(1).stream()
+            for doc in docs:
+                data = doc.to_dict() or {}
+                if data.get("expires_at", 0) > now:
+                    return True
+            return False
+        except Exception as exc:
+            log.warning("[2FA] Erreur recherche token Firestore, fallback mémoire : %s", exc)
+
+    # Fallback mémoire
+    for uid, session in list(_mem_sessions.items()):
+        if now > session.get("expires_at", 0):
+            del _mem_sessions[uid]
             continue
         if session.get("token") == token:
             return True
     return False
 
 
-def _cleanup_expired() -> None:
-    """Supprime les sessions expirées."""
-    now = time.time()
-    expired = [uid for uid, s in _sessions_2fa.items() if now > s.get("expires_at", 0)]
-    for uid in expired:
-        del _sessions_2fa[uid]
-
-
 # ════════════════════════════════════════════════════════════════
 #  API PUBLIQUE — utilisée par auth_2fa.py
 # ════════════════════════════════════════════════════════════════
 
-# Compatibilité avec l'ancienne interface dict (auth_2fa.py fait pending_2fa[uid] = token)
 class _PendingDict:
-    """Proxy dict qui délègue vers le stockage avec TTL."""
+    """Proxy dict qui délègue vers le stockage hybride avec TTL."""
 
     def __setitem__(self, uid: str, token: str):
         _set_session(uid, token)
@@ -84,8 +129,9 @@ class _PendingDict:
         return token if token is not None else default
 
     def values(self):
-        _cleanup_expired()
-        return [s["token"] for s in _sessions_2fa.values()]
+        # Utilisé uniquement en fallback mémoire
+        return [s["token"] for s in _mem_sessions.values()
+                if time.time() <= s.get("expires_at", 0)]
 
     def __contains__(self, uid: str):
         return _get_session_token(uid) is not None

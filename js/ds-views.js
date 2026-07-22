@@ -259,7 +259,7 @@ window.DS_VIEWS = {
     const cls  = isPrm ? 'prm' : 'ext';
     const icon = isPrm ? 'fa-crown' : 'fa-rocket';
     const planLabel = isPrm ? 'Premium' : 'Extra';
-    const price     = isPrm ? '79€/mois' : '159€/mois';
+    const price     = isPrm ? '50 000 FCFA/mois' : '100 000 FCFA/mois';
     const overlay   = document.createElement('div');
     overlay.className = 'plan-lock-overlay';
     overlay.innerHTML = `
@@ -608,7 +608,6 @@ window.DS_VIEWS = {
 
   // ── VUE : Paramètres ─────────────────────────────────────────
   renderParametres() {
-    const container=document.getElementById('parametres-content'); if(!container) return;
     const plan=S.abonnement?.plan||S.profile?.plan||'standard';
     const prenom=S.profile?.prenom||S.user?.displayName?.split(' ')[0]||'';
     const nom=S.profile?.nom||'';
@@ -639,8 +638,49 @@ window.DS_VIEWS = {
       topbarBadge.className = 'badge ' + plan;
     }
 
-    // Marquer la carte du plan actuel comme active dans la grille
-    // (cette opération doit être faite après le rendu du container)
+    // --- Update Profile Section ---
+    // Avatar
+    const avatarImg = document.getElementById('param-avatar-img');
+    const avatarInitials = document.getElementById('param-avatar-initials');
+    if (avatarImg && avatarInitials) {
+      if (photoURL) {
+        avatarImg.src = escHtml(photoURL);
+        avatarImg.style.display = 'block';
+        avatarInitials.style.display = 'none';
+      } else {
+        avatarImg.style.display = 'none';
+        avatarInitials.textContent = initials;
+        avatarInitials.style.display = 'block';
+      }
+    }
+
+    // Avatar Name/Email
+    const avatarNameEl = document.getElementById('param-avatar-name');
+    const avatarEmailEl = document.getElementById('param-avatar-email');
+    if (avatarNameEl) avatarNameEl.textContent = escHtml(fullName);
+    if (avatarEmailEl) avatarEmailEl.textContent = escHtml(email);
+
+    // Upload Button
+    const uploadBtn = document.getElementById('param-upload-photo-btn');
+    if (uploadBtn) {
+      uploadBtn.innerHTML = `<i class="fa-solid fa-camera"></i>${photoURL ? 'Changer la photo' : 'Ajouter une photo'}`;
+    }
+
+    // Remove Button
+    const removeBtn = document.getElementById('param-remove-photo-btn');
+    if (removeBtn) {
+      removeBtn.style.display = photoURL ? 'flex' : 'none';
+    }
+
+    // Profile Inputs
+    const paramPrenom = document.getElementById('param-prenom');
+    const paramNom = document.getElementById('param-nom');
+    const paramEmailEl = document.getElementById('param-email');
+    if (paramPrenom) paramPrenom.value = escHtml(prenom);
+    if (paramNom) paramNom.value = escHtml(nom);
+    if (paramEmailEl) paramEmailEl.textContent = escHtml(email);
+
+    // --- Update Plan Cards ---
     setTimeout(() => {
       const cards = document.querySelectorAll('.settings-plan-card');
       cards.forEach(card => {
@@ -648,7 +688,6 @@ window.DS_VIEWS = {
         card.classList.remove('active', 'current-plan', 'selected');
         if (cardPlan === plan) {
           card.classList.add('active', 'current-plan');
-          // Ajouter un indicateur visuel
           let indicator = card.querySelector('.plan-current-badge');
           if (!indicator) {
             indicator = document.createElement('span');
@@ -657,405 +696,157 @@ window.DS_VIEWS = {
             const planName = card.querySelector('.settings-plan-name');
             if (planName) planName.appendChild(indicator);
           }
-          // Désactiver le bouton pour le plan actuel
           const btn = card.querySelector('.settings-plan-btn');
           if (btn) {
             btn.textContent = 'Plan actif';
             btn.disabled = true;
           }
         } else {
-          // Réactiver les boutons des autres plans
           const btn = card.querySelector('.settings-plan-btn');
-          if (btn) {
-            btn.disabled = false;
-          }
+          if (btn) btn.disabled = false;
           const existingBadge = card.querySelector('.plan-current-badge');
           if (existingBadge) existingBadge.remove();
         }
       });
-
-      // Initialiser l'apparence des boutons de thème
       const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
       this._updateThemeUI(currentTheme);
     }, 50);
 
-    container.innerHTML=`
+    // --- Update Plan Info Section ---
+    const paramPlanBadge = document.getElementById('param-plan-badge');
+    if (paramPlanBadge) {
+      paramPlanBadge.textContent = planLabels[plan] || plan;
+      paramPlanBadge.className = 'badge ' + plan;
+    }
+    const paramAnalysesCount = document.getElementById('param-analyses-count');
+    if (paramAnalysesCount) paramAnalysesCount.textContent = S.analyses.length;
 
-      <!-- ══ BLOC PHOTO DE PROFIL ══════════════════════════════ -->
-      <div class="param-section" style="align-items:center;gap:0;">
-        <div class="param-section-title" style="width:100%;">
-          <i class="fa-solid fa-circle-user" style="color:var(--ice);margin-right:8px;"></i>Photo de profil
-        </div>
-
-        <!-- Zone photo centrale -->
-        <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px 0 8px;width:100%;">
-
-          <!-- Avatar grand format cliquable -->
-          <div id="param-avatar-wrap"
-            onclick="document.getElementById('param-photo-input').click()"
-            style="
-              width:100px;height:100px;border-radius:50%;
-              background:linear-gradient(135deg,var(--gold),var(--ice));
-              border:3px solid rgba(240,208,120,.38);
-              box-shadow:0 0 0 6px rgba(240,208,120,.07),0 10px 36px rgba(0,0,0,.45);
-              display:flex;align-items:center;justify-content:center;
-              font-family:var(--fd);font-size:32px;font-weight:900;color:var(--bg);
-              cursor:pointer;position:relative;overflow:hidden;
-              transition:all .28s cubic-bezier(.34,1.56,.64,1);"
-            onmouseenter="this.style.borderColor='rgba(139,127,240,.7)';this.style.boxShadow='0 0 0 8px rgba(139,127,240,.1),0 10px 36px rgba(0,0,0,.55)';document.getElementById('param-avatar-overlay').style.opacity='1';"
-            onmouseleave="this.style.borderColor='rgba(240,208,120,.38)';this.style.boxShadow='0 0 0 6px rgba(240,208,120,.07),0 10px 36px rgba(0,0,0,.45)';document.getElementById('param-avatar-overlay').style.opacity='0';">
-
-            ${photoURL
-              ? `<img id="param-avatar-img" src="${escHtml(photoURL)}" alt="Photo de profil"
-                  style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`
-              : `<span id="param-avatar-initials"
-                  style="font-family:Syne,sans-serif;font-size:32px;font-weight:900;
-                  color:var(--bg);user-select:none;">${escHtml(initials)}</span>`
-            }
-
-            <!-- Overlay caméra au hover -->
-            <div id="param-avatar-overlay"
-              style="position:absolute;inset:0;border-radius:50%;
-                background:rgba(0,0,0,.72);
-                display:flex;flex-direction:column;align-items:center;justify-content:center;
-                gap:5px;opacity:0;transition:opacity .22s;pointer-events:none;">
-              <i class="fa-solid fa-camera" style="font-size:20px;color:#fff;"></i>
-              <span style="font-family:Syne,sans-serif;font-size:7px;font-weight:800;
-                letter-spacing:.12em;color:#fff;text-transform:uppercase;">Modifier</span>
-            </div>
-          </div>
-
-          <!-- Nom affiché sous l'avatar -->
-          <div style="text-align:center;line-height:1.3;">
-            <div id="param-avatar-name"
-              style="font-family:Syne,sans-serif;font-size:15px;font-weight:900;color:var(--text);">
-              ${escHtml(fullName)}
-            </div>
-            <div style="font-size:9.5px;color:var(--text-muted);margin-top:2px;">
-              ${escHtml(email)}
-            </div>
-          </div>
-
-          <!-- Boutons actions photo -->
-          <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;justify-content:center;">
-            <button onclick="document.getElementById('param-photo-input').click()"
-              style="display:flex;align-items:center;gap:7px;padding:9px 20px;
-                border-radius:10px;background:rgba(139,127,240,.08);
-                border:1px solid rgba(139,127,240,.22);
-                color:var(--color-ice);font-family:Syne,sans-serif;font-size:9px;font-weight:800;
-                letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
-                transition:all .2s cubic-bezier(.34,1.56,.64,1);"
-              onmouseenter="this.style.background='rgba(139,127,240,.16)';this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(139,127,240,.14)'"
-              onmouseleave="this.style.background='rgba(139,127,240,.08)';this.style.transform='none';this.style.boxShadow='none'">
-              <i class="fa-solid fa-camera"></i>
-              ${photoURL ? 'Changer la photo' : 'Ajouter une photo'}
-            </button>
-            ${photoURL ? `
-            <button onclick="DS_PROFILE?.removePhoto?.()"
-              id="param-remove-photo-btn"
-              style="display:flex;align-items:center;gap:7px;padding:9px 18px;
-                border-radius:10px;background:rgba(239,68,68,.07);
-                border:1px solid rgba(239,68,68,.18);
-                color:var(--color-error);font-family:Syne,sans-serif;font-size:9px;font-weight:800;
-                letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
-                transition:all .18s;"
-              onmouseenter="this.style.background='rgba(239,68,68,.15)'"
-              onmouseleave="this.style.background='rgba(239,68,68,.07)'">
-              <i class="fa-solid fa-trash"></i>Supprimer
-            </button>` : ''}
-          </div>
-
-          <!-- Info format accepté -->
-          <div style="font-size:8px;color:var(--text-hint);text-align:center;line-height:1.8;">
-            <i class="fa-solid fa-circle-info" style="margin-right:4px;opacity:.6;"></i>
-            JPG · PNG · WEBP · GIF · max 5 Mo · compressée automatiquement à 400px
-          </div>
-
-          <!-- Zone statut upload (spinner, erreur, succès) -->
-          <div id="param-upload-status" style="min-height:18px;"></div>
-        </div>
-
-        <!-- Input file caché — déclenché par les boutons -->
-        <input type="file" id="param-photo-input" accept="image/*" style="display:none;"
-          onchange="window._paramHandlePhotoUpload(this.files[0])">
-      </div>
-      <!-- ════════════════════════════════════════════════════════ -->
-
-      <div class="param-section">
-        <div class="param-section-title">Profil utilisateur</div>
-        <div class="param-row">
-          <div class="param-label">Prénom<small>Affiché dans le dashboard</small></div>
-          <input class="param-input" id="param-prenom" value="${escHtml(prenom)}" placeholder="Votre prénom"
-            oninput="(()=>{const n=(this.value.trim()||'—')+' '+(document.getElementById('param-nom')?.value.trim()||'');const el=document.getElementById('param-avatar-name');if(el)el.textContent=n.trim()||'—';})()">
-        </div>
-        <div class="param-row">
-          <div class="param-label">Nom<small>Nom de famille</small></div>
-          <input class="param-input" id="param-nom" value="${escHtml(nom)}" placeholder="Votre nom"
-            oninput="(()=>{const n=(document.getElementById('param-prenom')?.value.trim()||'—')+' '+this.value.trim();const el=document.getElementById('param-avatar-name');if(el)el.textContent=n.trim()||'—';})()">
-        </div>
-        <div class="param-row">
-          <div class="param-label">Email<small>Adresse de connexion</small></div>
-          <div class="param-value" style="color:var(--muted)">${escHtml(email)}</div>
-        </div>
-        <div style="display:flex;justify-content:flex-end;margin-top:4px;">
-          <button class="param-btn primary" onclick="DS?.saveProfile()">
-            <i class="fa-solid fa-floppy-disk" style="margin-right:6px;"></i>Enregistrer
-          </button>
-        </div>
-      </div>
-
-      <!-- ══ CONFIGURATION ARGENT IA (MASTER AGENT) ══════════════ -->
-      <div class="param-section">
-        <div class="param-section-title">
-          <i class="fa-solid fa-brain" style="color:var(--p3-agent);margin-right:8px;"></i>Personnalité Argent IA
-        </div>
-        <div id="agent-config-panel-settings">
-          <div style="font-size:10px; color:var(--text-muted); padding:10px;">Chargement de la configuration IA...</div>
-        </div>
-        <script>
-          // Petit hack pour injecter le panneau de config agent ici aussi
-          setTimeout(() => {
-            const container = document.getElementById('agent-config-panel-settings');
-            if (container && window.DS_MASTER_AGENT) {
-              window.DS_MASTER_AGENT.renderConfig(); // Ceci remplit 'agent-config-panel'
-              // On peut cloner ou déplacer si besoin, mais ici on va juste appeler une fonction dédiée
-              // Pour simplifier, on va faire en sorte que renderConfig accepte un ID optionnel
-            }
-          }, 100);
-        </script>
-      </div>
-
-      <div class="param-section">
-        <div class="param-section-title">Abonnement</div>
-        <div class="param-row"><div class="param-label">Plan actuel<small>Détermine vos fonctionnalités</small></div><div class="param-value"><span class="badge ${plan}" style="font-size:9px;">${planLabels[plan]??plan}</span></div></div>
-        <div class="param-row"><div class="param-label">Analyses ce mois<small>Quota selon votre plan</small></div><div class="param-value" style="color:var(--ice);">${S.analyses.length}</div></div>
-        ${plan!=='extra'?`
-        <div onclick="window.DS_PAYMENT?.showPaymentModal('${plan}')"
-          style="margin-top:10px;padding:16px;border-radius:14px;cursor:pointer;transition:all .22s;
-            background:${plan==='standard'
-              ?'linear-gradient(135deg,rgba(109,40,217,.14),rgba(139,127,240,.06))'
-              :'linear-gradient(135deg,rgba(234,88,12,.14),rgba(249,115,22,.06))'};
-            border:1px solid ${plan==='standard'?'rgba(139,127,240,.22)':'rgba(249,115,22,.22)'}"
-          onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 10px 32px ${plan==='standard'?'rgba(139,127,240,.2)':'rgba(249,115,22,.2)'}'"
-          onmouseleave="this.style.transform='';this.style.boxShadow=''">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-            <div style="width:40px;height:40px;border-radius:12px;flex-shrink:0;
-              display:flex;align-items:center;justify-content:center;font-size:18px;
-              background:${plan==='standard'?'rgba(139,127,240,.18)':'rgba(249,115,22,.18)'};
-              border:1px solid ${plan==='standard'?'rgba(139,127,240,.35)':'rgba(249,115,22,.35)'};">
-              ${plan==='standard'?'👑':'🚀'}
-            </div>
-            <div style="flex:1;">
-              <div style="font-family:Syne,sans-serif;font-size:11px;font-weight:900;letter-spacing:.04em;
-                color:${plan==='standard'?'var(--violet-text)':'var(--extra-text)'};margin-bottom:3px;">
-                ${plan==='standard'?'Passer à Premium':'Passer à Extra'}
-                <span style="font-size:9px;font-weight:700;opacity:.7;"> · ${plan==='standard'?'79€':'159€'}/mois</span>
+    const paramUpgradeCard = document.getElementById('param-upgrade-card');
+    if (paramUpgradeCard) {
+      if (plan !== 'extra') {
+        paramUpgradeCard.innerHTML = `
+          <div onclick="window.DS_PAYMENT?.showPaymentModal('${plan}')"
+            style="margin-top:10px;padding:16px;border-radius:14px;cursor:pointer;transition:all .22s;
+              background:${plan==='standard'
+                ?'linear-gradient(135deg,rgba(109,40,217,.14),rgba(139,127,240,.06))'
+                :'linear-gradient(135deg,rgba(234,88,12,.14),rgba(249,115,22,.06))'};
+              border:1px solid ${plan==='standard'?'rgba(139,127,240,.22)':'rgba(249,115,22,.22)'}"
+            onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 10px 32px ${plan==='standard'?'rgba(139,127,240,.2)':'rgba(249,115,22,.2)'}';"
+            onmouseleave="this.style.transform='';this.style.boxShadow='';">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+              <div style="width:40px;height:40px;border-radius:12px;flex-shrink:0;
+                display:flex;align-items:center;justify-content:center;font-size:18px;
+                background:${plan==='standard'?'rgba(139,127,240,.18)':'rgba(249,115,22,.18)'};
+                border:1px solid ${plan==='standard'?'rgba(139,127,240,.35)':'rgba(249,115,22,.35)'};">
+                ${plan==='standard'?'👑':'🚀'}
               </div>
-              <div style="font-size:9px;color:var(--text-muted);line-height:1.65;">
-                ${plan==='standard'
-                  ?'Prévisions cash-flow · Benchmark sectoriel · Score crédit bancaire'
-                  :'API directe · Cabinet multi-clients · Agent IA autonome · WhatsApp'}
+              <div style="flex:1;">
+                <div style="font-family:Syne,sans-serif;font-size:11px;font-weight:900;letter-spacing:.04em;
+                  color:${plan==='standard'?'var(--violet-text)':'var(--extra-text)'};margin-bottom:3px;">
+                  ${plan==='standard'?'Passer à Premium':'Passer à Extra'}
+                  <span style="font-size:9px;font-weight:700;opacity:.7;"> · ${plan==='standard'?'79€':'159€'}/mois</span>
+                </div>
+                <div style="font-size:9px;color:var(--text-muted);line-height:1.65;">
+                  ${plan==='standard'
+                    ?'Prévisions cash-flow · Benchmark sectoriel · Score crédit bancaire'
+                    :'API directe · Cabinet multi-clients · Agent IA autonome · WhatsApp'}
+                </div>
               </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-hint);font-size:11px;"></i>
             </div>
-            <i class="fa-solid fa-chevron-right" style="color:var(--text-hint);font-size:11px;"></i>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <span style="font-size:8.5px;color:${plan==='standard' ? 'rgba(196,181,253,.6)' : 'rgba(251,146,60,.6)'};
+                background:${plan==='standard' ? 'rgba(139,127,240,.1)' : 'rgba(249,115,22,.1)'};
+                padding:3px 9px;border-radius:6px;">✦ Essai 45 jours gratuit</span>
+              <span style="font-size:8.5px;color:var(--text-muted);padding:3px 9px;">Annulable à tout moment</span>
+              <span style="font-size:8.5px;color:var(--text-muted);padding:3px 9px;">Aucune carte pendant l'essai</span>
+            </div>
           </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <span style="font-size:8.5px;color:${plan==="standard" ? "rgba(196,181,253,.6)" : "rgba(251,146,60,.6)"};
-              background:${plan==="standard" ? "rgba(139,127,240,.1)" : "rgba(249,115,22,.1)"};
-              padding:3px 9px;border-radius:6px;">✦ Essai 45 jours gratuit</span>
-            <span style="font-size:8.5px;color:var(--text-muted);padding:3px 9px;">Annulable à tout moment</span>
-            <span style="font-size:8.5px;color:var(--text-muted);padding:3px 9px;">Aucune carte pendant l'essai</span>
+        `;
+      } else {
+        paramUpgradeCard.innerHTML = `
+          <div class="param-row"><div class="param-label">Statut<small>Votre compte est au niveau maximum</small></div>
+            <div class="param-value" style="color:#fb923c;font-family:Syne,sans-serif;font-weight:800;">
+              ✦✦ Extra — Accès complet
+            </div>
           </div>
-        </div>`
-        :`<div class="param-row"><div class="param-label">Statut<small>Votre compte est au niveau maximum</small></div>
-          <div class="param-value" style="color:#fb923c;font-family:Syne,sans-serif;font-weight:800;">
-            ✦✦ Extra — Accès complet</div></div>`}
-      </div>
+        `;
+      }
+    }
 
-      <div class="param-section">
-        <div class="param-section-title">
-          <i class="fa-solid fa-globe" style="color:var(--ice);margin-right:8px;"></i>Langue &amp; Région
-        </div>
-        <div class="param-row" style="flex-direction:column;align-items:flex-start;gap:14px;border-bottom:none;padding-bottom:4px;">
-          <div class="param-label">Langue de l'interface
-            <small>Choisissez la langue d'affichage de la plateforme</small>
-          </div>
-          <div id="lang-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;">
-            ${[
-              {code:'fr', flag:'🇫🇷', label:'Français'},
-              {code:'en', flag:'🇬🇧', label:'English'},
-              {code:'es', flag:'🇪🇸', label:'Español'},
-              {code:'ar', flag:'🇸🇦', label:'العربية', rtl:true},
-            ].map(l=>{
-              const cur=(localStorage.getItem('ds_lang')||'fr')===l.code;
-              return `<button
-                data-lang="${l.code}"
-                onclick="window.DS_I18N?.changeLang(this.dataset.lang)"
-                style="padding:12px 6px;border-radius:10px;
-                  background:${cur?'rgba(139,127,240,.08)':'var(--surface-2)'};
-                  border:1px solid ${cur?'rgba(139,127,240,.4)':'rgba(139,127,240,.1)'};
-                  cursor:pointer;display:flex;flex-direction:column;align-items:center;
-                  gap:5px;transition:all .22s;position:relative;"
-                ${l.rtl?'dir="rtl"':''}>
-                <span style="font-size:22px;">${l.flag}</span>
-                <span style="font-family:var(--fd);font-size:8.5px;font-weight:700;letter-spacing:.06em;
-                  color:${cur?'var(--color-ice)':'var(--text-muted)'};">${l.label}</span>
-                ${l.rtl?'<span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:var(--violet-bg);color:var(--color-violet);border:1px solid var(--violet-border);">RTL</span>':''}
-                ${cur?'<span class="lang-chk" style="position:absolute;top:5px;right:5px;width:14px;height:14px;border-radius:50%;background:var(--ice-2);color:#02040B;font-size:7px;display:flex;align-items:center;justify-content:center;"><i class=\'fa-solid fa-check\'></i></span>':''}
-              </button>`;
-            }).join('')}
-          </div>
-          <div id="lang-feedback" style="min-height:14px;font-family:var(--fd);font-size:9px;font-weight:700;color:var(--color-success);letter-spacing:.08em;"></div>
-        </div>
-      </div>
+    // --- Update Language Grid ---
+    const langGrid = document.getElementById('lang-grid');
+    if (langGrid) {
+      langGrid.innerHTML = [
+        {code:'fr', flag:'🇫🇷', label:'Français'},
+        {code:'en', flag:'🇬🇧', label:'English'},
+        {code:'es', flag:'🇪🇸', label:'Español'},
+        {code:'ar', flag:'🇸🇦', label:'العربية', rtl:true},
+      ].map(l=>{
+        const cur=(localStorage.getItem('ds_lang')||'fr')===l.code;
+        return `<button
+          data-lang="${l.code}"
+          onclick="window.DS_I18N?.changeLang(this.dataset.lang)"
+          style="padding:12px 6px;border-radius:10px;
+            background:${cur?'rgba(139,127,240,.08)':'var(--surface-2)'};
+            border:1px solid ${cur?'rgba(139,127,240,.4)':'rgba(139,127,240,.1)'};
+            cursor:pointer;display:flex;flex-direction:column;align-items:center;
+            gap:5px;transition:all .22s;position:relative;"
+          ${l.rtl?'dir="rtl"':''}>
+          <span style="font-size:22px;">${l.flag}</span>
+          <span style="font-family:var(--fd);font-size:8.5px;font-weight:700;letter-spacing:.06em;
+            color:${cur?'var(--color-ice)':'var(--text-muted)'};">${l.label}</span>
+          ${l.rtl?'<span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:var(--violet-bg);color:var(--color-violet);border:1px solid var(--violet-border);">RTL</span>':''}
+          ${cur?'<span class="lang-chk" style="position:absolute;top:5px;right:5px;width:14px;height:14px;border-radius:50%;background:var(--ice-2);color:#02040B;font-size:7px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-check"></i></span>':''}
+        </button>`;
+      }).join('');
+    }
 
-      <div class="param-section">
-        <div class="param-section-title">Sécurité</div>
-        <div class="param-row">
-          <div class="param-label">Mot de passe<small>Connecté via ${S.user?.providerData?.[0]?.providerId==='google.com'?'Google OAuth':'Email/Mot de passe'}</small></div>
-          ${S.user?.providerData?.[0]?.providerId==='google.com'
-            ?'<div class="param-value" style="color:var(--muted);font-size:10px;">Géré par Google</div>'
-            :'<button class="param-btn neutral" onclick="DS?.changePasswordFlow()"><i class="fa-solid fa-key" style="margin-right:6px;"></i>Modifier</button>'}
-        </div>
-        <div class="param-row">
-          <div class="param-label">Déconnexion<small>Ferme la session sur cet appareil</small></div>
-          <button class="param-btn danger" onclick="window.DS_LOGOUT?.()"><i class="fa-solid fa-right-from-bracket" style="margin-right:6px;"></i>Se déconnecter</button>
-        </div>
-      </div>
+    // --- Update Password Row ---
+    const paramPasswordRow = document.getElementById('param-password-row');
+    if (paramPasswordRow) {
+      if (S.user?.providerData?.[0]?.providerId==='google.com') {
+        paramPasswordRow.innerHTML = `
+          <div class="param-label">Mot de passe<small>Connecté via Google OAuth</small></div>
+          <div class="param-value" style="color:var(--muted);font-size:10px;">Géré par Google</div>
+        `;
+      } else {
+        paramPasswordRow.innerHTML = `
+          <div class="param-label">Mot de passe<small>Connecté via Email/Mot de passe</small></div>
+          <button class="param-btn neutral" onclick="DS?.changePasswordFlow()"><i class="fa-solid fa-key" style="margin-right:6px;"></i>Modifier</button>
+        `;
+      }
+    }
 
-      <!-- ══ THÈME ══ -->
-      <div class="param-section">
-        <div class="param-section-title">
-          <i class="fa-solid fa-palette" style="color:var(--gold);margin-right:8px;"></i>Apparence
-        </div>
-        <div class="param-row" style="align-items:center;flex-wrap:wrap;gap:12px;">
-          <div class="param-label">Thème de l'interface
-            <small>Basculez entre le mode sombre et le mode clair</small>
-          </div>
-          <div class="theme-toggle-group">
-            <button id="theme-btn-dark" class="theme-toggle-btn" onclick="DS_VIEWS._setTheme('dark')">
-              <i class="fa-solid fa-moon"></i>Sombre
-            </button>
-            <div class="theme-toggle-sep"></div>
-            <button id="theme-btn-light" class="theme-toggle-btn" onclick="DS_VIEWS._setTheme('light')">
-              <i class="fa-solid fa-moon" style="transform:rotate(-20deg);"></i>Crépuscule
-            </button>
-          </div>
-        </div>
-        <div id="theme-preview-bar"></div>
-      </div>
-
-      <!-- ══ TEXT-TO-SPEECH ══ -->
-      <div class="param-section">
-        <div class="param-section-title">
-          <i class="fa-solid fa-volume-high" style="color:var(--ice);margin-right:8px;"></i>Text-to-Speech (Voix IA)
-        </div>
-        <div class="param-row">
-          <div class="param-label">Activer la voix IA
-            <small>Utilise la voix de l'IA pour lire les réponses</small>
-          </div>
-          <div class="param-value">
-            <label class="ds-switch">
-              <input type="checkbox" id="tts-toggle" onchange="window.DS_TTS?.toggleEngine()">
-              <span class="ds-slider"></span>
-            </label>
-          </div>
-        </div>
-        <div class="param-row">
-          <div class="param-label">Sélectionner la voix
-            <small>Choisissez la voix pour l'IA</small>
-          </div>
-          <div class="param-value">
-            <select id="tts-voice-select" class="param-input" style="width:200px;padding:5px;" onchange="window.DS_TTS?.selectVoice(this.value)">
-              <option value="">Chargement des voix...</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div class="param-section">
-        <div class="param-section-title">
-          <i class="fa-solid fa-robot" style="color:var(--p3-agent);margin-right:8px;"></i>Intelligence Artificielle (Master Agent)
-        </div>
-        <div class="param-row">
-          <div class="param-label">Surveillance Autonome
-            <small>L'IA analyse vos données en arrière-plan et anticipe les risques</small>
-          </div>
-          <div class="param-value">
-            <label class="ds-switch">
-              <input type="checkbox" id="param-agent-active" ${window.P3_AGENT?._running ? 'checked' : ''} onchange="window.P3_AGENT?.toggle()">
-              <span class="ds-slider"></span>
-            </label>
-          </div>
-        </div>
-        <div class="param-row">
-          <div class="param-label">Sensibilité des alertes
-            <small>Niveau de réactivité de l'agent aux anomalies</small>
-          </div>
-          <div class="param-value">
-            <select class="param-input" style="width:120px;padding:5px;">
-              <option value="high">Critique uniquement</option>
-              <option value="med" selected>Standard</option>
-              <option value="low">Toutes (Proactif)</option>
-            </select>
-          </div>
-        </div>
-        <div class="param-row">
-          <div class="param-label">Canal de notification
-            <small>Où l'agent doit-il vous alerter en priorité</small>
-          </div>
-          <div class="param-value" style="display:flex;gap:8px;">
-            <i class="fa-solid fa-bell" style="color:var(--ice);" title="Dashboard"></i>
-            <i class="fa-solid fa-envelope" style="color:var(--text-hint);" title="Email"></i>
-            <i class="fa-brands fa-whatsapp" style="color:var(--text-hint);" title="WhatsApp (Extra)"></i>
-          </div>
-        </div>
-      </div>
-
-      <div class="param-section">
-        <div class="param-section-title">À propos</div>
-        <div class="param-row"><div class="param-label">Version</div><div class="param-value" style="color:var(--muted);font-family:var(--fm);font-size:10px;">v2.1.0 · Frontend</div></div>
-        <div class="param-row"><div class="param-label">Modèle ML</div><div class="param-value" style="color:var(--muted);font-size:10px;">RF + XGBoost + LightGBM · Ensemble</div></div>
-      </div>`;
-
-    // ── Appliquer la langue courante aux sections injectées ────
     setTimeout(() => window.DS_I18N?.refresh(), 0);
 
-    // ── Handler upload photo depuis la vue Paramètres ──────────
-    window._paramHandlePhotoUpload = async (file) => {
-      if (!file) return;
-      const statusEl = document.getElementById('param-upload-status');
-      const wrap     = document.getElementById('param-avatar-wrap');
-
-      // Validation
-      if (file.size > 5 * 1024 * 1024) { showToast('Photo trop lourde (max 5 Mo)', 'warn'); return; }
-      if (!file.type.startsWith('image/')) { showToast('Format non supporté', 'err'); return; }
-
-      // Prévisualisation immédiate locale (UX fluide)
-      const localURL = URL.createObjectURL(file);
-      if (wrap) {
-        wrap.innerHTML = `
-          <img src="${localURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">
-          <div id="param-avatar-overlay" style="position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.72);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;opacity:0;transition:opacity .22s;pointer-events:none;">
-            <i class="fa-solid fa-camera" style="font-size:20px;color:#fff;"></i>
-            <span style="font-family:Syne,sans-serif;font-size:7px;font-weight:800;letter-spacing:.12em;color:#fff;text-transform:uppercase;">Modifier</span>
-          </div>`;
-      }
-      if (statusEl) statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:6px;font-size:9px;color:var(--ice);font-family:Syne,sans-serif;font-weight:700;"><i class="fa-solid fa-circle-notch fa-spin"></i>Envoi en cours…</div>`;
-
-      // Déléguer à DS_PROFILE qui gère compression + Firestore + nav-avatar
-      try {
-        await window.DS_PROFILE?.handlePhotoUpload(file);
-        if (statusEl) statusEl.innerHTML = `<div style="font-size:9px;color:#10b981;font-family:Syne,sans-serif;font-weight:700;"><i class="fa-solid fa-circle-check" style="margin-right:5px;"></i>Photo mise à jour</div>`;
-        setTimeout(() => { if (statusEl) statusEl.innerHTML = ''; }, 3000);
-        // Rafraîchir le bouton Changer/Supprimer
-        setTimeout(() => this.renderParametres(), 1200);
-      } catch {
-        if (statusEl) statusEl.innerHTML = `<div style="font-size:9px;color:var(--color-error);font-family:Syne,sans-serif;font-weight:700;"><i class="fa-solid fa-circle-xmark" style="margin-right:5px;"></i>Erreur upload</div>`;
-        setTimeout(() => { if (statusEl) statusEl.innerHTML = ''; }, 3000);
-      }
-      URL.revokeObjectURL(localURL);
-    };
+    if (!window._paramHandlePhotoUpload) {
+      window._paramHandlePhotoUpload = async (file) => {
+        if (!file) return;
+        const statusEl = document.getElementById('param-upload-status');
+        if (file.size > 5 * 1024 * 1024) { showToast('Photo trop lourde (max 5 Mo)', 'warn'); return; }
+        if (!file.type.startsWith('image/')) { showToast('Format non supporté', 'err'); return; }
+        const localURL = URL.createObjectURL(file);
+        const img = document.getElementById('param-avatar-img');
+        const initials = document.getElementById('param-avatar-initials');
+        if (img && initials) {
+          img.src = localURL;
+          img.style.display = 'block';
+          initials.style.display = 'none';
+        }
+        if (statusEl) statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:6px;font-size:9px;color:var(--ice);font-family:Syne,sans-serif;font-weight:700;"><i class="fa-solid fa-circle-notch fa-spin"></i>Envoi en cours…</div>`;
+        try {
+          await window.DS_PROFILE?.handlePhotoUpload(file);
+          if (statusEl) statusEl.innerHTML = `<div style="font-size:9px;color:#10b981;font-family:Syne,sans-serif;font-weight:700;"><i class="fa-solid fa-circle-check" style="margin-right:5px;"></i>Photo mise à jour</div>`;
+          setTimeout(() => { if (statusEl) statusEl.innerHTML = ''; }, 3000);
+          setTimeout(() => this.renderParametres(), 1200);
+        } catch {
+          if (statusEl) statusEl.innerHTML = `<div style="font-size:9px;color:var(--color-error);font-family:Syne,sans-serif;font-weight:700;"><i class="fa-solid fa-circle-xmark" style="margin-right:5px;"></i>Erreur upload</div>`;
+          setTimeout(() => { if (statusEl) statusEl.innerHTML = ''; }, 3000);
+        }
+        URL.revokeObjectURL(localURL);
+      };
+    }
   },
 
   _updateThemeUI(theme) {
@@ -1171,11 +962,6 @@ window.DS_VIEWS = {
             ${n.read?'':'<span style="width:7px;height:7px;background:#8B7FF0;border-radius:50%;flex-shrink:0;margin-top:6px;"></span>'}
           </div>`;}).join('')
         :`<div style="padding:20px;text-align:center;font-size:10px;color:var(--muted);">Aucune notification pour le moment</div>`}
-        <div style="display:flex;gap:8px;margin-top:12px;">
-          <button class="param-btn neutral" onclick="DS_NOTIFS.markAllRead().then(()=>DS_VIEWS.navTo('alertes'))" style="flex:1;">
-            <i class="fa-solid fa-check-double" style="margin-right:6px;"></i>Tout marquer lu
-          </button>
-        </div>
       </div>`;
   },
 
@@ -1484,11 +1270,15 @@ window.DS_VIEWS = {
 
   // ── VUE : Chatbot IA (Classique) ─────────────────────────────
   renderChat() {
-    const msgsFull = document.getElementById('chat-msgs-full');
-    const msgsDash = document.getElementById('chat-msgs');
-    if (msgsFull && msgsDash && msgsFull.children.length === 0) {
-        msgsFull.innerHTML = msgsDash.innerHTML;
-        msgsFull.scrollTop = msgsFull.scrollHeight;
+    if (window.DS_CHAT && typeof window.DS_CHAT.renderViewChat === 'function') {
+      window.DS_CHAT.renderViewChat();
+    } else {
+      const msgsFull = document.getElementById('chat-msgs-full');
+      const msgsDash = document.getElementById('chat-msgs');
+      if (msgsFull && msgsDash && msgsFull.children.length === 0) {
+          msgsFull.innerHTML = msgsDash.innerHTML;
+          msgsFull.scrollTop = msgsFull.scrollHeight;
+      }
     }
   },
 
@@ -1533,3 +1323,4 @@ window.DS_VIEWS = {
 document.addEventListener('DOMContentLoaded', () => window.DS_VIEWS?.restoreSidebarState());
 
 console.log('[ds-views] ✓ Chargé');
+

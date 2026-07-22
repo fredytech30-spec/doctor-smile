@@ -408,3 +408,201 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ============================================================
+   INTRO REFINEMENTS — clearer premium launch experience
+   ============================================================ */
+
+body {
+  background:
+    radial-gradient(960px 520px at 50% 12%, rgba(124, 58, 237, 0.16), transparent 64%),
+    radial-gradient(640px 320px at 20% 82%, rgba(245, 158, 11, 0.08), transparent 66%),
+    linear-gradient(180deg, rgba(7, 8, 14, 1), rgba(11, 12, 20, 1));
+}
+
+[data-theme="light"] body {
+  background:
+    radial-gradient(960px 520px at 50% 12%, rgba(124, 58, 237, 0.08), transparent 64%),
+    radial-gradient(640px 320px at 20% 82%, rgba(245, 158, 11, 0.05), transparent 66%),
+    linear-gradient(180deg, #fbfbfe, #f4f3f9);
+}
+
+#overlay {
+  gap: 18px;
+  padding: 24px;
+}
+
+#logo {
+  text-align: center;
+}
+
+#tagline,
+#metrics,
+#status {
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+#tagline {
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border-v) 88%, transparent);
+  background: rgba(255, 255, 255, 0.03);
+  letter-spacing: 0.22em;
+}
+
+#metrics {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  max-width: 980px;
+}
+
+.metric {
+  min-width: 164px;
+  padding: 18px 18px 16px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 95%, transparent), color-mix(in srgb, var(--surface-2) 92%, transparent));
+  box-shadow: 0 16px 38px rgba(8, 10, 19, 0.14);
+}
+
+.mval {
+  font-family: var(--font-display);
+}
+
+#enterBtn {
+  bottom: 9vh;
+}
+
+#enterBtn button {
+  min-height: 56px;
+  min-width: 240px;
+  padding: 16px 30px;
+  border-radius: 18px;
+  background: var(--grad-perfect);
+  box-shadow: 0 18px 36px rgba(124, 58, 237, 0.24);
+}
+
+#enterBtn button:hover {
+  box-shadow: 0 24px 46px rgba(124, 58, 237, 0.3);
+}
+
+#status {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+}
+
+.corner {
+  opacity: 0.55;
+}
+
+.scanline {
+  opacity: 0.55;
+}
+
+#cube-intro {
+  top: 4vh;
+}
+
+.cube-wrap {
+  width: 124px;
+  height: 124px;
+}
+
+.cube {
+  width: 116px;
+  height: 116px;
+}
+
+.cf {
+  width: 116px;
+  height: 116px;
+}
+
+.cf-front { transform: translateZ(58px); }
+.cf-back  { transform: rotateY(180deg) translateZ(58px); }
+.cf-right { transform: rotateY(90deg) translateZ(58px); }
+.cf-left  { transform: rotateY(-90deg) translateZ(58px); }
+.cf-top   { transform: rotateX(90deg) translateZ(58px); }
+.cf-bot   { transform: rotateX(-90deg) translateZ(58px); }
+
+@media (max-width: 820px) {
+  #overlay {
+    gap: 14px;
+  }
+
+  #metrics {
+    gap: 10px;
+  }
+
+  .metric {
+    min-width: calc(50% - 10px);
+  }
+
+  #tagline {
+    max-width: min(100%, 36ch);
+    text-align: center;
+    line-height: 1.7;
+  }
+}
+
+@media (max-width: 560px) {
+  #cube-intro {
+    top: 22px;
+  }
+
+  .cube-wrap {
+    width: 98px;
+    height: 98px;
+  }
+
+  .cube {
+    width: 92px;
+    height: 92px;
+  }
+
+  .cf {
+    width: 92px;
+    height: 92px;
+  }
+
+  .cf-front { transform: translateZ(46px); }
+  .cf-back  { transform: rotateY(180deg) translateZ(46px); }
+  .cf-right { transform: rotateY(90deg) translateZ(46px); }
+  .cf-left  { transform: rotateY(-90deg) translateZ(46px); }
+  .cf-top   { transform: rotateX(90deg) translateZ(46px); }
+  .cf-bot   { transform: rotateX(-90deg) translateZ(46px); }
+
+  .cf i {
+    font-size: 36px;
+  }
+
+  #metrics {
+    width: 100%;
+  }
+
+  .metric {
+    width: 100%;
+    min-width: 0;
+  }
+
+  #status {
+    max-width: calc(100% - 24px);
+    text-align: center;
+    line-height: 1.6;
+    white-space: normal;
+  }
+
+  #enterBtn {
+    width: calc(100% - 32px);
+  }
+
+  #enterBtn button {
+    width: 100%;
+    min-width: 0;
+  }
+}

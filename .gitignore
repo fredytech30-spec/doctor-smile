@@ -20,7 +20,7 @@ desktop.ini
 node_modules/
 dist/
 build/
-.env
+# .env  # Commenté temporairement pour permettre l'accès
 .env.local
 .env.development.local
 .env.test.local
@@ -31,7 +31,7 @@ doctorsmile_security.sql
 
 # Firebase / Secrets
 serviceAccountKey.json
-.env
+# .env  # Commenté temporairement pour permettre l'accès
 
 # Backup
 *.bak

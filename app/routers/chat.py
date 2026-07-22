@@ -71,7 +71,96 @@ async def chat_endpoint(
     analyse_context: dict[str, Any] = {}
     conv_id = body.analyseId
 
-    if body.analyseId and body.analyseId not in ("demo", "null", "undefined", ""):
+    if body.analyseId == "demo":
+        # Injecter le contexte de la Société SPORDEMO (Image 2) — format SYSCOHADA Engine v3
+        analyse_context = {
+            "entreprise":        "Société SPORDEMO",
+            "score":             45,
+            "zone":              "vigilance",
+            "ivf":               55,  # Indice de Vulnérabilité Financière
+            "probabiliteDefaut": 55.0,
+            "confidence":        95,
+            "model":             "Moteur Déterministe SYSCOHADA v3",
+            "engine":            "SYSCOHADA Engine v3.0",
+            "pays":              "Cameroun / CEMAC",
+            "secteur":           "Services",
+            "ratios": [
+                {"name": "Liquidité générale",       "value": 1.42,  "unit": "",  "benchmark": "> 1.0",   "status": "green",  "score": 71},
+                {"name": "Marge nette (%)",           "value": 4.76,  "unit": "%", "benchmark": "> 2.0%",  "status": "green",  "score": 75},
+                {"name": "ROE (%)",                   "value": 14.98, "unit": "%", "benchmark": "> 5.0%",  "status": "green",  "score": 80},
+                {"name": "Ratio d'endettement",      "value": 2.65,  "unit": "",  "benchmark": "< 2.5",   "status": "yellow", "score": 58},
+                {"name": "Rotation des actifs",       "value": 0.86,  "unit": "",  "benchmark": "> 0.5",   "status": "green",  "score": 78},
+                {"name": "Délai client (DSO) — jours","value": 212,   "unit": "j", "benchmark": "< 60j",   "status": "red",    "score": 25, "compte": "411"},
+                {"name": "Délai fournisseur (DPO)",   "value": 87,    "unit": "j", "benchmark": "> 60j",   "status": "green",  "score": 80, "compte": "401"},
+                {"name": "Ratio Clients/Fournisseurs","value": 5.66,  "unit": "×", "benchmark": "< 1.5×",  "status": "red",    "score": 20, "compte": "411/401"},
+            ],
+            "risk_factors": [
+                {
+                    "rule":        "dso_catastrophique",
+                    "name":        "DSO Catastrophique — Asphyxie Trésorerie",
+                    "description": "DSO = 212 jours. Vos clients paient en moyenne après 7 mois. Chaque prestation livrée aujourd'hui ne sera encaissée qu'en mars prochain. L'entreprise se finance elle-même sur le dos de ses propres ressources.",
+                    "severity":    "critical",
+                    "score_impact": -30,
+                    "compte":      "411",
+                    "action":      "Implémentez un acompte de 50% à la signature + Mobile Money pour solde à la livraison. Relancez via WhatsApp Business tous les clients dépassant 30 jours d'impayé.",
+                },
+                {
+                    "rule":        "ratio_cli_four_critique",
+                    "name":        "Déséquilibre Clients/Fournisseurs Extrême",
+                    "description": "Ratio 5,66× : pour chaque 1 FCFA dû aux fournisseurs, vos clients vous doivent 5,66 FCFA. Vous subventionnez vos clients avec l'argent que vous devez à vos fournisseurs.",
+                    "severity":    "critical",
+                    "score_impact": -20,
+                    "compte":      "411 / 401",
+                    "action":      "Stop livraison aux clients dépassant 45 jours d'impayé. Négociez des délais fournisseurs à 90 jours pour rééquilibrer le BFR.",
+                },
+                {
+                    "rule":        "endettement_eleve",
+                    "name":        "Ratio d'Endettement Au-Dessus du Seuil",
+                    "description": "Endettement à 2,65× (seuil CEMAC = 2,5×). Marge de manœuvre réduite pour un nouveau crédit bancaire. Les banques BICEC/Afriland verront ce ratio comme un signal d'alerte.",
+                    "severity":    "high",
+                    "score_impact": -10,
+                    "compte":      "16 / 17",
+                    "action":      "Priorisez le remboursement des dettes court terme (compte 164) avant de solliciter un nouveau financement. Ciblez d'abord l'encaissement des créances 411 pour autofinancer le remboursement.",
+                },
+            ],
+            "recommendations": [
+                {
+                    "urgency":      "immediate",
+                    "level":        "high",
+                    "icon":         "fa-exclamation-triangle",
+                    "emoji":        "🔴",
+                    "title":        "Campagne Recouvrement Urgente — Compte 411",
+                    "detail":       "Contactez immédiatement tous les clients avec créances > 30 jours. Offrez 5% de remise pour paiement Mobile Money (MTN/Orange) dans les 48h.",
+                    "description":  "DSO = 212 jours : vous financez vos clients avec vos propres ressources depuis 7 mois. Chaque jour d'inaction coûte de la trésorerie.",
+                    "compte":       "411",
+                    "impact_score": 30,
+                },
+                {
+                    "urgency":      "immediate",
+                    "level":        "high",
+                    "icon":         "fa-ban",
+                    "emoji":        "🔴",
+                    "title":        "Stop-and-Go — Bloquer les nouvelles livraisons impayées",
+                    "detail":       "Aucune livraison ou nouvelle prestation sans acompte de 50% ou solde intégral des créances en cours.",
+                    "description":  "Ratio Clients/Fournisseurs à 5,66× : vous subventionnez vos clients avec l'argent dû à vos fournisseurs.",
+                    "compte":       "411 / 401",
+                    "impact_score": 20,
+                },
+                {
+                    "urgency":      "court_terme",
+                    "level":        "medium",
+                    "icon":         "fa-file-invoice",
+                    "emoji":        "🟠",
+                    "title":        "Optimiser la TVA sur encaissements",
+                    "detail":       "Passez d'une TVA sur débits à une TVA sur encaissements : ne payez la DGI que lorsque vos clients ont effectivement payé.",
+                    "description":  "Cela libère immédiatement de la trésorerie en différant les décaissements fiscaux.",
+                    "compte":       "441 / 444 / 445",
+                    "impact_score": 10,
+                },
+            ],
+            "scoreHistory": [40, 42, 41, 44, 43, 44, 45],
+        }
+    elif body.analyseId and body.analyseId not in ("null", "undefined", ""):
         analyse = firebase_service.get_analysis(body.analyseId)
         if analyse:
             analyse_context = analyse

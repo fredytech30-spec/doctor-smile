@@ -1,5 +1,8 @@
 """
 ROUTER — reset_password.py — Réinitialisation mot de passe via Brevo (HTML direct)
+
+Tokens de reset stockés dans Firestore (collection `password_resets/{token}`).
+Résiste aux redémarrages et fonctionne avec plusieurs workers.
 """
 
 from __future__ import annotations
@@ -18,10 +21,48 @@ from app.services.email_service import email_service
 log = logging.getLogger("doctorsmile.reset_password")
 router = APIRouter(prefix="/reset-password", tags=["Réinitialisation"])
 
-# Stockage temporaire des tokens (à remplacer par Redis en production)
-_reset_tokens: dict[str, dict] = {}
-
 _APP_URL = os.getenv("APP_URL", "https://doctorsmile-d8d8f.web.app")
+
+
+# ── Helpers Firestore pour les tokens de reset ───────────────────
+
+def _save_reset_token(token: str, uid: str, email: str, expires_at: datetime) -> None:
+    """Sauvegarde un token de reset dans Firestore."""
+    if not firebase_service.available:
+        log.warning("[Reset] Firebase non disponible — token non persisté")
+        return
+    try:
+        firebase_service.db.collection("password_resets").document(token).set({
+            "uid": uid,
+            "email": email,
+            "expires_at": expires_at.isoformat(),
+            "used": False,
+        })
+    except Exception as exc:
+        log.error("[Reset] Erreur sauvegarde token Firestore : %s", exc)
+
+
+def _get_reset_token(token: str) -> dict | None:
+    """Récupère les données d'un token de reset depuis Firestore."""
+    if not firebase_service.available:
+        return None
+    try:
+        doc = firebase_service.db.collection("password_resets").document(token).get()
+        if doc.exists:
+            return doc.to_dict()
+    except Exception as exc:
+        log.error("[Reset] Erreur lecture token Firestore : %s", exc)
+    return None
+
+
+def _mark_reset_token_used(token: str) -> None:
+    """Marque un token de reset comme utilisé dans Firestore."""
+    if not firebase_service.available:
+        return
+    try:
+        firebase_service.db.collection("password_resets").document(token).update({"used": True})
+    except Exception as exc:
+        log.error("[Reset] Erreur marquage token utilisé : %s", exc)
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -65,16 +106,11 @@ async def forgot_password(req: ForgotPasswordRequest, request: Request):
         log.warning("Utilisateur non trouvé: %s — %s", email, e)
         return {"status": "sent", "message": "Si un compte existe, un email a été envoyé"}
 
-    # Générer un token sécurisé
+    # Générer un token sécurisé et le persister dans Firestore
     token      = secrets.token_urlsafe(32)
     expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
 
-    _reset_tokens[token] = {
-        "uid":        uid,
-        "email":      email,
-        "expires_at": expires_at.isoformat(),
-        "used":       False
-    }
+    _save_reset_token(token, uid, email, expires_at)
 
     # Déterminer l'URL du frontend dynamiquement (via origin ou referer), avec fallback sur _APP_URL
     origin = request.headers.get("origin")
@@ -117,7 +153,7 @@ async def reset_password(req: ResetPasswordRequest):
     if len(req.new_password) < 6:
         raise HTTPException(400, "Le mot de passe doit contenir au moins 6 caractères")
 
-    token_data = _reset_tokens.get(req.token)
+    token_data = _get_reset_token(req.token)
     if not token_data:
         raise HTTPException(400, "Token invalide ou expiré")
     if token_data.get("used"):
@@ -132,8 +168,7 @@ async def reset_password(req: ResetPasswordRequest):
     uid = token_data["uid"]
     try:
         fb_auth.update_user(uid, password=req.new_password)
-        token_data["used"] = True
-        _reset_tokens[req.token] = token_data
+        _mark_reset_token_used(req.token)
         log.info("Mot de passe réinitialisé pour uid=%s", uid)
         return {"status": "success", "message": "Mot de passe mis à jour avec succès"}
     except Exception as e:
@@ -149,7 +184,7 @@ async def reset_password(req: ResetPasswordRequest):
 @router.get("/validate/{token}")
 async def validate_reset_token(token: str):
     """Vérifie si un token de reset est valide et non expiré."""
-    data = _reset_tokens.get(token)
+    data = _get_reset_token(token)
     if not data:
         return {"valid": False, "reason": "Token introuvable"}
     if data.get("used"):

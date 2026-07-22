@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marketplace Experts ONECCA - Doctor Smile</title>
+  <meta name="description" content="Trouvez l'expert comptable ONECCA idéal pour votre entreprise via notre IA de matching intelligent.">
+  
+  <!-- Anti-flash thème -->
+  <script>
+    (function() {
+      try {
+        var t = localStorage.getItem('ds-theme');
+        if (!t || (t !== 'light' && t !== 'dark')) {
+          t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+  
+  <!-- Polices premium -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  
+  <!-- Design System unifié -->
+  <link rel="stylesheet" href="assets/css/design-system.css">
+  <link rel="stylesheet" href="assets/css/ui-components.css">
+  <link rel="stylesheet" href="assets/css/animations.css">
+  <link rel="stylesheet" href="assets/css/responsive.css">
+  
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  
+  <!-- Core JS -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/firebase-auth.js"></script>
+  <script src="js/auth-guard.js"></script>
+  <script src="js/ds-marketplace.js"></script>
+</head>
+<body>
+  <!-- Background premium -->
+  <div class="premium-bg"></div>
+  <div class="noise-overlay"></div>
+  
+  <!-- Navigation premium -->
+  <nav class="marketplace-nav">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <i class="fa-solid fa-heart-pulse nav-logo"></i>
+        <span class="nav-text">Doctor Smile</span>
+      </div>
+      <div class="nav-actions">
+        <button class="nav-btn" onclick="window.location.href='dashboard.html'">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span>Retour Dashboard</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Header premium -->
+  <header class="marketplace-header">
+    <div class="header-content">
+      <div class="header-badge">
+        <i class="fa-solid fa-star"></i>
+        <span>Experts Certifiés ONECCA</span>
+      </div>
+      <h1 class="header-title">
+        <span class="gradient-text">Marketplace</span> Experts
+      </h1>
+      <p class="header-subtitle">
+        Matching IA intelligent pour trouver l'expert comptable parfait pour votre entreprise
+      </p>
+      
+      <!-- Filtres premium -->
+      <div class="filters-container">
+        <div class="filter-group">
+          <label class="filter-label">
+            <i class="fa-solid fa-filter"></i>
+            Filtres
+          </label>
+          <div class="filter-chips">
+            <button class="filter-chip active" data-filter="all">Tous</button>
+            <button class="filter-chip" data-filter="matched">Match IA</button>
+            <button class="filter-chip" data-filter="rating">Top Rated</button>
+            <button class="filter-chip" data-filter="available">Disponibles</button>
+          </div>
+        </div>
+        <div class="search-group">
+          <div class="search-input">
+            <i class="fa-solid fa-search"></i>
+            <input type="text" placeholder="Rechercher un expert..." id="expert-search">
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <!-- Smart Match Banner -->
+  <div class="smart-match-banner" id="smart-match-banner" style="display: none;">
+    <div class="match-content">
+      <div class="match-icon">
+        <i class="fa-solid fa-brain"></i>
+      </div>
+      <div class="match-info">
+        <h3>Match IA Intelligent Activé</h3>
+        <p>Basé sur votre score de vulnérabilité et secteur d'activité</p>
+      </div>
+      <button class="match-btn" onclick="window.MARKETPLACE.triggerSmartMatch()">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        Rafraîchir Match
+      </button>
+    </div>
+  </div>
+  
+  <!-- Experts Grid Premium -->
+  <main class="marketplace-main">
+    <div class="experts-grid" id="experts-grid">
+      <!-- Expert cards will be rendered here -->
+    </div>
+    
+    <!-- Loading State -->
+    <div class="loading-state" id="loading-state">
+      <div class="loader-spinner"></div>
+      <p>Chargement des experts...</p>
+    </div>
+    
+    <!-- Empty State -->
+    <div class="empty-state" id="empty-state" style="display: none;">
+      <i class="fa-solid fa-users-slash"></i>
+      <h3>Aucun expert disponible</h3>
+      <p>Revenez plus tard pour découvrir de nouveaux experts certifiés.</p>
+    </div>
+  </main>
+  
+  <!-- Expert Detail Modal -->
+  <div class="modal-overlay" id="expert-modal" style="display: none;">
+    <div class="modal-container expert-modal">
+      <div class="modal-header">
+        <h3 id="modal-expert-name">Expert Details</h3>
+        <button class="modal-close" onclick="window.MARKETPLACE.closeModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body" id="modal-expert-content">
+        <!-- Expert details will be rendered here -->
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast Notifications -->
+  <div class="toast-container" id="toast-container"></div>
+  
+  <script>
+    // Initialisation marketplace
+    document.addEventListener('DOMContentLoaded', () => {
+      window.MARKETPLACE.init();
+    });
+  </script>
+</body>
+</html>

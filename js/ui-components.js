@@ -7,7 +7,7 @@
    TOAST NOTIFICATIONS
    ───────────────────────────────────────────────────────────────── */
 
-const Toast = {
+window.Toast = {
   // Configuration par défaut
   defaults: {
     duration: 3000,
@@ -122,7 +122,7 @@ const Toast = {
    MODAL DIALOGS
    ───────────────────────────────────────────────────────────────── */
 
-const Modal = {
+window.Modal = {
   // Configuration par défaut
   defaults: {
     closeOnOverlay: true,
@@ -155,10 +155,13 @@ const Modal = {
     // Créer l'overlay avec classes CSS
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
 
     // Créer le modal avec classes CSS
     const modal = document.createElement('div');
     modal.className = `modal-box modal-${config.size || 'medium'}`;
+    modal.setAttribute('tabindex', '-1');
 
     // Contenu
     if (typeof content === 'string') {
@@ -189,6 +192,12 @@ const Modal = {
       overlay.classList.add('active');
     });
 
+    // Focus trap implementation
+    this._setupFocusTrap(modal, overlay);
+
+    // Focus sur le modal
+    setTimeout(() => modal.focus(), 100);
+
     // Fermeture sur overlay
     if (config.closeOnOverlay) {
       overlay.addEventListener('click', (e) => {
@@ -205,6 +214,7 @@ const Modal = {
         }
       };
       document.addEventListener('keydown', escapeHandler);
+      this.activeModal.escapeHandler = escapeHandler;
     }
 
     // Empêcher le scroll du body
@@ -213,11 +223,47 @@ const Modal = {
     return { overlay, modal };
   },
 
+  // Focus trap premium implementation
+  _setupFocusTrap(modal, overlay) {
+    const focusableElements = modal.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    const trapFocus = (e) => {
+      if (e.key !== 'Tab') return;
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    modal.addEventListener('keydown', trapFocus);
+    this.activeModal.trapFocusHandler = trapFocus;
+  },
+
   // Fermer le modal actif
   close() {
     if (!this.activeModal) return;
 
-    const { overlay } = this.activeModal;
+    const { overlay, modal, escapeHandler, trapFocusHandler } = this.activeModal;
+
+    // Nettoyer les event listeners
+    if (escapeHandler) {
+      document.removeEventListener('keydown', escapeHandler);
+    }
+    if (trapFocusHandler) {
+      modal.removeEventListener('keydown', trapFocusHandler);
+    }
 
     // Animation de sortie
     overlay.classList.remove('active');
@@ -286,7 +332,7 @@ const Modal = {
    LOADERS
    ───────────────────────────────────────────────────────────────── */
 
-const Loader = {
+window.Loader = {
   // Loader actif
   activeLoader: null,
 
@@ -372,10 +418,9 @@ const Loader = {
    ───────────────────────────────────────────────────────────────── */
 
 window.DS_UI = {
-  Toast,
-  Modal,
-  Loader
+  Toast: window.Toast,
+  Modal: window.Modal,
+  Loader: window.Loader
 };
 
-// Export pour les modules ES6
-export { Toast, Modal, Loader };
+// Les objets sont déjà exposés globalement via window.DS_UI

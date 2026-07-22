@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paramètres - Doctor Smile</title>
+  <link rel="stylesheet" href="assets/css/design-system.css">
+  <link rel="stylesheet" href="assets/css/ui-components.css">
+  <link rel="stylesheet" href="assets/css/dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .settings-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    .settings-header {
+      margin-bottom: 2rem;
+    }
+    .settings-header h1 {
+      margin: 0 0 0.5rem 0;
+    }
+    .settings-header p {
+      color: var(--text-muted);
+    }
+    .settings-section {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      border: 1px solid var(--border);
+    }
+    .settings-section h2 {
+      margin: 0 0 1.5rem 0;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+    .setting-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .setting-item label {
+      font-weight: 500;
+      font-size: 0.875rem;
+    }
+    .setting-item select,
+    .setting-item input {
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text-1);
+    }
+    .setting-item select:focus,
+    .setting-item input:focus {
+      outline: none;
+      border-color: var(--violet-3);
+    }
+    .toggle-switch {
+      position: relative;
+      width: 50px;
+      height: 26px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--border);
+      border-radius: 13px;
+      transition: 0.3s;
+    }
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+    input:checked + .toggle-slider {
+      background: var(--violet-3);
+    }
+    input:checked + .toggle-slider:before {
+      transform: translateX(24px);
+    }
+    .toggle-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .toggle-item:last-child {
+      border-bottom: none;
+    }
+    .toggle-info {
+      flex: 1;
+    }
+    .toggle-info h3 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1rem;
+    }
+    .toggle-info p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    .integration-item {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 1.25rem;
+      border: 1px solid var(--border);
+    }
+    .integration-item h3 {
+      margin: 0 0 0.5rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .integration-item p {
+      margin: 0 0 1rem 0;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    .integration-status {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .integration-status.connected {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+    .integration-status.disconnected {
+      background: var(--error-bg);
+      color: var(--error);
+    }
+    .settings-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+      margin-top: 2rem;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+    }
+    .modal-content h3 {
+      margin: 0 0 1.5rem 0;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text-1);
+    }
+    .modal-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+      margin-top: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="settings-container">
+    <div class="settings-header">
+      <h1>⚙️ Paramètres</h1>
+      <p>Personnalisez votre expérience Doctor Smile</p>
+    </div>
+    
+    <!-- Affichage -->
+    <div class="settings-section">
+      <h2>🎨 Affichage</h2>
+      <div class="settings-grid">
+        <div class="setting-item">
+          <label>Thème</label>
+          <select id="theme-select">
+            <option value="dark">Sombre</option>
+            <option value="light">Clair</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label>Langue</label>
+          <select id="language-select">
+            <option value="fr">Français</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label>Devise</label>
+          <select id="currency-select">
+            <option value="FCFA">FCFA</option>
+            <option value="EUR">EUR</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label>Format de date</label>
+          <select id="date-format-select">
+            <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+            <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+            <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Automatisation -->
+    <div class="settings-section">
+      <h2>🤖 Automatisation</h2>
+      <div class="toggle-item">
+        <div class="toggle-info">
+          <h3>Rappels automatiques</h3>
+          <p>Activer les rappels automatiques pour les échéances</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="auto-reminders-toggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-item">
+        <div class="toggle-info">
+          <h3>Synchronisation automatique</h3>
+          <p>Synchroniser automatiquement les données avec les intégrations</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="auto-sync-toggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-item">
+        <div class="toggle-info">
+          <h3>Sauvegarde automatique</h3>
+          <p>Sauvegarder automatiquement vos analyses</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="auto-backup-toggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+    
+    <!-- Intégrations -->
+    <div class="settings-section">
+      <h2>🔗 Intégrations</h2>
+      <div class="settings-grid">
+        <div class="integration-item">
+          <h3>
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+            QuickBooks
+            <span id="quickbooks-status" class="integration-status disconnected">Non connecté</span>
+          </h3>
+          <p>Connectez votre compte QuickBooks pour synchroniser vos données comptables</p>
+          <label class="toggle-switch">
+            <input type="checkbox" id="quickbooks-toggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="integration-item">
+          <h3>
+            <i class="fa-solid fa-calculator"></i>
+            Sage
+            <span id="sage-status" class="integration-status disconnected">Non connecté</span>
+          </h3>
+          <p>Connectez votre compte Sage pour synchroniser vos données comptables</p>
+          <label class="toggle-switch">
+            <input type="checkbox" id="sage-toggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="integration-item">
+          <h3>
+            <i class="fa-solid fa-book"></i>
+            CEGID
+            <span id="cegid-status" class="integration-status disconnected">Non connecté</span>
+          </h3>
+          <p>Connectez votre compte CEGID pour synchroniser vos données comptables</p>
+          <label class="toggle-switch">
+            <input type="checkbox" id="cegid-toggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Actions -->
+    <div class="settings-actions">
+      <button class="btn btn-secondary" onclick="resetSettings()">
+        <i class="fa-solid fa-rotate-left" style="margin-right: 0.5rem;"></i>
+        Réinitialiser
+      </button>
+      <button class="btn btn-primary" onclick="saveSettings()">
+        <i class="fa-solid fa-save" style="margin-right: 0.5rem;"></i>
+        Enregistrer
+      </button>
+    </div>
+  </div>
+  
+  <!-- Modal Configuration Intégration -->
+  <div id="integration-config-modal" class="modal">
+    <div class="modal-content">
+      <h3>Configurer l'intégration</h3>
+      <div class="form-group">
+        <label>Clé API</label>
+        <input type="text" id="integration-api-key" placeholder="Entrez votre clé API">
+      </div>
+      <div class="form-group">
+        <label>ID de compte</label>
+        <input type="text" id="integration-account-id" placeholder="Entrez votre ID de compte">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeIntegrationModal()">Annuler</button>
+        <button class="btn btn-primary" onclick="submitIntegrationConfig()">Configurer</button>
+      </div>
+    </div>
+  </div>
+  
+  <script type="module" src="./js/ds-settings.js"></script>
+  <script type="module" src="./js/ds-core.js"></script>
+  <script>
+    function saveSettings() {
+      alert('✅ Paramètres enregistrés');
+    }
+    
+    function closeIntegrationModal() {
+      document.getElementById('integration-config-modal').style.display = 'none';
+    }
+    
+    function submitIntegrationConfig() {
+      const modal = document.getElementById('integration-config-modal');
+      const integration = modal.dataset.integration;
+      const apiKey = document.getElementById('integration-api-key').value;
+      const accountId = document.getElementById('integration-account-id').value;
+      
+      if (apiKey && accountId) {
+        window.configureIntegration(integration, { api_key: apiKey, account_id: accountId });
+        closeIntegrationModal();
+      }
+    }
+  </script>
+</body>
+</html>

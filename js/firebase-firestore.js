@@ -5,7 +5,7 @@
 //  Collections :
 //    users/{uid}                        ← profil utilisateur
 //    users/{uid}/abonnements/current    ← plan actif
-//    analyses/{id}                      ← analyses ML
+//    analyses/{id}                      ← analyses SYSCOHADA
 //    conversations/{id}                 ← conversations chat
 //    conversations/{id}/messages/{id}   ← messages d'une conv
 //
@@ -166,58 +166,36 @@ export async function saveAbonnement(uid, data) {
 // ════════════════════════════════════════════════════════════════
 
 export function listenUserAnalyses(uid, callback) {
-  // Essayer avec index composite (where + orderBy)
-  const qWithOrder = query(
+  // Charger TOUT l'historique d'analyses de l'utilisateur sans limite
+  // Utiliser query simple sans orderBy pour éviter l'erreur d'index composite
+  const qSimple = query(
     collection(db, 'analyses'),
-    where('userId', '==', uid),
-    orderBy('createdAt', 'desc'),
-    limit(50)
+    where('userId', '==', uid)
   );
 
   let unsub = null;
 
-  // Tentative avec index — si l'index n'existe pas encore, fallback sans orderBy
   try {
     unsub = onSnapshot(
-      qWithOrder,
+      qSimple,
       (snap) => {
-        const results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const results = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => {
+            const ta = a.createdAt?.seconds ?? a.createdAt?.toDate?.()?.getTime?.()/1000 ?? 0;
+            const tb = b.createdAt?.seconds ?? b.createdAt?.toDate?.()?.getTime?.()/1000 ?? 0;
+            return tb - ta;
+          });
+        console.log('[FS] listenUserAnalyses: chargé', results.length, 'analyses (historique complet)');
         callback(results);
       },
-      async (err) => {
-        console.warn('[FS] listenUserAnalyses (avec index):', err.code, '— fallback sans orderBy');
-        // Fallback : query simple sans orderBy, tri côté client
-        try {
-          const qSimple = query(
-            collection(db, 'analyses'),
-            where('userId', '==', uid),
-            limit(50)
-          );
-          unsub = onSnapshot(
-            qSimple,
-            (snap) => {
-              const results = snap.docs
-                .map(d => ({ id: d.id, ...d.data() }))
-                .sort((a, b) => {
-                  const ta = a.createdAt?.seconds ?? a.createdAt?.toDate?.()?.getTime?.()/1000 ?? 0;
-                  const tb = b.createdAt?.seconds ?? b.createdAt?.toDate?.()?.getTime?.()/1000 ?? 0;
-                  return tb - ta;
-                });
-              callback(results);
-            },
-            (err2) => {
-              console.error('[FS] listenUserAnalyses fallback:', err2);
-              callback([]);
-            }
-          );
-        } catch (e) {
-          console.error('[FS] listenUserAnalyses fallback catch:', e);
-          callback([]);
-        }
+      (err) => {
+        console.error('[FS] listenUserAnalyses error:', err);
+        callback([]);
       }
     );
-  } catch (e) {
-    console.error('[FS] listenUserAnalyses init error:', e);
+  } catch (initErr) {
+    console.error('[FS] listenUserAnalyses init error:', initErr);
     callback([]);
   }
 
@@ -309,26 +287,14 @@ export async function getScoreHistory(uid, entreprise) {
  */
 export async function getUserConversations(uid) {
   try {
-    // Essayer avec index (updatedAt desc), fallback sans orderBy
-    let docs;
-    try {
-      const q = query(
-        collection(db, 'conversations'),
-        where('userId', '==', uid),
-        orderBy('updatedAt', 'desc'),
-        limit(100)
-      );
-      const snap = await getDocs(q);
-      docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    } catch {
-      const q2 = query(
-        collection(db, 'conversations'),
-        where('userId', '==', uid),
-        limit(100)
-      );
-      const snap2 = await getDocs(q2);
-      docs = snap2.docs.map(d => ({ id: d.id, ...d.data() }));
-    }
+    // Charger TOUTES les conversations de l'utilisateur sans limite
+    // Utiliser query simple sans orderBy pour éviter l'erreur d'index composite
+    const q = query(
+      collection(db, 'conversations'),
+      where('userId', '==', uid)
+    );
+    const snap = await getDocs(q);
+    const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     // Tri côté client (robuste)
     return docs.sort((a, b) => {
       const ta = a.updatedAt?.seconds ?? a.createdAt?.seconds ?? 0;
@@ -463,36 +429,22 @@ async function _incrementMsgCount(convId) {
 }
 
 /**
- * Charge tous les messages d'une conversation, triés par date.
+ * Charge TOUS les messages d'une conversation, triés par date.
  */
 export async function getMessages(convId) {
   if (!convId) return [];
   try {
-    const q = query(
-      collection(db, 'conversations', convId, 'messages'),
-      orderBy('createdAt', 'asc'),
-      limit(200)
+    // Charger TOUS les messages sans limite
+    // Utiliser query simple sans orderBy pour éviter l'erreur d'index composite
+    const snap = await getDocs(
+      collection(db, 'conversations', convId, 'messages')
     );
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({
-      id:        d.id,
-      role:      d.data().role,
-      content:   d.data().content,
-      createdAt: d.data().createdAt,
-    }));
+    return snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0));
   } catch (e) {
-    // Fallback sans orderBy si l'index manque
-    try {
-      const snap2 = await getDocs(
-        collection(db, 'conversations', convId, 'messages')
-      );
-      return snap2.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0));
-    } catch (e2) {
-      console.warn('[FS] getMessages fallback:', e2);
-      return [];
-    }
+    console.warn('[FS] getMessages error:', e);
+    return [];
   }
 }
 

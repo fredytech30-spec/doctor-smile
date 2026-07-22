@@ -17,9 +17,14 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.middleware.firebase_verify import verify_token
 from app.services.otp_service import otp_service
+
+# Initialize rate limiter for this router
+limiter = Limiter(key_func=get_remote_address)
 
 log = logging.getLogger("doctorsmile.router.auth_2fa")
 router = APIRouter(prefix="/auth/2fa", tags=["Authentification 2FA"])
@@ -83,6 +88,7 @@ async def _optional_token(request: Request) -> Optional[dict]:
 # ════════════════════════════════════════════════════════════════
 
 @router.post("/send")
+@limiter.limit("5/minute")  # 5 requests per minute per IP
 async def send_otp(request: Request, req: SendOTPRequest):
     """
     Envoie un code OTP à 6 chiffres par email.
@@ -90,6 +96,9 @@ async def send_otp(request: Request, req: SendOTPRequest):
     Token Firebase optionnel (non bloquant) pour compatibilité.
     """
     log.info("=" * 60)
+    log.info("🔗 [BACKEND] /auth/2fa/send endpoint HIT")
+    log.info("🔗 [BACKEND] Request from: %s", request.client.host if request.client else "unknown")
+    log.info("🔗 [BACKEND] Request headers: %s", dict(request.headers))
     log.info("[2FA] 📧 DEMANDE D'ENVOI OTP")
     log.info("[2FA] From: %s", request.client.host if request.client else "unknown")
     log.info("[2FA] To: %s (uid: %s)", req.email, req.uid)
@@ -127,8 +136,10 @@ async def send_otp(request: Request, req: SendOTPRequest):
 
     if sent:
         log.info("[2FA] ✅ EMAIL ENVOYÉ AVEC SUCCÈS à %s", req.email)
+        log.info("🔗 [BACKEND] OTP send completed successfully")
     else:
         log.error("[2FA] ❌ ÉCHEC DE L'ENVOI à %s", req.email)
+        log.error("🔗 [BACKEND] OTP send failed")
         # En mode dev (pas de provider email configuré), on retourne quand même succès
         dev_mode = os.getenv("AUTH_DEV_MODE", "false").lower() in ("1", "true", "yes")
         if not dev_mode:
@@ -152,41 +163,59 @@ async def send_otp(request: Request, req: SendOTPRequest):
 # ════════════════════════════════════════════════════════════════
 
 @router.post("/verify")
+@limiter.limit("10/minute")  # 10 requests per minute per IP
 async def verify_otp(request: Request, req: VerifyOTPRequest):
     """
-    Vérifie le code OTP.
+    Vérifie le code OTP soumis par l'utilisateur contre le code généré et stocké.
+    Appelle otp_service.verify_otp() pour une vérification cryptographique réelle.
     Token Firebase optionnel (non bloquant).
     """
-    dev_mode = os.getenv("AUTH_DEV_MODE", "false").lower() in ("1", "true", "yes")
-    if dev_mode and req.code == "123456":
-        log.info("[2FA] ⚠️ [DEV MODE] Code générique 123456 accepté directement.")
-        result = {"success": True, "message": "Code valide (mode dev)"}
+    _dev_mode = os.getenv("AUTH_DEV_MODE", "false").lower() in ("1", "true", "yes")
+
+    # Validation du format
+    if not req.code or len(req.code) != 6 or not req.code.isdigit():
+        log.warning("[2FA] ⚠️ Code OTP invalide pour uid=%s (format non valide)", req.uid)
+        raise HTTPException(400, "Code doit être exactement 6 chiffres.")
+
+    # ── Vérification réelle contre otp_service ────────────────────
+    if _dev_mode and req.code == "123456":
+        # Mode développement uniquement : code universel de debug
+        log.warning("[2FA] 🟡 [DEV ONLY] Code de bypass dev (123456) accepté pour uid=%s", req.uid)
+        verify_result = {"success": True, "message": "Code valide (mode dev)"}
     else:
-        result = await otp_service.verify_otp(req.uid, req.code)
+        try:
+            verify_result = await otp_service.verify_otp(req.uid, req.code)
+        except Exception as exc:
+            log.error("[2FA] ❌ Erreur vérification OTP pour uid=%s : %s", req.uid, exc)
+            raise HTTPException(500, "Erreur technique lors de la vérification — réessayez.")
 
-    if not result["success"]:
-        raise HTTPException(401, result["message"])
+        if not verify_result.get("success"):
+            reason = verify_result.get("message", "Code incorrect ou expiré")
+            log.warning("[2FA] ❌ OTP refusé pour uid=%s : %s", req.uid, reason)
+            raise HTTPException(400, reason)
 
-    # Générer un token de session 2FA
-    import secrets
-    verification_token = secrets.token_urlsafe(32)
+    log.info("[2FA] ✅ OTP vérifié avec succès pour uid=%s", req.uid)
 
-    # Stocker dans pending_2fa
+    # ── Générer et stocker le token de session 2FA ─────────────────
+    import secrets as _secrets
+    verification_token = _secrets.token_urlsafe(32)
+
     from app.middleware.session_2fa import pending_2fa
     pending_2fa[req.uid] = verification_token
+    log.info("[2FA] 🔐 Session 2FA créée pour uid=%s (token=***%s)", req.uid, verification_token[-6:])
 
-    log.info("[2FA] ✅ OTP validé pour uid=%s", req.uid)
-
+    cookie_secure = os.getenv("AUTH_SECURE_COOKIES", "false").lower() in ("1", "true", "yes")
     resp = JSONResponse(content={
         "status": "verified",
-        "message": "Code OTP valide, authentification complète",
+        "message": "Authentification à deux facteurs réussie.",
         "verification_token": verification_token,
     })
     resp.set_cookie(
         key="ds_2fa",
         value=verification_token,
         httponly=True,
-        samesite="Lax",
+        secure=cookie_secure,
+        samesite="None",
         max_age=3600,
     )
     return resp

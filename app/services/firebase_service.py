@@ -19,10 +19,11 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import datetime
 from typing import Any
 
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, storage as firebase_storage
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -51,7 +52,11 @@ def _init_firebase() -> firestore.Client | None:
     # Option 1 — fichier JSON
     if os.path.exists(cred_path):
         cred = credentials.Certificate(cred_path)
-        firebase_admin.initialize_app(cred)
+        storage_bucket = os.getenv("FIREBASE_STORAGE_BUCKET")
+        if storage_bucket:
+            firebase_admin.initialize_app(cred, {'storageBucket': storage_bucket})
+        else:
+            firebase_admin.initialize_app(cred)
         log.info("✅ Firebase initialisé depuis %s", cred_path)
         return firestore.client()
 
@@ -137,6 +142,83 @@ class FirebaseService:
             log.error("save_analysis error: %s", exc)
             return None
 
+    def upload_to_storage(self, path: str, data: bytes) -> str | None:
+        """Upload des données JSON vers Firebase Storage et retour de l'URL publique."""
+        if not self.available:
+            log.warning("upload_to_storage skipped (mock mode)")
+            return None
+
+        try:
+            bucket = firebase_storage.bucket()
+            if bucket is None:
+                log.warning("Firebase storage bucket non configuré.")
+                return None
+
+            blob = bucket.blob(path)
+            blob.upload_from_string(data, content_type="application/json")
+            try:
+                blob.make_public()
+            except Exception:
+                pass
+
+            return blob.public_url or f"gs://{bucket.name}/{path}"
+        except Exception as exc:
+            log.error("upload_to_storage error: %s", exc)
+            return None
+
+    def store_analysis_metadata(
+        self,
+        document_id: str,
+        user_id: str,
+        filename: str,
+        doc_type: str,
+        analysis: dict[str, Any],
+        quality_metrics: dict[str, Any],
+        export_url: str | None = None,
+        timestamp: str | None = None,
+    ) -> bool:
+        """Stocke les métadonnées d'une analyse dans Firestore."""
+        if not self.available:
+            log.warning("store_analysis_metadata skipped (mock mode)")
+            return True
+
+        timestamp = timestamp or str(datetime.utcnow().isoformat())
+        doc = {
+            'id': document_id,
+            'userId': user_id,
+            'filename': filename,
+            'doc_type': doc_type,
+            'status': 'completed',
+            'analysis': analysis,
+            'quality_metrics': quality_metrics,
+            'export_url': export_url,
+            'createdAt': firestore.SERVER_TIMESTAMP,
+            'updatedAt': firestore.SERVER_TIMESTAMP,
+            'timestamp': timestamp,
+        }
+
+        if export_url:
+            doc['export_url'] = export_url
+
+        result = self.save_analysis(document_id, doc)
+        return result is not None
+
+    def store_feedback(self, feedback_entry: dict[str, Any]) -> bool:
+        """Stocke un feedback utilisateur lié à une analyse."""
+        if not self.available:
+            log.warning("store_feedback skipped (mock mode)")
+            return True
+
+        try:
+            self.db.collection('analysis_feedback').add({
+                **feedback_entry,
+                'createdAt': firestore.SERVER_TIMESTAMP,
+            })
+            return True
+        except Exception as exc:
+            log.error("store_feedback error: %s", exc)
+            return False
+
     def get_analysis(self, analyse_id: str) -> dict[str, Any] | None:
         """Retourne une analyse par ID depuis analyses/{analyse_id}."""
         if not self.available:
@@ -158,19 +240,41 @@ class FirebaseService:
         if not self.available:
             return []
         try:
-            docs = (
-                self.db.collection("analyses")
-                .where("userId", "==", user_id)
-                .order_by("createdAt", direction=firestore.Query.DESCENDING)
-                .limit(limit)
-                .stream()
-            )
-            result = []
-            for d in docs:
-                data = d.to_dict()
-                data["id"] = d.id
-                result.append(data)
-            return result
+            # Try with orderBy first (requires composite index)
+            try:
+                docs = (
+                    self.db.collection("analyses")
+                    .where("userId", "==", user_id)
+                    .order_by("createdAt", direction=firestore.Query.DESCENDING)
+                    .limit(limit)
+                    .stream()
+                )
+                result = []
+                for d in docs:
+                    data = d.to_dict()
+                    data["id"] = d.id
+                    result.append(data)
+                return result
+            except Exception as index_error:
+                # Fallback: fetch without orderBy and sort client-side
+                if "index" in str(index_error).lower():
+                    log.warning("Firestore index missing, using client-side sorting fallback")
+                    docs = (
+                        self.db.collection("analyses")
+                        .where("userId", "==", user_id)
+                        .limit(limit * 2)  # Fetch more to account for sorting
+                        .stream()
+                    )
+                    result = []
+                    for d in docs:
+                        data = d.to_dict()
+                        data["id"] = d.id
+                        result.append(data)
+                    # Sort client-side by createdAt
+                    result.sort(key=lambda x: x.get("createdAt", ""), reverse=True)
+                    return result[:limit]
+                else:
+                    raise
         except Exception as exc:
             log.error("get_analyses_for_user error: %s", exc)
             return []
@@ -320,6 +424,41 @@ class FirebaseService:
             log.warning("save_conversation_message error: %s", exc)
             return False
 
+    def get_user_analyses(self, user_id: str) -> list[dict[str, Any]]:
+        """Récupère les analyses d'un utilisateur (alias de get_analyses_for_user)."""
+        return self.get_analyses_for_user(user_id, limit=50)
+
+    def get_user_conversations(self, user_id: str) -> list[dict[str, Any]]:
+        """Récupère les métadonnées des conversations de l'utilisateur."""
+        if not self.available:
+            return []
+        try:
+            # Query standard sur la collection racine conversations/
+            docs = (
+                self.db.collection("conversations")
+                .where("userId", "==", user_id)
+                .stream()
+            )
+            result = []
+            for d in docs:
+                data = d.to_dict()
+                data["id"] = d.id
+                result.append(data)
+            
+            # Trier par createdAt localement pour éviter d'imposer un index composite
+            def _get_time(doc):
+                ts = doc.get("createdAt")
+                if ts is None: return 0
+                if hasattr(ts, "timestamp"): return ts.timestamp()
+                return 0
+            
+            result.sort(key=_get_time, reverse=True)
+            return result
+        except Exception as exc:
+            log.error("get_user_conversations error: %s", exc)
+            return []
+
     # ── Fin de classe ──
+
 # ── Singleton ──────────────────────────────────────────────────
 firebase_service = FirebaseService()

@@ -518,7 +518,7 @@ const OHADA_KEYS = {
   resultat_net:'Résultat Net',charges_financieres:'Charges Financières',impots:'Impôts',
   current_ratio:'Ratio Liquidité',quick_ratio:'Liquidité Immédiate',
   debt_equity:'Dettes/Capitaux',solvabilite:'Solvabilité',roa:'ROA%',roe:'ROE%',
-  annees_activite:'Ancienneté',altman_z:'Score Altman-Z',
+  annees_activite:'Ancienneté',ivf:'Indice de vulnérabilité financière (IVF/100)',
 };
 const CRITICAL_KEYS = new Set(['actif_total','capitaux_propres','chiffre_affaires','resultat_net','actif_courant','passif_courant']);
 
@@ -697,7 +697,7 @@ function _buildModal() {
   <div id="ppq-row-info">—</div>
   <div id="ppq-launch-wrap">
     <button id="ppq-diff-btn" onclick="PPQ.showDiff()"><i class="fa-solid fa-code-compare"></i> Comparer modifications</button>
-    <button id="ppq-launch-btn" onclick="PPQ.launch()"><i class="fa-solid fa-bolt"></i> Finaliser et lancer l'analyse ML</button>
+    <button id="ppq-launch-btn" onclick="PPQ.launch()"><i class="fa-solid fa-bolt"></i> Finaliser et lancer l'analyse SYSCOHADA</button>
   </div>
 </div>
 `;
@@ -1945,7 +1945,7 @@ window.PPQ = {
     _snapshot(); _render(); _toast('Données réinitialisées','warn');
   },
 
-  // ── Lancer le pipeline ML ─────────────────────────────────────
+  // ── Lancer l'analyse SYSCOHADA ─────────────────────────────────
   launch() {
     if (!ST.data.length) { _toast('Aucune donnée','err'); return; }
     const s = _inspect();
@@ -1997,7 +1997,7 @@ window.PPQ = {
     if (window.S) window.S.rawFileData = { filename: ST.filename, data: finalData };
     this.close();
     if (window.DS_UPLOAD?.sendToAPI) window.DS_UPLOAD.sendToAPI();
-    _toast('Pipeline ML lancé…','ok');
+    _toast('Analyse SYSCOHADA lancée…','ok');
   },
 };
 
@@ -2030,8 +2030,8 @@ function _buildPivotedObj() {
     window.DS_UPLOAD.resetDataTable = function() {
       window.PPQ.resetAll?.();
     };
-    const origLaunch = window.DS_UPLOAD.launchML?.bind(window.DS_UPLOAD);
-    window.DS_UPLOAD.launchML = function() {
+    const origLaunch = window.DS_UPLOAD.launchAnalyse?.bind(window.DS_UPLOAD);
+    window.DS_UPLOAD.launchAnalyse = function() {
       if (document.getElementById('ppq-overlay')?.classList.contains('open')) {
         window.PPQ.launch();
       } else if (origLaunch) {
@@ -2043,7 +2043,7 @@ function _buildPivotedObj() {
       window.DS.closeModalDirect    = ()  => window.PPQ.close?.();
       window.DS.switchDataView      = (v,b) => {};
       window.DS.resetDataTable      = ()  => window.PPQ.resetAll?.();
-      window.DS.launchML            = ()  => window.PPQ.launch?.();
+      window.DS.launchAnalyse       = ()  => window.PPQ.launch?.();
       window.DS.openCurrentDataViewer= () => window.DS_UPLOAD.openCurrentDataViewer?.();
     }
     console.log('[ds-preprocess] ✅ Power Query IA patché sur DS_UPLOAD');

@@ -143,11 +143,15 @@ window.initBgCanvas = function() {
   const rsz = () => { W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; };
   window.addEventListener('resize', rsz); rsz();
 
-  const pts = [];
+  const pts = Array.from({ length: 100 }, () => ({
+    x: Math.random()*2000, y: Math.random()*1200,
+    r: .3+Math.random()*1.1, vx:(Math.random()-.5)*.07, vy:(Math.random()-.5)*.07,
+    a: Math.random()*.28, g: Math.random()>.75,
+  }));
   const orbs = [
-    { x:.14, y:.22, r:.38, c:'rgba(139,127,240,', s:.0009 },
+    { x:.14, y:.22, r:.38, c:'rgba(125,211,252,', s:.0009 },
     { x:.8,  y:.6,  r:.3,  c:'rgba(255,215,0,',  s:.0007 },
-    { x:.48, y:.88, r:.24, c:'rgba(139,127,240,',  s:.001  },
+    { x:.48, y:.88, r:.24, c:'rgba(139,92,246,',  s:.001  },
   ];
   let tt = 0;
   (function bgL() {
@@ -158,7 +162,7 @@ window.initBgCanvas = function() {
       g.addColorStop(0,o.c+'0.035)'); g.addColorStop(1,'transparent');
       ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
     });
-    ctx.save(); ctx.strokeStyle='rgba(139,127,240,.016)'; ctx.lineWidth=1;
+    ctx.save(); ctx.strokeStyle='rgba(125,211,252,.016)'; ctx.lineWidth=1;
     for(let x=0;x<W;x+=56){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
     for(let y=0;y<H;y+=56){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
     ctx.restore();
@@ -167,7 +171,7 @@ window.initBgCanvas = function() {
       if(p.x<0)p.x=W; if(p.x>W)p.x=0; if(p.y<0)p.y=H; if(p.y>H)p.y=0;
       const a=p.a*(.5+.5*Math.sin(tt+p.r*7));
       ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fillStyle=p.g?`rgba(255,215,0,${a})`:`rgba(139,127,240,${a})`;
+      ctx.fillStyle=p.g?`rgba(255,215,0,${a})`:`rgba(125,211,252,${a})`;
       ctx.fill();
     });
   })();
@@ -175,8 +179,30 @@ window.initBgCanvas = function() {
 
 // ── Curseur personnalisé ──────────────────────────────────────
 window.initCursor = function() {
-  // Désactivé pour des raisons de performance (lag cursor supprimé dans le CSS)
-  return;
+  const cur=document.getElementById('cur');
+  const curR=document.getElementById('curR');
+  if (!cur||!curR) return;
+  let mx=0, my=0;
+  document.addEventListener('mousemove', e => {
+    mx=e.clientX; my=e.clientY;
+    cur.style.left=mx+'px'; cur.style.top=my+'px';
+  });
+  setInterval(() => { curR.style.left=mx+'px'; curR.style.top=my+'px'; }, 11);
+  const SEL='button,a,.nav-item,.kpi,.ac,.reco,.oauth-btn,.tab-btn,.plan-btn';
+  document.addEventListener('mouseover', e => {
+    if(e.target.closest(SEL)){
+      curR.style.width='42px'; curR.style.height='42px';
+      curR.style.borderColor='rgba(255,215,0,.45)';
+    }
+  });
+  document.addEventListener('mouseout', e => {
+    if(e.target.closest(SEL)){
+      curR.style.width='30px'; curR.style.height='30px';
+      curR.style.borderColor='rgba(125,211,252,.35)';
+    }
+  });
+  document.addEventListener('mouseleave', () => { cur.style.opacity='0'; curR.style.opacity='0'; });
+  document.addEventListener('mouseenter', () => { cur.style.opacity='1'; curR.style.opacity='1'; });
 };
 
 console.log('[ds-core] ✓ Chargé');

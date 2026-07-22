@@ -6,6 +6,12 @@
 //  • Boutons pricing cards  → modal inscription avec plan pré-sélectionné
 // ════════════════════════════════════════════════════════════════
 
+import { auth } from './firebase-config.js';
+import {
+  createUserWithEmailAndPassword,
+  updateProfile
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
 (function () {
 
   // ── CSS ──────────────────────────────────────────────────────
@@ -386,10 +392,10 @@
     btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Création du compte…';
 
     // Firebase Auth si disponible
-    if (window.firebase && firebase.auth) {
+    if (auth) {
       try {
-        const cred = await firebase.auth().createUserWithEmailAndPassword(email, pass);
-        await cred.user.updateProfile({ displayName: `${prenom} ${nom}` });
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        await updateProfile(cred.user, { displayName: `${prenom} ${nom}` });
         window.location.href = './dashboard.html';
         return;
       } catch (err) {

@@ -3,46 +3,48 @@
 //  Fonctions utilitaires partagées
 // ════════════════════════════════════════════════════════════════
 
+import { auth } from './firebase-config.js';
+
 // ── Formatage ────────────────────────────────────────────────────
-export function formatDate(date, locale = "fr-FR") {
+window.formatDate = function(date, locale = "fr-FR") {
   if (!date) return "—";
   const d = date instanceof Date ? date : new Date(date);
   return d.toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" });
-}
+};
 
-export function formatScore(score) {
+window.formatScore = function(score) {
   return Math.round(Math.max(0, Math.min(100, score)));
-}
+};
 
-export function formatCurrency(val, currency = "EUR") {
+window.formatCurrency = function(val, currency = "EUR") {
   if (currency === 'FCFA') {
     // Formattage simple puis suffixe 'FCFA' pour une homogénéité lisible
     const fmt = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(val);
     return fmt + ' FCFA';
   }
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency }).format(val);
-}
+};
 
-export function formatPercent(val, decimals = 1) {
+window.formatPercent = function(val, decimals = 1) {
   return `${(val * 100).toFixed(decimals)}%`;
-}
+};
 
 // ── Zone de risque ───────────────────────────────────────────────
-export function getZoneRisque(score) {
+window.getZoneRisque = function(score) {
   if (score >= 75) return { label: "Zone Saine",     color: "#10b981", icon: "fa-shield-check" };
   if (score >= 50) return { label: "Zone Vigilance", color: "#f59e0b", icon: "fa-triangle-exclamation" };
   if (score >= 25) return { label: "Zone Risque",    color: "#f97316", icon: "fa-circle-exclamation" };
   return             { label: "Zone Critique",       color: "#ef4444", icon: "fa-skull-crossbones" };
-}
+};
 
 // ── Validation ───────────────────────────────────────────────────
-export function isValidEmail(email) {
+window.isValidEmail = function(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+};
 
-export function isValidSiret(siret) {
+window.isValidSiret = function(siret) {
   return /^\d{14}$/.test(siret.replace(/\s/g, ""));
-}
+};
 
 // ════════════════════════════════════════════════════════════════
 //  fetchWithAuth — version corrigée et robuste
@@ -51,9 +53,7 @@ export function isValidSiret(siret) {
 /**
  * Attend que auth.currentUser soit disponible et rafraîchit le token
  */
-async function waitForAuthUser(timeoutMs = 8000) {
-  const { auth } = await import("./firebase-config.js");
-
+window.waitForAuthUser = async function(timeoutMs = 8000) {
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
       console.warn("[waitForAuthUser] Timeout — aucun utilisateur trouvé");
@@ -77,7 +77,7 @@ async function waitForAuthUser(timeoutMs = 8000) {
       }
     });
   });
-}
+};
 
 /**
  * Fetch avec token Firebase frais (attente + retry si besoin)
@@ -90,7 +90,7 @@ export async function fetchWithAuth(url, options = {}) {
   while (retries <= maxRetries) {
     try {
       // Attendre authentification + token frais
-      const user = await waitForAuthUser(8000);
+      const user = await window.waitForAuthUser(8000);
 
       if (user) {
         token = await user.getIdToken(true); // force refresh à chaque appel
@@ -133,7 +133,9 @@ export async function fetchWithAuth(url, options = {}) {
 
   // ✅ Retourner la Response brute — dashboard.js gère response.ok et response.json()
   return fetch(url, { ...options, headers, credentials: 'same-origin' });
-}
+};
+
+window.fetchWithAuth = fetchWithAuth;
 
 // ── Debounce ─────────────────────────────────────────────────────
 export function debounce(fn, delay = 300) {
@@ -144,12 +146,14 @@ export function debounce(fn, delay = 300) {
   };
 }
 
+window.debounce = debounce;
+
 // ── Copier dans le presse-papier ─────────────────────────────────
-export async function copyToClipboard(text) {
+window.copyToClipboard = async function(text) {
   try {
     await navigator.clipboard.writeText(text);
     return true;
   } catch {
     return false;
   }
-}
+};

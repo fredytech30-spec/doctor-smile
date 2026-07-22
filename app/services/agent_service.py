@@ -90,7 +90,7 @@ Sois incisif, professionnel, et orienté action."""
             ]
 
             response = await client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="openai/gpt-oss-120b",
                 messages=messages,
                 max_tokens=800,
                 temperature=0.4
@@ -227,7 +227,7 @@ Réponds UNIQUEMENT avec un objet JSON valide ayant cette structure exacte :
             context = f"Entreprise: {user_data}\nAnalyse: {last_analysis}"
 
             response = await client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="openai/gpt-oss-120b",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Génère les recommandations stratégiques:\n{context}"}
@@ -279,7 +279,7 @@ Réponds UNIQUEMENT avec un objet JSON valide ayant cette structure exacte :
   ]
 }"""
             response = await client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="openai/gpt-oss-120b",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Données:\n{analysis_data}"}

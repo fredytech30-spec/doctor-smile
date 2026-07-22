@@ -25,7 +25,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from firebase_admin import auth as fb_auth
 
-from app.services.email_service import email_service
+from app.services.email_service import email_service, _base_template
 from app.services.firebase_service import firebase_service
 
 log    = logging.getLogger("doctorsmile.email")
@@ -363,3 +363,95 @@ async def email_status(uid: str):
         "sent_types": sent,
         "provider":   "Brevo (HTML direct)"
     }
+
+
+# ════════════════════════════════════════════════════════════════
+#  ENDPOINTS SECURE PROXY BREVO (Pour le Frontend)
+#  Garantit que la clé API n'est jamais exposée côté client.
+# ════════════════════════════════════════════════════════════════
+
+class EmailOTPRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    expiry_minutes: int = 5
+
+class EmailVerificationRequest(BaseModel):
+    email: EmailStr
+    verification_link: str
+
+class GenericEmailRequest(BaseModel):
+    to: EmailStr
+    subject: str
+    html_content: str
+    text_content: str | None = None
+
+@router.post("/otp")
+async def send_otp_endpoint(req: EmailOTPRequest):
+    """Proxy sécurisé : Envoie un code OTP par email."""
+    log.info("[email/otp] Demande d'envoi OTP vers %s", req.email)
+    
+    # Essayer de récupérer le prénom depuis Firebase si l'email existe
+    name = "utilisateur"
+    try:
+        if firebase_service.available:
+            user = fb_auth.get_user_by_email(req.email)
+            if user.display_name:
+                name = user.display_name.split()[0] if user.display_name else "utilisateur"
+            # Fallback sur Firestore pour le prénom
+            else:
+                snap = firebase_service.db.collection("users").document(user.uid).get()
+                if snap.exists:
+                    doc = snap.to_dict()
+                    name = doc.get("prenom") or doc.get("displayName") or "utilisateur"
+    except Exception as e:
+        log.debug("[email/otp] Impossible de récupérer le nom: %s", e)
+    
+    ok = await email_service.send_otp(req.email, name, req.otp)
+    if not ok:
+        raise HTTPException(status_code=500, detail="Échec de l'envoi de l'email OTP.")
+    return {"status": "success", "message": "Email OTP envoyé."}
+
+@router.post("/verification")
+async def send_verification_endpoint(req: EmailVerificationRequest):
+    """Proxy sécurisé : Envoie le lien de vérification d'email."""
+    log.info("[email/verification] Demande d'envoi lien de vérification vers %s", req.email)
+    subject = "Vérification de votre email - Doctor Smile"
+    body_html = f"""
+      <div class="greeting">Bonjour,</div>
+      <p class="text">
+        Merci de vous être inscrit sur Doctor Smile. Cliquez sur le bouton ci-dessous pour vérifier votre adresse email :
+      </p>
+      <div style="text-align:center;margin:30px 0;">
+        <a href="{req.verification_link}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #7c3aed, #8b5cf6);color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;">
+          Vérifier mon email
+        </a>
+      </div>
+      <p class="text" style="font-size:12px;color:rgba(255,255,255,0.4);">
+        Si le bouton ne fonctionne pas, copiez-collez ce lien : {req.verification_link}
+      </p>
+    """
+    html = _base_template(subject, body_html, "Vérification d'email")
+    provider = email_service._get_provider()
+    if provider == "brevo":
+        ok = await email_service._send_brevo(req.email, subject, html)
+    else:
+        ok = await email_service._send(req.email, subject, html)
+
+    if not ok:
+        raise HTTPException(status_code=500, detail="Échec de l'envoi de l'email de vérification.")
+    return {"status": "success", "message": "Email de vérification envoyé."}
+
+@router.post("/send")
+async def send_generic_endpoint(req: GenericEmailRequest):
+    """Proxy sécurisé : Envoie un email générique formaté."""
+    log.info("[email/send] Demande d'envoi email vers %s (sujet: %s)", req.to, req.subject)
+    html = _base_template(req.subject, req.html_content, req.subject)
+    provider = email_service._get_provider()
+    if provider == "brevo":
+        ok = await email_service._send_brevo(req.to, req.subject, html)
+    else:
+        ok = await email_service._send(req.to, req.subject, html)
+
+    if not ok:
+        raise HTTPException(status_code=500, detail="Échec de l'envoi de l'email.")
+    return {"status": "success", "message": "Email envoyé."}

@@ -349,12 +349,12 @@ const STEPS = [
     id:     'upload',
     target: '#upload-zone',
     nav:    null,
-    icon:   '☁️',
+    icon:   '📊',
     iconBg: 'rgba(139,127,240,.1)',
     pill:   { label: 'ÉTAPE 1 · DÉMARRAGE', col: '#8B7FF0', bg: 'rgba(139,127,240,.1)' },
-    title:  'Importez vos données financières',
-    body:   'Glissez-déposez un fichier Excel, CSV ou PDF. Doctor Smile extrait automatiquement tous vos chiffres et les transforme en insights actionables.',
-    tip:    '💡 Formats supportés : .xlsx · .xls · .csv · .pdf · .json — Même un fichier mal structuré sera normalisé par notre IA.',
+    title:  'Importez votre Balance Générale',
+    body:   'Glissez-déposez votre Balance Générale (OHADA/SYSCOHADA) en Excel, CSV ou PDF. Doctor Smile extrait automatiquement vos comptes et réalise l’analyse financière.',
+    tip:    '💡 Votre Balance Générale est le document essentiel : elle contient tous les comptes nécessaires pour évaluer la santé de votre entreprise.',
     pos:    'right',
     accentCol: '#8B7FF0',
     ringClass: '',
@@ -367,7 +367,7 @@ const STEPS = [
     iconBg: 'rgba(255,215,0,.12)',
     pill:   { label: 'ÉTAPE 2 · SCORE', col: '#FFD700', bg: 'rgba(255,215,0,.1)' },
     title:  'Le Doctor Score™ — votre santé financière',
-    body:   'Un score de 0 à 100, calculé par notre modèle ML. Vert = zone saine, Rouge = zone critique. Comme un bilan de santé pour votre entreprise.',
+    body:   'Un score de 0 à 100, calculé par notre moteur SYSCOHADA. Vert = zone saine, Rouge = zone critique. Comme un bilan de santé pour votre entreprise.',
     tip:    '🎯 Le score synthétise liquidité, rentabilité, solvabilité, activité et structure en un seul chiffre compréhensible même sans être analyste.',
     pos:    'bottom',
     accentCol: '#FFD700',
@@ -725,7 +725,7 @@ function _showSplash(prenom, onStart) {
 
     <!-- Sous-titre -->
     <div class="sp-sub">
-      Votre analyste financier IA. En 3 minutes, obtenez le bilan complet de votre entreprise — même sans être financier.
+      Votre assistant financier pour PME camerounaises. Importez votre Balance Générale OHADA/SYSCOHADA et obtenez un diagnostic en 3 minutes.
     </div>
 
     <!-- Stats sociales -->
@@ -746,10 +746,9 @@ function _showSplash(prenom, onStart) {
 
     <!-- Chips fonctionnalités -->
     <div class="sp-chips">
-      <div class="sp-chip"><i class="fa-solid fa-cloud-arrow-up"></i>Import Excel/PDF</div>
-      <div class="sp-chip"><i class="fa-solid fa-brain"></i>IA Groq + ML</div>
-      <div class="sp-chip"><i class="fa-solid fa-chart-pie"></i>Graphes 3D</div>
-      <div class="sp-chip"><i class="fa-solid fa-phone"></i>Appel vocal IA</div>
+      <div class="sp-chip"><i class="fa-solid fa-file-excel"></i>Balance Générale</div>
+      <div class="sp-chip"><i class="fa-solid fa-scale-balanced"></i>OHADA/SYSCOHADA</div>
+      <div class="sp-chip"><i class="fa-solid fa-brain"></i>Analyse IA</div>
       <div class="sp-chip"><i class="fa-solid fa-lightbulb"></i>Recommandations</div>
     </div>
 

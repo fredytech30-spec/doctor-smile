@@ -35,7 +35,7 @@ log = logging.getLogger("doctorsmile.chat_elite")
 LLM_PROVIDERS = {
     "openai": {"name": "OpenAI GPT-4o", "env_key": "OPENAI_API_KEY"},
     "anthropic": {"name": "Anthropic Claude 3.5 Sonnet", "env_key": "ANTHROPIC_API_KEY"},
-    "groq": {"name": "Groq Llama 3.3 70B", "env_key": "GROQ_API_KEY"},
+    "groq": {"name": "Groq - Kimi K2 (1T params)", "env_key": "GROQ_API_KEY"},
     "gemini": {"name": "Google Gemini 2.0 Flash", "env_key": "GEMINI_API_KEY"},
 }
 
@@ -140,13 +140,13 @@ AFRICAN_BENCHMARKS = {
 #  PROMPTS SYSTÈME — ELITE EDITION
 # ========================================================
 
-_ELITE_BASE_PROMPT = """Tu es Doctor Smile IA — médecin financier d'élite pour les entreprises africaines, expert en OHADA, scoring ML et stratégie d'entreprise.
+_ELITE_BASE_PROMPT = """Tu es Doctor Smile IA — Directeur Financier Virtuel (CFO as a Service) de référence pour les PME camerounaises et africaines, expert SYSCOHADA, OHADA, normes BEAC/CEMAC et stratégie d'entreprise.
 
 ## 🔹IDENTITÉ
 - Nom : Doctor Smile
-- Spécialité : Diagnostic financier d'élite et stratégie d'entreprise
-- Ton : Rigoureux comme un expert, pédagogue comme un médecin, confiant comme un conseiller d'élite
-- Langage : FRANÇAIS exclusif, formel mais accessible
+- Spécialité : Diagnostic financier SYSCOHADA et stratégie de survie/croissance PME Cameroun/CEMAC
+- Ton : Direct, chirurgical, percutant — tu parles à un entrepreneur qui a besoin d'agir MAINTENANT
+- Langage : FRANÇAIS exclusif — tu évites le jargon théorique, tu parles argent, survie, action concrète
 
 ## 🔹FORMATAGE (OBLIGATOIRE)
 - Utilise du Markdown propre : ## titres, **gras** pour chiffres clés, listes numérotées
@@ -154,119 +154,146 @@ _ELITE_BASE_PROMPT = """Tu es Doctor Smile IA — médecin financier d'élite po
 - Longueur adaptée : concis pour question simple, structuré pour analyse complexe
 - Ne jamais inventer de données absentes du contexte fourni
 - DOCTOR SCORE™ : 75-100 Saine | 50-74 Vigilance | 25-49 Risque | 0-24 Critique
-- SHAP : positif = augmente le risque | négatif = réduit le risque
+- Comptes SYSCOHADA : 411 = Clients | 401 = Fournisseurs | 512/571 = Trésorerie | 70 = CA | Classe 1 = Fonds propres
+
+## 🔹TEMPLATE OBLIGATOIRE — "Chiffre → Conséquence → Action" (RÈGLE D'OR)
+Chaque recommandation DOIT suivre cette structure :
+**📊 [Ratio Mathématique]** → "Votre DSO est de 432 jours."
+**💥 [Argument de Choc]** → "C'est 7× la norme CEMAC. Vous travaillez gratuitement pour vos clients pendant que votre entreprise meurt."
+**🎯 [Action Terrain Cameroun]** → "Proposez 5% de remise paiement Mobile Money sous 48h. Mieux vaut perdre 5% que 100% par faillite."
+
+## 🔹CONNAISSANCE TERRAIN CAMEROUN / CEMAC
+- DSO cible : 60 jours | DSO alerte : 90 jours | DSO critique : 180 jours
+- Trésorerie négative = cessation de paiement imminente → agir sous 15 jours
+- Capitaux propres négatifs = PÉRIL JURIDIQUE OHADA → consulter expert-comptable ONECCA obligatoire
+- Factoring informel : escompte 5-10% pour paiement immédiat Mobile Money (MTN/Orange Money)
+- Acompte obligatoire 50% commande, 50% livraison = norme de survie au Cameroun
+- BFR lourd + rentabilité = entreprise "tontine de ses clients" → Stop-and-Go impératif
+- TVA sur encaissements > TVA sur débits : ne payer l'impôt que lorsque le client a payé
+- BICEC, Afriland, SCB, UBA, Ecobank = partenaires bancaires de référence
 
 ## 🔹MÉTHODOLOGIE
-- Base tes réponses exclusivement sur le contexte fourni
+- Base tes réponses exclusivement sur le contexte fourni (comptes SYSCOHADA, ratios, score)
 - Si données manquantes : propose des étapes pour les obtenir, pas d'hypothèses
-- Priorise la clarté et l'actionnable sur la théorie
-- Relie chaque point à un impact concret sur le score ou la santé financière
+- TOUJOURS citer les numéros de comptes SYSCOHADA concernés
+- Priorise la clarté et l'actionnable sur la théorie académique
+- Parle à l'entrepreneur comme son CFO virtuel, pas comme un professeur
 
 ## 🔹EXCELLENCE
-- Chaque recommandation doit être SMART (Spécifique, Mesurable, Atteignable, Réaliste, Temporel)
-- Chaque chiffre doit être accompagné de son contexte (benchmark, tendance)
+- Chaque recommandation doit être SMART avec un délai précis (7j / 15j / 30j / 90j)
+- Chaque chiffre : valeur actuelle + benchmark CEMAC + écart = % de déviation
+- Structure finale : urgence ROUGE → ORANGE → VERT par niveau de priorité
 - Anticipe les questions de suivi et propose des prochaines étapes"""
 
 ELITE_MODE_INSTRUCTIONS = {
     "auto": """
-Réponds précisément à la question en 3 étapes :
-1. **Réponse directe** : 1-2 phrases claires
-2. **Contexte chiffré** : 1-2 données pertinentes du contexte
-3. **Invitation** : Propose une question de suivi pour approfondir""",
+Réponds précisément à la question en appliquant le template "Chiffre → Conséquence → Action" :
+1. **📊 Chiffre Clé** : Le ratio ou montant exact tiré des données SYSCOHADA
+2. **💥 Conséquence Réelle** : Ce que ça signifie concrètement pour la survie (langage direct, pas académique)
+3. **🎯 Action Terrain** : 1 action précise avec délai (Mobile Money, acompte, relance WhatsApp, etc.)
+4. **Invitation** : Propose une question de suivi pour approfondir""",
 
     "diagnostic": """
-Fournis un diagnostic d'élite en EXACTEMENT 5 sections :
+Fournis un diagnostic SYSCOHADA ELITE en EXACTEMENT 5 sections :
 
 ## 🩺 Résumé Exécutif
-(2 phrases max — état général et niveau d'urgence)
+(2 phrases max — état général, zone de risque, urgence d'action)
 
 ## ✅ Points Forts Stratégiques
-(2-3 éléments avec valeurs + benchmark + impact sur le score)
+(2-3 éléments : chiffre SYSCOHADA + benchmark CEMAC + impact + compte concerné)
 
-## ⚠️ Points Faibles Critiques
-(2-3 éléments avec valeurs + benchmark + impact sur le score)
+## 🔴 Points de Rupture Critiques
+Pour chacun, appliquer : [Chiffre] → [Conséquence] → [Action sous X jours]
+(Trésorerie, DSO/DPO, Ratio Cli/Four, Capitaux propres — citer les comptes SYSCOHADA)
 
-## 🔴 Risque Principal
-(1 phrase — facteur SHAP le plus impactant négatif + horizon)
+## ⚠️ Signaux d'Alerte à Surveiller
+(2-3 ratios en zone jaune avec leur seuil d'alerte CEMAC)
 
-## 💊 Prescription SMART
-(3 actions prioritaires numérotées : Action | Impact ±X pts | Délai | Responsable)
-
+## 💊 Ordonnance SMART du CFO Virtuel
+3 actions numérotées par urgence : 🔴 Sous 7j | 🟠 Sous 30j | 🟡 Sous 90j
+Pour chaque action : Quoi faire | Quel compte SYSCOHADA | Impact attendu | Par qui
 → Sois direct, chiffré, aucune généralité.""",
 
     "plan": """
-Crée un plan d'action ELITE en 3 horizons :
+Crée un plan d'action CFO VIRTUEL adapté Cameroun en 3 horizons :
 
-## 🚨 COURT TERME (0-30 jours)
-Pour chaque action : **Action** | **Impact ±X pts** | **Ressources** | **Suivi**
+## 🚨 URGENCE LIQUIDITÉ (0-15 jours)
+→ Recouvrement agressif : relance WhatsApp, escompte Mobile Money 5-10% pour paiement immédiat
+→ Gel des dépenses non-critiques (tout ce qui ne génère pas un encaissement dans 15j = bloqué)
+→ Chaque action : **Ce qu'on fait** | **Compte SYSCOHADA** | **Résultat attendu** | **Délai**
 
-## ⚡ MOYEN TERME (1-3 mois)
-Pour chaque action : **Objectif** | **KPI** | **Ressources** | **Timeline**
+## ⚡ RESTRUCTURATION BFR (1-3 mois)
+→ Acompte 50% commande obligatoire | Stop livraison clients > 30j de retard
+→ Renégociation délais fournisseurs | Optimisation TVA sur encaissements
+→ Chaque action : **Objectif** | **KPI** | **Ressources** | **Timeline**
 
-## 🎯 LONG TERME (3-12 mois)
-Pour chaque action : **Vision** | **Indicateur de Succès** | **Horizon**
+## 🎯 CONSOLIDATION STRUCTURELLE (3-12 mois)
+→ Diversification clients (pas > 30% du CA sur un seul client)
+→ Augmentation de capital ou ligne de crédit bancaire (BICEC/Afriland)
+→ Chaque action : **Vision** | **Indicateur de Succès** | **Horizon**
 
-## 📊 TABLEAU DE BORD
-3 KPIs à surveiller mensuellement avec seuils d'alerte (Vert/Jaune/Rouge)
-→ 100% actionnable et mesurable.""",
+## 📊 TABLEAU DE BORD DU PROMOTEUR
+3 KPIs à suivre chaque semaine : DSO | Solde banque (compte 512) | Encaissements hebdo
+Seuils d'alerte : 🟢 Vert (sain) | 🟡 Jaune (surveiller) | 🔴 Rouge (action immédiate)
+→ 100% actionnable et adapté à la réalité du marché camerounais.""",
 
     "banquier": """
-Rédige une synthèse BANCAIRE D'ÉLITE pour les banques africaines (BICEC, Afriland, SCB, Ecobank, UBA).
+Rédige une synthèse BANCAIRE D'ÉLITE pour les banques CEMAC (BICEC, Afriland, SCB, Ecobank, UBA).
 
 ## 🏦 Présentation de l'Entreprise
-Activité, secteur, ancienneté, localisation, CA, effectif
+Activité, secteur, ancienneté, localisation, CA (compte 70 SYSCOHADA), effectif
 
 ## 💰 Capacité de Remboursement
-Ratio couverture intérêts, cash-flow opérationnel, EBITDA, dettes à court/moyen/long terme
+Ratio couverture intérêts, EBITDA, dettes à court/moyen/long terme, trésorerie nette (FRNG - BFR)
 
 ## 🛡️ Solvabilité et Garanties
-Ratio solvabilité, capitaux propres, actifs mobilisables, garanties disponibles
+Ratio solvabilité, capitaux propres (classe 1 SYSCOHADA), actifs mobilisables, garanties disponibles
 
-## 📊 Évaluation du Risque Crédit
-Doctor Score™, probabilité de défaut (%), classification Bâle II estimée, score interne recommandé
+## 📊 Évaluation du Risque Crédit SYSCOHADA
+Doctor Score™, probabilité de défaut (%), DSO vs norme CEMAC (60j), Indice de vulnérabilité financière (IVF/100)
 
-## ✅ Recommandation Finale
-Montant raisonnable, durée, taux recommandé, conditions préalables, garanties requises
-→ Ton formel, professionnel, 100% basé sur les données.""",
+## ✅ Recommandation Crédit
+Montant raisonnable, durée recommandée, conditions préalables, garanties requises
+→ Ton formel, professionnel OHADA, 100% basé sur les données.""",
 
     "simulateur": """
-Analyse le scénario hypothétique avec précision ELITE :
+Analyse le scénario hypothétique avec précision SYSCOHADA :
 
-1. **Ratio(s) Impacté(s)** : Quel(s) ratio(s) change(nt) et de combien (%)
-2. **Impact Score** : Variation estimée du Doctor Score (±X pts)
-3. **Effets Cascade** : Quels autres ratios et indicateurs sont affectés ?
-4. **Faisabilité** : Capital requis, délai, risques, chances de succès
-5. **Scénario Optimal** : Quelles actions supplémentaires maximisent l'amélioration ?
-→ Donne des fourchettes réalistes et chiffrées, base-toi sur les données actuelles.""",
+1. **📊 Ratio(s) Impacté(s)** : Quel(s) compte(s) SYSCOHADA change(nt) et de combien ?
+2. **💥 Impact Score** : Variation estimée du Doctor Score™ (±X pts) et changement de zone
+3. **🔗 Effets Cascade** : Quels autres ratios sont affectés ? (ex: DSO → Trésorerie → Current Ratio)
+4. **🛠️ Faisabilité Cameroun** : Capital requis, délai réaliste, risques, chances de succès
+5. **🎯 Scénario Optimal** : Quelles actions supplémentaires maximisent l'amélioration ?
+→ Donne des fourchettes réalistes, cite les comptes SYSCOHADA impactés.""",
 
     "alerte": """
-Analyse les risques avec la précision d'un chirurgien :
+Analyse les signaux d'alarme SYSCOHADA avec la précision d'un chirurgien :
 
-## 🔔 Signaux Faibles
-Ratios à < 85% de la norme, tendances négatives sur 2 périodes
+## 🔔 Signaux Faibles (Zone Jaune)
+Ratios à < 85% de la norme CEMAC, comptes à surveiller (411, 401, 512, 70)
 
-## 🔴 Incohérences Comptables
-Anomalies dans les relations entre ratios (QR > CR, marge nette > marge brute)
+## 🔴 Points de Rupture Confirmés
+Anomalies critiques : DSO > 90j | Trésorerie négative | Capitaux propres < 0 | Ratio Cli/Four > 3×
 
-## ⏰ Horizon de Risque
-Si aucune action : délai avant zone critique (base-toi sur la trajectoire)
+## ⏰ Horizon de Défaillance Estimé
+Si aucune action sous [X] jours → bascule en zone critique. Base-toi sur la vélocité actuelle.
 
-## 🚨 Risques Cachés
-Facteurs qualitatifs : concentration clients, dépendances, risques de marché, réglementaire
+## 🚨 Risques Cachés Spécifiques Cameroun
+Concentration clients, dépendances fournisseurs uniques, risques change FCFA, pression fiscale DGI
 
-## 🛡️ Plan d'Urgence
-3 actions immédiates pour stabiliser la situation
-→ Sois direct, n'atténue pas les risques.""",
+## 🛡️ Plan de Choc (3 actions immédiates)
+Template : [Chiffre alarmant] → [Conséquence si inaction] → [Action concrète sous X jours]
+→ Sois direct. N'atténue JAMAIS les risques. Parle comme si la survie en dépendait.""",
 
     "pedagogique": """
-Explique comme à un ami intelligent mais non expert :
+Explique la finance d'entreprise comme un médecin parle à son patient :
 
-- Chaque concept → analogie concrète (médecin/patient, voiture/carburant, etc.)
+- Chaque concept SYSCOHADA → analogie concrète adaptée au Cameroun (tontine, marchand du marché central, etc.)
 - Pas de jargon sans explication simple
-- Structure : 📌 Ce que ça mesure | 📊 Le chiffre | ✅/⚠️ Ce que ça signifie
-- **En résumé :** 1 phrase simple en langage courant
+- Structure : 📌 Ce que ça mesure | 📊 Le chiffre (FCFA ou %) | ✅/⚠️ Ce que ça signifie pour toi
+- **En résumé :** 1 phrase qu'un commerçant de Douala peut comprendre
 - Propose une question de suivi adaptée au niveau débutant
-→ Rends la finance accessible et intéressante.""",
+→ Rends la finance accessible. Chaque notion doit avoir une application concrète au quotidien de la PME.""",
 }
 
 # ========================================================
@@ -335,7 +362,7 @@ def _elite_preprocess_context(ctx: dict[str, Any]) -> dict[str, Any]:
     return cleaned
 
 def _elite_format_context(ctx: dict[str, Any]) -> str:
-    """Formate le contexte en ELITE pour les LLMs."""
+    """Formate le contexte SYSCOHADA ELITE pour les LLMs."""
     ctx = _elite_preprocess_context(ctx)
     if not ctx:
         return ""
@@ -343,51 +370,69 @@ def _elite_format_context(ctx: dict[str, Any]) -> str:
     lines = []
 
     # ── En-tête ────────────────────────────────────────────
-    lines.append(f"=== ANALYSE FINANCIÈRE ELITE — {ctx.get('entreprise', 'Entreprise')} ===")
-    lines.append(f"Date : {ctx.get('createdAt', 'N/A')} | Secteur : {ctx.get('secteur', '—')} | Pays : {ctx.get('pays', '—')}")
-    lines.append(f"Plan : {ctx.get('plan', 'standard')} | Modèle : {ctx.get('model', 'RF+XGB+LGBM')}")
+    engine = ctx.get('engine', ctx.get('model', 'SYSCOHADA Engine'))
+    lines.append(f"=== ANALYSE FINANCIÈRE SYSCOHADA — {ctx.get('entreprise', 'Entreprise')} ===")
+    lines.append(f"Date : {ctx.get('createdAt', 'N/A')} | Secteur : {ctx.get('secteur', '—')} | Pays : {ctx.get('pays', 'Cameroun/CEMAC')}")
+    lines.append(f"Moteur : {engine} | Norme : SYSCOHADA / OHADA")
     lines.append("")
 
     # ── Doctor Score ───────────────────────────────────────
     score = ctx.get("score", "—")
     zone = ctx.get("zone", "vigilance")
+    ivf = ctx.get("ivf") or ctx.get("indice_vulnerabilite")
     prob = ctx.get("probabiliteDefaut")
 
     lines.append(f"DOCTOR SCORE™ : {score}/100 — {ZONE_LABELS.get(zone, zone)}")
+    if ivf is not None:
+        lines.append(f"Indice de Vulnérabilité Financière (IVF) : {ivf}/100")
     if prob is not None:
         try:
             p = float(prob)
             pct = round(p * 100, 1) if p <= 1 else round(p, 1)
-            lines.append(f"Probabilité de défaut : {pct}%")
+            lines.append(f"Probabilité de défaut estimée : {pct}%")
         except:
             pass
-    if ctx.get("confidence") or ctx.get("confiance"):
-        lines.append(f"Confiance modèle : {ctx.get('confidence') or ctx.get('confiance')}%")
     lines.append("")
 
-    # ── African Benchmarks ─────────────────────────────────
+    # ── Alertes Critiques SYSCOHADA ─────────────────────────
+    risk_factors = ctx.get("risk_factors") or ctx.get("facteurs_risque", [])
+    critical = [f for f in risk_factors if isinstance(f, dict) and f.get("severity") in ["critical", "high"]]
+    if critical:
+        lines.append("🔴 ALERTES CRITIQUES SYSCOHADA :")
+        for f in critical[:5]:
+            rule = f.get("rule", f.get("name", "—"))
+            desc = f.get("description", f.get("desc", ""))
+            impact = f.get("score_impact", f.get("impact", ""))
+            icon = "🔴" if f.get("severity") == "critical" else "🟠"
+            lines.append(f"  {icon} {rule} : {desc}")
+            if impact:
+                lines.append(f"     Impact score : {impact:+} pts")
+        lines.append("")
+
+    # ── Benchmarks CEMAC ───────────────────────────────────
     secteur = ctx.get("secteur", "default").lower()
     benchmark = AFRICAN_BENCHMARKS.get(secteur, AFRICAN_BENCHMARKS["default"])
-    lines.append("BENCHMARKS AFRICAINS (source : Banque Africaine de Développement) :")
-    lines.append(f"  Secteur : {secteur.title() if secteur != 'default' else 'Général'}")
-    lines.append(f"  Exemples d'entreprises similaires : {', '.join(benchmark['examples'])}")
+    lines.append("BENCHMARKS CEMAC/SYSCOHADA :")
+    lines.append(f"  Secteur : {secteur.title() if secteur != 'default' else 'PME Générale'}")
+    lines.append(f"  DSO cible : 60j | DSO alerte : 90j | DSO critique : 180j")
     lines.append(f"  Ratio courant cible : {benchmark['current_ratio']:.1f}")
     lines.append(f"  Ratio rapide cible : {benchmark['quick_ratio']:.1f}")
-    lines.append(f"  Ratio d'endettement cible : {benchmark['debt_to_equity']:.1f}")
+    lines.append(f"  Ratio endettement cible : {benchmark['debt_to_equity']:.1f}")
     lines.append(f"  Marge brute cible : {benchmark['gross_margin']*100:.0f}%")
     lines.append(f"  Marge nette cible : {benchmark['net_margin']*100:.0f}%")
     lines.append("")
 
-    # ── Ratios ─────────────────────────────────────────────
+    # ── Ratios SYSCOHADA ───────────────────────────────────
     ratios = ctx.get("ratios", [])
     if ratios:
-        lines.append("RATIOS FINANCIERS :")
+        lines.append("RATIOS FINANCIERS SYSCOHADA :")
         for r in ratios[:25]:
             name = r.get("name") or r.get("n") or "—"
             value = r.get("value") or r.get("v")
             bench = r.get("benchmark") or r.get("b")
             status = r.get("status")
             pct = r.get("percentile") or r.get("p")
+            account = r.get("account") or r.get("compte", "")
 
             if status is None and isinstance(pct, (int, float)):
                 status = "green" if pct >= 75 else "yellow" if pct >= 50 else "red"
@@ -395,45 +440,72 @@ def _elite_format_context(ctx: dict[str, Any]) -> str:
             icon = {"green": "✅", "yellow": "⚠️", "red": "🔴"}.get(status, "  ")
             value_str = f"{value:.2f}" if isinstance(value, (int, float)) else str(value)
             bench_str = f"{bench:.2f}" if isinstance(bench, (int, float)) else str(bench)
-            lines.append(f"  {icon} {name} : {value_str} | Benchmark : {bench_str}")
+            account_str = f" [Cpte {account}]" if account else ""
+            lines.append(f"  {icon} {name}{account_str} : {value_str} | Benchmark CEMAC : {bench_str}")
         if len(ratios) > 25:
             lines.append(f"  ... et {len(ratios)-25} autres ratios")
         lines.append("")
 
-    # ── SHAP Values ────────────────────────────────────────
-    shap = ctx.get("shapValues") or ctx.get("shap", [])
-    if shap:
-        lines.append("FACTEURS SHAP (Impact sur le score) :")
-        for s in shap[:12]:
-            feat = s.get("feature") or s.get("n") or "—"
-            val = s.get("value") or s.get("v")
-            if "direction" in s:
-                pos = s["direction"] == "positive"
-            elif "pos" in s:
-                pos = bool(s["pos"])
-            elif val is not None:
-                try:
-                    pos = float(val) > 0
-                except:
-                    pos = True
-            else:
-                pos = True
+    # ── Facteurs de Risque SYSCOHADA (tous) ────────────────
+    if risk_factors and len(risk_factors) > len(critical):
+        medium = [f for f in risk_factors if isinstance(f, dict) and f.get("severity") not in ["critical", "high"]]
+        if medium:
+            lines.append("⚠️ SIGNAUX D'ALERTE (Zone Jaune) :")
+            for f in medium[:4]:
+                rule = f.get("rule", f.get("name", "—"))
+                desc = f.get("description", f.get("desc", ""))
+                lines.append(f"  ⚠️ {rule} : {desc}")
+            lines.append("")
 
-            val_str = f"{float(val):+.4f}" if val is not None else "—"
-            dir_str = "↑ Augmente le risque" if pos else "↓ Réduit le risque"
-            lines.append(f"  {'🔴' if pos else '✅'} {feat} : {val_str} | {dir_str}")
+    # ── Recommandations du Moteur ──────────────────────────
+    recos = ctx.get("recommendations") or ctx.get("recos", [])
+    if recos:
+        lines.append("💡 RECOMMANDATIONS TERRAIN (Moteur SYSCOHADA) :")
+        for rec in recos[:6]:
+            if isinstance(rec, dict):
+                title = rec.get("title", rec.get("action", "—"))
+                detail = rec.get("detail", rec.get("description", ""))
+                urgency = rec.get("urgency", rec.get("level", ""))
+                u_icon = {"immediate": "🔴", "court_terme": "🟠", "moyen_terme": "🟡", "high": "🔴", "medium": "🟠", "low": "🟡"}.get(urgency, "💡")
+                lines.append(f"  {u_icon} {title}")
+                if detail:
+                    lines.append(f"     → {detail}")
+            elif isinstance(rec, str):
+                lines.append(f"  💡 {rec}")
         lines.append("")
+
+    # ── Données Brutes SYSCOHADA (comptes) ─────────────────
+    raw_accounts = ctx.get("comptes") or ctx.get("raw_accounts") or ctx.get("balance", {})
+    if isinstance(raw_accounts, dict) and raw_accounts:
+        key_accounts = {k: v for k, v in raw_accounts.items() if k in [
+            "411000", "401000", "512000", "571000", "706000", "707000",
+            "101000", "161000", "164000", "421000", "44", "445"
+        ]}
+        if key_accounts:
+            lines.append("COMPTES SYSCOHADA CLÉS :")
+            account_labels = {
+                "411000": "Clients (411)", "401000": "Fournisseurs (401)",
+                "512000": "Banque (512)", "571000": "Caisse (571)",
+                "706000": "Prestations de services (706)", "707000": "Ventes de marchandises (707)",
+                "101000": "Capital social (101)", "161000": "Emprunts LT (161)",
+                "164000": "Emprunts CT (164)", "421000": "Salaires à payer (421)"
+            }
+            for acc, val in key_accounts.items():
+                label = account_labels.get(acc, f"Compte {acc}")
+                val_str = f"{val:,.0f} FCFA" if isinstance(val, (int, float)) else str(val)
+                lines.append(f"  {label} : {val_str}")
+            lines.append("")
 
     # ── Trajectoire ─────────────────────────────────────────
     traj = ctx.get("trajectory", {})
     if traj.get("trend"):
         lines.append("TRAJECTOIRE FINANCIÈRE :")
-        lines.append(f"  Tendance : {traj['trend']} | Vélocité : {traj.get('velocity', 0)} pt/p")
+        lines.append(f"  Tendance : {traj['trend']} | Vélocité : {traj.get('velocity', 0)} pt/période")
         if traj.get("alert_horizon"):
-            lines.append(f"  ⚠️ Horizon d'alerte : {traj['alert_horizon']} période(s)")
+            lines.append(f"  ⚠️ Horizon d'alerte : {traj['alert_horizon']} période(s) avant zone critique")
         forecast = traj.get("forecast_scores", [])[:3]
         if forecast:
-            lines.append(f"  Prévision : {', '.join(str(x) for x in forecast)} pts")
+            lines.append(f"  Prévision scores : {', '.join(str(x) for x in forecast)} pts")
         lines.append("")
 
     return "\n".join(lines)
@@ -476,7 +548,7 @@ def _get_client(provider: Literal["openai", "anthropic", "groq", "gemini"]):
                 from groq import AsyncGroq
                 client = AsyncGroq(api_key=api_key)
                 _clients[provider] = ("groq", client)
-                log.info("✅ Groq (Llama 3.3 70B) initialisé")
+                log.info("✅ Groq (OpenAI GPT OSS 120B) initialisé")
                 return _clients[provider]
             except ImportError:
                 # Fallback: utiliser httpx directement
@@ -512,22 +584,14 @@ class EliteTTSService:
     """Service TTS ELITE pour générer des voix professionnelles."""
 
     def __init__(self):
-        self._elevenlabs_client = None
+        self._elevenlabs_api_key = os.getenv("ELEVENLABS_API_KEY", "")
         self._openai_client = None
 
     def _init_elevenlabs(self):
-        if self._elevenlabs_client:
-            return self._elevenlabs_client
-        api_key = os.getenv("ELEVENLABS_API_KEY", "")
-        if not api_key:
+        # Now we just check if API key exists, no SDK needed!
+        if not self._elevenlabs_api_key:
             return None
-        try:
-            from elevenlabs.client import ElevenLabs
-            self._elevenlabs_client = ElevenLabs(api_key=api_key)
-            return self._elevenlabs_client
-        except Exception as e:
-            log.error(f"❌ Erreur ElevenLabs : {e}")
-            return None
+        return True  # Just indicates that ElevenLabs is configured
 
     def _init_openai(self):
         if self._openai_client:
@@ -547,20 +611,29 @@ class EliteTTSService:
         self,
         text: str,
         provider: Literal["elevenlabs", "openai"] = "openai",
-        voice_id: str = "nova"
+        voice_id: str | None = None
     ) -> bytes | None:
         try:
             if provider == "elevenlabs":
-                client = self._init_elevenlabs()
-                if not client:
-                    return None
-                loop = asyncio.get_event_loop()
-                audio = await loop.run_in_executor(
-                    None,
-                    lambda: client.generate(text=text, voice=voice_id, model="eleven_multilingual_v2")
-                )
-                return b"".join(chunk for chunk in audio if chunk)
+                if not voice_id:
+                    # Use default ElevenLabs voice if none provided
+                    voice_id = "pNInz6obpgDQGcFmaJgB"  # Arthur's voice
+                if self._init_elevenlabs():
+                    try:
+                        loop = asyncio.get_event_loop()
+                        audio = await loop.run_in_executor(
+                            None,
+                            lambda: self._elevenlabs_generate_direct(text, voice_id)
+                        )
+                        return audio
+                    except Exception as e:
+                        log.warning(f"⚠️ ElevenLabs échoué, fallback sur OpenAI : {e}")
+                        # Fallback to OpenAI
+                        provider = "openai"
+                        voice_id = "nova"
             if provider == "openai":
+                if not voice_id:
+                    voice_id = "nova"
                 client = self._init_openai()
                 if not client:
                     return None
@@ -575,7 +648,48 @@ class EliteTTSService:
             log.error(f"❌ Erreur TTS {provider} : {e}")
             return None
 
+    def _elevenlabs_generate_direct(self, text: str, voice_id: str = "pNInz6obpgDQGcFmaJgB") -> bytes:
+        """Generate speech using direct HTTP request to ElevenLabs API, no SDK needed."""
+        import requests
+        model_id = os.getenv("ELEVENLABS_MODEL_ID", "eleven_multilingual_v2")
+        
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+        headers = {
+            "xi-api-key": self._elevenlabs_api_key,
+            "Content-Type": "application/json"
+        }
+        data = {
+            "text": text,
+            "model_id": model_id
+        }
+        # Add optional voice settings if available
+        stability = os.getenv("ELEVENLABS_STABILITY")
+        similarity_boost = os.getenv("ELEVENLABS_SIMILARITY_BOOST")
+        style = os.getenv("ELEVENLABS_STYLE")
+        use_speaker_boost = os.getenv("ELEVENLABS_USE_SPEAKER_BOOST")
+        
+        voice_settings = {}
+        if stability:
+            voice_settings["stability"] = float(stability)
+        if similarity_boost:
+            voice_settings["similarity_boost"] = float(similarity_boost)
+        if style:
+            voice_settings["style"] = float(style)
+        if use_speaker_boost is not None:
+            voice_settings["use_speaker_boost"] = use_speaker_boost.lower() in ("true", "1", "yes")
+        if voice_settings:
+            data["voice_settings"] = voice_settings
+        
+        resp = requests.post(url, headers=headers, json=data, timeout=30)
+        resp.raise_for_status()
+        return resp.content
+
     def list_voices(self, provider: Literal["elevenlabs", "openai"] = "openai"):
+        # If elevenlabs is requested and configured, still return our predefined voices (since API requires voices_read permission which we might not have)
+        if provider == "elevenlabs" and self._init_elevenlabs():
+            return ELITE_VOICES.get("elevenlabs", {})
+        elif provider == "elevenlabs":
+            provider = "openai"
         return ELITE_VOICES.get(provider, {})
 
 # ========================================================
@@ -878,7 +992,7 @@ class EliteChatService:
         return response.content[0].text.strip(), "Anthropic · Claude 3.5 Sonnet"
 
     async def _call_groq(self, client, message, history, ctx_str, system):
-        log.info(f"🟢 Appel Groq")
+        log.info(f"🟢 Appel Groq | client type: {type(client).__name__} | is_str: {isinstance(client, str)}")
         
         # Si c'est un fallback httpx
         if isinstance(client, str):
@@ -901,19 +1015,21 @@ class EliteChatService:
                     "https://api.groq.com/openai/v1/chat/completions",
                     headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                     json={
-                        "model": "llama-3.3-70b-versatile",
+                        "model": "openai/gpt-oss-120b",
                         "messages": messages,
-                        "temperature": 0.3,
-                        "max_tokens": 1200
+                        "temperature": 0.2,
+                        "max_tokens": 4000
                     }
                 )
                 if response.status_code != 200:
-                    log.error(f"❌ Groq API error: {response.status_code} - {response.text}")
+                    log.error(f"Groq API error: {response.status_code} - {response.text}")
                     raise Exception(f"Groq API error: {response.status_code}")
                 data = response.json()
-                return data["choices"][0]["message"]["content"].strip(), "Groq · Llama 3.3 70B (httpx)"
+                log.info(f"Groq fallback (httpx) retourna une reponse")
+                return data["choices"][0]["message"]["content"].strip(), "Groq - Kimi K2 (httpx)"
         
-        # Sinon, utiliser le client groq normal
+        # Client AsyncGroq natif
+        log.info(f"🟢 Envoi à Groq (client natif) : envoi du message")
         messages = [{"role": "system", "content": system}]
         seen = set()
         for turn in history[-20:]:
@@ -923,11 +1039,10 @@ class EliteChatService:
                 role = "assistant" if turn.get("role") == "assistant" else "user"
                 messages.append({"role": role, "content": content})
                 seen.add(key)
-
         user_content = f"{ctx_str}\n\n[QUESTION]\n{message}" if ctx_str else message
         messages.append({"role": "user", "content": user_content})
-
-        log.info(f"🟢 Envoi à Groq : {len(messages)} messages")
+        
+        log.info(f"🟢 Envoi à Groq (client natif) : {len(messages)} messages")
         
         tools = [
             {
@@ -981,10 +1096,10 @@ class EliteChatService:
         max_iterations = 3
         for _ in range(max_iterations):
             response = await client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="openai/gpt-oss-120b",
                 messages=messages,
-                temperature=0.3,
-                max_tokens=1200,
+                temperature=0.2,
+                max_tokens=4000,
                 tools=tools,
                 tool_choice="auto"
             )
@@ -992,7 +1107,7 @@ class EliteChatService:
             response_message = response.choices[0].message
             
             if not response_message.tool_calls:
-                return response_message.content.strip(), "Groq · Llama 3.3 70B (Agentic)"
+                return response_message.content.strip(), "Groq - Kimi K2 (Agentic)"
                 
             messages.append(response_message)
             
@@ -1012,7 +1127,7 @@ class EliteChatService:
                     "content": json.dumps(tool_result)
                 })
 
-        return "J'ai dû interrompre mon analyse approfondie. Pourriez-vous reformuler votre question ?", "Groq · Llama 3.3 70B (Timeout)"
+        return "J'ai du interrompre mon analyse approfondie. Pourriez-vous reformuler votre question ?", "Groq - Kimi K2 (Timeout)"
 
     async def _call_gemini(self, model, message, history, ctx_str, system):
         gem_hist = []

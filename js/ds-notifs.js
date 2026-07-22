@@ -68,7 +68,7 @@ window.DS_NOTIFS = {
           await addDoc(collection(db, 'notifications', uid, 'items'), {
             type: 'analyse',
             title: `Analyse terminée — ${notifTitle}`,
-            body: `Score ${analyse.score}/100 · Zone ${analyse.zone ?? '—'} · Modèle ${analyse.model ?? 'ML'}`,
+            body: `Score ${analyse.score}/100 · Zone ${analyse.zone ?? '—'} · Moteur SYSCOHADA`,
             icon: 'fa-circle-check',
             color: analyse.score >= 75 ? 'var(--success)' : analyse.score >= 50 ? 'var(--amber)' : 'var(--error)',
             analyseId: analyse.id, read: false, createdAt: serverTimestamp(),
@@ -410,7 +410,10 @@ window.DS_NOTIFS = {
       Promise.all(
         idsToDelete.map(id =>
           deleteDoc(doc(this._state._db, 'notifications', uid, 'items', id))
-            .catch(e => console.warn('[deleteAll] id=' + id, e))
+            .catch(e => {
+              // Silencieux - suppression locale déjà effectuée
+              // Les permissions Firestore peuvent limiter les suppressions
+            })
         )
       ).then(() => {
         // Nettoyer _deletedIds après 60s
@@ -570,7 +573,7 @@ window.DS_NOTIFS = {
     const prob = Math.round((100 - score) * ({ saine: .6, vigilance: 1, risque: 1.3, critique: 1.6 }[zone] || 1) * .85);
     const date = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
     const titre = `Doctor Smile — ${a.entreprise ?? 'Analyse financière'}`;
-    const texte = `Score ${score}/100 · ${zc.l} · Prob. défaut ${prob}% · Modèle ${a.model ?? 'ML'} · ${date}`;
+    const texte = `Score ${score}/100 · ${zc.l} · Prob. défaut ${prob}% · Moteur SYSCOHADA · ${date}`;
     const url = window.location.href;
 
     const { normalizeRatios, normalizeRecos } = window.DS_RENDER;

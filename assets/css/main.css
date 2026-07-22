@@ -283,58 +283,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ---------------------------------------------------------------------------
-   BUTTONS
+   BUTTONS — hérités de components.css, surcharges minimes uniquement
 --------------------------------------------------------------------------- */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.8rem 2rem;
-    border-radius: var(--radius-full);
-    font-size: 0.95rem;
-    font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-    border: none;
-    transition: all var(--transition-normal);
-    position: relative;
-    overflow: hidden;
-}
 
-.btn-primary {
-    background: var(--gradient-primary);
-    color: white;
-    box-shadow: var(--shadow-md);
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-glow);
-}
-
-.btn-secondary {
-    background: transparent;
-    color: var(--primary-light);
-    border: 2px solid var(--primary);
-}
-
-.btn-secondary:hover {
-    background: var(--primary);
-    color: white;
-}
-
-.btn-glass {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    color: var(--text);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.btn-glass:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.3);
-}
+/* Les styles .btn, .btn-primary, .btn-secondary, .btn-glass sont définis
+   dans components.css. Cette section ne contient que des surcharges
+   spécifiques à main.css si nécessaire. */
 
 /* ---------------------------------------------------------------------------
    INPUTS & FORMS

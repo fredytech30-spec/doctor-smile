@@ -1,13 +1,13 @@
 """
 ==========================================
-ROUTER — rgpd.py
+ROUTER — confidentialite.py (ex-rgpd.py)
 DOCTOR SMILE Backend v2.0
 ==========================================
 
 Routes :
-  POST /rgpd/delete-request  → Demande de suppression de compte (RGPD Art. 17)
+  POST /confidentialite/delete-request  → Demande de suppression de compte (Loi n° 2010/012)
 
-Conforme RGPD : délai 30 jours, email de confirmation, log Firestore.
+Conforme Loi Camerounaise n° 2010/012 du 21 décembre 2010.
 """
 
 from __future__ import annotations
@@ -19,9 +19,9 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
-log = logging.getLogger("doctorsmile.rgpd")
+log = logging.getLogger("doctorsmile.confidentialite")
 
-router = APIRouter(prefix="/rgpd", tags=["RGPD"])
+router = APIRouter(prefix="/confidentialite", tags=["Confidentialité"])
 
 APP_URL       = os.getenv("APP_URL",      "https://doctorsmile-d8d8f.web.app")
 FROM_EMAIL    = os.getenv("FROM_EMAIL",   "Doctor Smile <noreply@doctorsmile.io>")
@@ -45,7 +45,7 @@ class DeleteRequestPayload(BaseModel):
 def _send_confirmation_email(email: str, uid: str) -> None:
     """Envoie un email de confirmation de demande de suppression."""
     if not _RESEND_OK:
-        log.info("[RGPD] Mode dev — email confirmation non envoyé à %s", email)
+        log.info("[Confidentialité] Mode dev — email confirmation non envoyé à %s", email)
         return
 
     deadline = datetime.now(timezone.utc).strftime("%d/%m/%Y")
@@ -69,7 +69,7 @@ def _send_confirmation_email(email: str, uid: str) -> None:
           </h1>
           <p style="font-size:12px;color:rgba(255,255,255,.5);line-height:1.7;margin:0 0 20px 0;">
             Nous avons bien reçu votre demande de suppression de compte Doctor Smile.
-            Conformément au <strong style="color:#fff;">RGPD Art. 17</strong>, vos données
+            Conformément à la <strong style="color:#fff;">Loi Camerounaise n° 2010/012</strong>, vos données
             seront supprimées dans un délai maximum de <strong style="color:#fff;">30 jours</strong>.
           </p>
 
@@ -120,11 +120,11 @@ def _send_confirmation_email(email: str, uid: str) -> None:
         resend.Emails.send({
             "from":    FROM_EMAIL,
             "to":      [DPO_EMAIL],
-            "subject": f"[RGPD] Nouvelle demande de suppression — UID {uid[:12]}",
+            "subject": f"[Confidentialité] Nouvelle demande de suppression — UID {uid[:12]}",
             "html":    f"<p>UID : {uid}<br>Email : {email}<br>Date : {datetime.now(timezone.utc).isoformat()}</p>",
         })
     except Exception as e:
-        log.error("[RGPD] Erreur email confirmation : %s", e)
+        log.error("[Confidentialité] Erreur email confirmation : %s", e)
 
 
 async def _log_deletion_request(uid: str, email: str | None, reason: str) -> None:
@@ -143,9 +143,9 @@ async def _log_deletion_request(uid: str, email: str | None, reason: str) -> Non
             "requestedAt": datetime.now(timezone.utc).isoformat(),
             "processBy":   "30 jours",
         })
-        log.info("[RGPD] Demande suppression enregistrée Firestore — uid=%s", uid)
+        log.info("[Confidentialité] Demande suppression enregistrée Firestore — uid=%s", uid)
     except Exception as e:
-        log.warning("[RGPD] Firestore log échoué : %s", e)
+        log.warning("[Confidentialité] Firestore log échoué : %s", e)
 
     # Marquer aussi dans le document utilisateur
     try:
@@ -162,11 +162,11 @@ async def _log_deletion_request(uid: str, email: str | None, reason: str) -> Non
 @router.post("/delete-request")
 async def request_deletion(payload: DeleteRequestPayload, request: Request):
     """
-    Enregistre une demande de suppression de compte RGPD.
+    Enregistre une demande de suppression de compte.
     - Log dans Firestore (collection deletion_requests)
     - Email de confirmation à l'utilisateur
     - Email de notification au DPO
-    Conforme RGPD Art. 17 (droit à l'effacement).
+    Conforme Loi Camerounaise n° 2010/012.
     """
     # Récupérer l'UID depuis le token Firebase (si auth middleware disponible)
     uid = payload.uid
@@ -192,7 +192,7 @@ async def request_deletion(payload: DeleteRequestPayload, request: Request):
             user = firebase_service.auth.get_user(uid)
             email = user.email
     except Exception as e:
-        log.warning("[RGPD] Email non récupéré : %s", e)
+        log.warning("[Confidentialité] Email non récupéré : %s", e)
 
     # Enregistrer dans Firestore
     await _log_deletion_request(uid, email, payload.reason)
@@ -201,11 +201,11 @@ async def request_deletion(payload: DeleteRequestPayload, request: Request):
     if email:
         _send_confirmation_email(email, uid)
 
-    log.info("[RGPD] Demande suppression — uid=%s email=%s", uid, email or "inconnu")
+    log.info("[Confidentialité] Demande suppression — uid=%s email=%s", uid, email or "inconnu")
 
     return {
         "status":    "ok",
-        "message":   "Demande enregistrée — traitement sous 30 jours (RGPD Art. 17)",
+        "message":   "Demande enregistrée — traitement sous 30 jours (Loi n° 2010/012)",
         "uid":       uid[:12] + "…",
         "dpo":       DPO_EMAIL,
     }

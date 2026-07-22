@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Backend Connection</title>
+</head>
+<body>
+    <h1>Test Backend Connection</h1>
+    <button onclick="testDirectBackend()">Test Direct Backend (127.0.0.1:8000)</button>
+    <button onclick="testNextjsRewrite()">Test Next.js Rewrite (/auth/2fa/send)</button>
+    <div id="result"></div>
+    
+    <script>
+        async function testDirectBackend() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing direct backend...';
+            
+            try {
+                console.log('🔗 Testing http://127.0.0.1:8000/auth/2fa/send (direct)');
+                const response = await fetch('http://127.0.0.1:8000/auth/2fa/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        uid: 'test-uid', 
+                        email: 'test@test.com', 
+                        name: 'Test User' 
+                    }),
+                });
+                
+                console.log('🔗 Response status:', response.status);
+                console.log('🔗 Response headers:', Object.fromEntries(response.headers));
+                
+                const text = await response.text();
+                console.log('🔗 Response text:', text);
+                
+                let data;
+                try {
+                    data = JSON.parse(text);
+                    console.log('🔗 Response data:', data);
+                } catch (e) {
+                    console.log('🔗 Response is not JSON, raw text:', text);
+                    data = { rawText: text };
+                }
+                
+                resultDiv.innerHTML = `
+                    <h3>${response.ok ? 'Success!' : 'Error!'}</h3>
+                    <p>Status: ${response.status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('❌ Error:', error);
+                resultDiv.innerHTML = `
+                    <h3>Error!</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+
+        async function testNextjsRewrite() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing Next.js rewrite...';
+            
+            try {
+                console.log('🔗 Testing /auth/2fa/send via Next.js rewrite');
+                const response = await fetch('/auth/2fa/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        uid: 'test-uid', 
+                        email: 'test@test.com', 
+                        name: 'Test User' 
+                    }),
+                });
+                
+                console.log('🔗 Response status:', response.status);
+                console.log('🔗 Response headers:', Object.fromEntries(response.headers));
+                
+                const text = await response.text();
+                console.log('🔗 Response text:', text);
+                
+                let data;
+                try {
+                    data = JSON.parse(text);
+                    console.log('🔗 Response data:', data);
+                } catch (e) {
+                    console.log('🔗 Response is not JSON, raw text:', text);
+                    data = { rawText: text };
+                }
+                
+                resultDiv.innerHTML = `
+                    <h3>${response.ok ? 'Success!' : 'Error!'}</h3>
+                    <p>Status: ${response.status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('❌ Error:', error);
+                resultDiv.innerHTML = `
+                    <h3>Error!</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

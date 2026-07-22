@@ -16,9 +16,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <!-- CSS : tokens → composants → page-spécifique -->
-  <link rel="stylesheet" href="assets/css/variables.css">
-  <link rel="stylesheet" href="assets/css/components.css">
+  <!-- CSS : Design System unifié → composants → page-spécifique -->
+  <link rel="stylesheet" href="assets/css/design-system.css">
+  <link rel="stylesheet" href="assets/css/ui-components.css">
   <link rel="stylesheet" href="assets/css/intro.css">
 </head>
 <body>
@@ -62,11 +62,11 @@
       <span class="char gold" style="--fx:-320px;--fy:950px;--fz:-1250px;--rx:82deg;--ry:-62deg;--rz:-28deg;--delay:1.44s;--dur:1.48s">e</span>
     </div>
 
-    <div id="tagline">Médecin IA · Santé Financière · ML Ensemble · SHAP Explicable</div>
+    <div id="tagline">Médecin IA · Santé Financière · OHADA/SYSCOHADA · Analyse Déterministe</div>
 
     <div id="metrics">
       <div class="metric"><div class="mval" id="m1">0%</div><div class="mlbl">Précision IA</div></div>
-      <div class="metric"><div class="mval g" id="m2">0</div><div class="mlbl">Modèles Ensemble</div></div>
+      <div class="metric"><div class="mval g" id="m2">0</div><div class="mlbl">Règles OHADA</div></div>
       <div class="metric"><div class="mval" id="m3">0ms</div><div class="mlbl">Temps Analyse</div></div>
       <div class="metric"><div class="mval g" id="m4">0</div><div class="mlbl">Ratios Financiers</div></div>
     </div>
@@ -77,9 +77,9 @@
   </button>
 
   <div id="enterBtn" class="show">
-    <button onclick="launchApp()"> Lancer Doctor Smile ✨ </button>
+    <button type="button" onclick="launchApp()">Lancer Doctor Smile</button>
   </div>
-  <div id="status" class="show">Système initialisé · Modèles chargés · Prêt</div>
+  <div id="status" class="show">Systeme initialise · Modeles charges · Pret</div>
   <div id="flash"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

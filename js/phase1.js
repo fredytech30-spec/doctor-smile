@@ -474,8 +474,11 @@ const P1_EMAIL = (() => {
 
   async function _post(endpoint, body) {
     try {
-      const { fetchWithAuth } = await import('./utils.js');
-      const r = await fetchWithAuth(`${BASE}/email/${endpoint}`, {
+      // Use window.fetchWithAuth since it's exported as a global function
+      if (typeof window.fetchWithAuth !== 'function') {
+        await import('./utils.js');
+      }
+      const r = await window.fetchWithAuth(`${BASE}/email/${endpoint}`, {
         method: 'POST',
         body:   JSON.stringify(body),
       });
@@ -551,7 +554,7 @@ const P1_BILLING = (() => {
 
     const plan    = window.S?.abonnement?.plan || 'standard';
     const planLbl = { standard:'Standard', premium:'Premium', extra:'Extra' }[plan] ?? plan;
-    const priceMap = { standard:0, premium:79, extra:159 };
+    const priceMap = { standard:0, premium:50000, extra:100000 };
     const price    = priceMap[plan] ?? 0;
     const nextDate = _nextBillingDate();
 
@@ -603,7 +606,7 @@ const P1_BILLING = (() => {
             <button onclick="window.DS_PAYMENT?.showPaymentModal(this.dataset.plan);document.getElementById('_p1_billing_modal')?.remove()" data-plan="${plan}"
               class="p1-btn p1-btn-gold" style="width:100%;justify-content:center;display:flex;gap:6px;">
               <i class="fa-solid fa-rocket"></i>
-              Passer ${plan === 'standard' ? 'Premium · 79 FCFA/mois' : 'Extra · 159 FCFA/mois'}
+              Passer ${plan === 'standard' ? 'Premium · 50 000 FCFA/mois' : 'Extra · 100 000 FCFA/mois'}
             </button>
           </div>` : ''}
         </div>
@@ -622,7 +625,7 @@ const P1_BILLING = (() => {
                 <div class="p1-invoice-name">Plan ${inv.plan}</div>
                 <div class="p1-invoice-date">${inv.date}</div>
               </div>
-              <div class="p1-invoice-amount">${inv.amount}€</div>
+              <div class="p1-invoice-amount">${inv.amount} FCFA</div>
               ${inv.url ? `<a href="${inv.url}" target="_blank" class="p1-btn p1-btn-neutral"
                 style="padding:5px 10px;text-decoration:none;font-size:8px;">
                 <i class="fa-solid fa-download"></i>
@@ -993,7 +996,7 @@ const P1_RGPD = (() => {
         <div style="padding:14px;background:var(--violet-hover);border-radius:10px;
           border:1px solid var(--violet-border);margin-bottom:20px;
           font-size:10px;color:var(--text-2);line-height:1.7;">
-          Conformément au <strong style="color:var(--violet-3);">Règlement Général sur la Protection des Données (RGPD)</strong>,
+          Conformément à la <strong style="color:var(--violet-3);">Loi n° 2010/012 du 21 déc. 2010</strong>,
           vous avez le droit d'accéder à vos données, de les exporter et de demander leur suppression.
         </div>
 
@@ -1027,7 +1030,7 @@ const P1_RGPD = (() => {
 
         <div style="margin-top:14px;font-size:9px;color:var(--text-hint);text-align:center;line-height:1.6;">
           Doctor Smile · DPO : privacy@doctorsmile.io<br>
-          Délai de réponse : 30 jours maximum (RGPD Art. 12)
+          Délai de réponse : 30 jours maximum (Loi n° 2010/012)
         </div>
       </div>`;
 
@@ -1046,8 +1049,8 @@ const P1_RGPD = (() => {
       const data = {
         _meta: {
           exportedAt:  new Date().toISOString(),
-          exportedBy:  'Doctor Smile™ — Conformité RGPD',
-          regulation:  'RGPD / GDPR Art. 20 — Droit à la portabilité',
+          exportedBy:  'Doctor Smile™ — Conformité Loi n° 2010/012',
+          regulation:  'Loi n° 2010/012 du 21 déc. 2010 — Droit à la portabilité',
           userId:      uid,
           version:     '1.0',
         },
@@ -1118,7 +1121,7 @@ const P1_RGPD = (() => {
     try {
       const { fetchWithAuth } = await import('./utils.js');
       const BASE = window.API_BASE || 'http://127.0.0.1:8000';
-      await fetchWithAuth(`${BASE}/rgpd/delete-request`, { method:'POST' }).catch(() => {});
+      await fetchWithAuth(`${BASE}/confidentialite/delete-request`, { method:'POST' }).catch(() => {});
 
       const uid = await _p1uid();
       try { localStorage.setItem(`ds_delete_req_${uid}`, new Date().toISOString()); } catch {}
@@ -1254,9 +1257,9 @@ function _injectParamSections() {
       </div>
     </div>
 
-    <!-- ═══ CONFIDENTIALITÉ & RGPD ══════════════════════════════ -->
+    <!-- ═══ CONFIDENTIALITÉ & LOI CAMEROUNAISE n° 2010/012 ══════════════════════════════ -->
     <div class="param-section">
-      <div class="param-section-title">🛡️ Confidentialité &amp; RGPD</div>
+      <div class="param-section-title">🛡️ Confidentialité &amp; Loi Camerounaise n° 2010/012</div>
       <div class="param-row">
         <div class="param-label">
           Mes données personnelles
@@ -2122,7 +2125,7 @@ const P1_AGENT = (() => {
       { key: 'roa',                  label: 'ROA (rentabilité actifs)' },
       { key: 'roe',                  label: 'ROE (rentabilité capitaux)' },
       { key: 'marge_ebitda',         label: 'Marge EBITDA (%)' },
-      { key: 'altman_z',             label: 'Altman Z-Score' },
+      { key: 'ivf',                  label: 'Indice de vulnérabilité financière (IVF/100)' },
     ];
     o.innerHTML = `
       <div class="p1-modal" style="max-width:420px;">
@@ -2363,6 +2366,11 @@ function _hookRenderParametres() {
   const views = window.DS_VIEWS;
   if (!views || views._p1hooked) return;
   views._p1hooked = true;
+
+  if (!views.renderParametres || typeof views.renderParametres !== 'function') {
+    console.warn('[P1] renderParametres non disponible, injection différée');
+    return;
+  }
 
   const orig = views.renderParametres.bind(views);
   views.renderParametres = function() {
